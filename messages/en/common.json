@@ -1,0 +1,55 @@
+{
+  "appName": "BetBeat",
+  "tagline": "Request your song from the DJ.",
+  "actions": {
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "undo": "Undo",
+    "retry": "Try again",
+    "share": "Share",
+    "seeAll": "See all"
+  },
+  "status": {
+    "loading": "Loading…",
+    "offline": "Offline",
+    "reconnecting": "Connecting…",
+    "live": "Live"
+  },
+  "money": {
+    "from": "from {price}",
+    "youReceive": "You receive {amount}",
+    "refunded": "We refunded {amount}",
+    "vatIncluded": "VAT included"
+  },
+  "time": {
+    "aboutMinutes": "~{minutes} min",
+    "minutesShort": "{minutes} min",
+    "untilEndOfSet": "until the end of the set"
+  },
+  "tiers": {
+    "QUEUE": "In Queue",
+    "SOON": "Soon",
+    "NEXT": "Up Next"
+  },
+  "fit": {
+    "fits": "Fits the set",
+    "possible": "Possible transition",
+    "off_style": "Off style"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "withCode": "Something went wrong (ref. {code}). Please try again.",
+    "network": "You're offline. Check your connection and try again.",
+    "rateLimited": "Too many requests. Wait {seconds}s."
+  },
+  "devIndex": {
+    "title": "BetBeat — development",
+    "guest": "Guest app",
+    "cockpit": "DJ Cockpit",
+    "display": "Venue display",
+    "console": "Console",
+    "hint": "Enter the guest app with the Pista zone QR."
+  }
+}

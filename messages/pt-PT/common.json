@@ -1,0 +1,55 @@
+{
+  "appName": "BetBeat",
+  "tagline": "Pede a tua música ao DJ.",
+  "actions": {
+    "back": "Voltar",
+    "close": "Fechar",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "undo": "Desfazer",
+    "retry": "Tentar novamente",
+    "share": "Partilhar",
+    "seeAll": "Ver tudo"
+  },
+  "status": {
+    "loading": "A carregar…",
+    "offline": "Sem ligação",
+    "reconnecting": "A ligar…",
+    "live": "Ao vivo"
+  },
+  "money": {
+    "from": "desde {price}",
+    "youReceive": "Recebes {amount}",
+    "refunded": "Devolvemos {amount}",
+    "vatIncluded": "IVA incluído"
+  },
+  "time": {
+    "aboutMinutes": "~{minutes} min",
+    "minutesShort": "{minutes} min",
+    "untilEndOfSet": "até ao fim do set"
+  },
+  "tiers": {
+    "QUEUE": "Na Fila",
+    "SOON": "Em Breve",
+    "NEXT": "A Seguir"
+  },
+  "fit": {
+    "fits": "Encaixa no set",
+    "possible": "Transição possível",
+    "off_style": "Fora do estilo"
+  },
+  "errors": {
+    "generic": "Algo correu mal. Tenta novamente.",
+    "withCode": "Algo correu mal (ref. {code}). Tenta novamente.",
+    "network": "Sem ligação. Verifica a internet e tenta novamente.",
+    "rateLimited": "Muitos pedidos seguidos. Aguarda {seconds} s."
+  },
+  "devIndex": {
+    "title": "BetBeat — desenvolvimento",
+    "guest": "App do Convidado",
+    "cockpit": "Cockpit do DJ",
+    "display": "Ecrã da Casa",
+    "console": "Consola",
+    "hint": "Entra pela app do convidado com o QR da zona Pista."
+  }
+}

@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# production
+build/
+dist/
+
+# env — secrets never reach git (B12.1)
+.env
+.env.*
+!.env.example
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# testing
+coverage/
+playwright-report/
+test-results/
+tests/e2e/screenshots/
+
+# storybook
+storybook-static/
+
+# misc
+*.log
+.DS_Store
+*.tsbuildinfo
+.vercel

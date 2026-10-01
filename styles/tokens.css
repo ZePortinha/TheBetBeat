@@ -1,0 +1,86 @@
+/* ──────────────────────────────────────────────────────────────────
+   BetBeat design tokens — single source of truth (BRIEF B10).
+   Exposed to Tailwind via @theme inline in app/globals.css.
+   Dark-only interface: these are the only colors in the product.
+   ────────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Backgrounds (B10.2) ── */
+  --color-bg-base: #0a0806;
+  --color-bg-raised: #110e0b;
+  --color-surface-1: #18140f; /* cards */
+  --color-surface-2: #211b15; /* elevated, active */
+  --color-surface-3: #2b241c; /* inputs, secondary */
+  --color-line-subtle: rgba(255, 225, 170, 0.07);
+  --color-line-strong: rgba(255, 225, 170, 0.14);
+
+  /* ── Text ── */
+  --color-text-primary: #f6f0e6;
+  --color-text-secondary: #b9ae9c;
+  --color-text-tertiary: #948a79; /* only on bg, surface-1, surface-2 */
+  --color-text-on-accent: #1a1206;
+
+  /* ── Brand & states ── */
+  --color-gold-500: #f2c230; /* primary action, prices, active */
+  --color-gold-300: #f8da7a; /* highlight */
+  --color-gold-700: #b8901a; /* pressed */
+  --color-ember-500: #ff5340; /* live, urgency, destructive */
+  --color-amber-500: #ffa31a; /* warning, deadline ending */
+  --color-green-500: #3dd68c; /* confirmed, fits, online */
+
+  /* ── Effects ── */
+  --glow-gold: 0 0 0 1px rgba(242, 194, 48, 0.45), 0 8px 32px rgba(242, 194, 48, 0.22);
+  --glow-ember: 0 0 24px rgba(255, 83, 64, 0.35);
+  /* Heat gradient — demand indicators & progress only. */
+  --gradient-heat: linear-gradient(90deg, #f2c230 0%, #ffa31a 50%, #ff5340 100%);
+
+  /* ── Radii (B10.4) ── */
+  --radius-chip: 8px;
+  --radius-button: 12px;
+  --radius-cover: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 24px;
+  --radius-pill: 9999px;
+
+  /* ── Translucent material (B10.4) ── */
+  --material-bg: rgba(10, 8, 6, 0.72);
+  --material-blur: blur(20px) saturate(180%);
+
+  /* ── Type scale (rem; respects system text size) ── */
+  --text-12: 0.75rem;
+  --text-14: 0.875rem;
+  --text-16: 1rem;
+  --text-20: 1.25rem;
+  --text-24: 1.5rem;
+  --text-32: 2rem;
+  --text-40: 2.5rem;
+  --text-56: 3.5rem;
+  --text-80: 5rem; /* display screen only */
+
+  /* ── Tracking by size (B10.3) — never one value for all sizes ── */
+  --tracking-display: -0.02em; /* ≥ 40px */
+  --tracking-heading: -0.01em; /* 24–32px */
+  --tracking-body: 0;
+  --tracking-small: 0.01em;
+  --tracking-label: 0.06em; /* uppercase labels */
+
+  /* ── Leading ── */
+  --leading-title: 1.1;
+  --leading-body: 1.5;
+  --leading-dense: 1.3; /* cockpit dense UI */
+
+  /* ── Font stacks ── */
+  --font-ui:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* --font-display / --font-editorial are set by next/font on <html>. */
+
+  /* ── Motion: tween durations & easing (B10.6) ── */
+  --duration-instant: 100ms;
+  --duration-fast: 180ms;
+  --duration-base: 280ms;
+  --duration-slow: 480ms;
+  --duration-ambient: 1600ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard-reverse: cubic-bezier(1, 0, 0.8, 1); /* mirrored return path */
+
+  /* ── Spacing grid: 4pt (4 8 12 16 24 32 48 64) — use Tailwind steps ── */
+}

@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Map tokens into Tailwind utility names (Tailwind v4 CSS-first config). */
+@theme inline {
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-raised: var(--color-bg-raised);
+  --color-surface-1: var(--color-surface-1);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-3: var(--color-surface-3);
+  --color-line-subtle: var(--color-line-subtle);
+  --color-line-strong: var(--color-line-strong);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-on-accent: var(--color-text-on-accent);
+  --color-gold-300: var(--color-gold-300);
+  --color-gold-500: var(--color-gold-500);
+  --color-gold-700: var(--color-gold-700);
+  --color-ember-500: var(--color-ember-500);
+  --color-amber-500: var(--color-amber-500);
+  --color-green-500: var(--color-green-500);
+
+  --radius-chip: var(--radius-chip);
+  --radius-button: var(--radius-button);
+  --radius-cover: var(--radius-cover);
+  --radius-card: var(--radius-card);
+  --radius-sheet: var(--radius-sheet);
+
+  --font-ui: var(--font-ui);
+  --font-display: var(--font-display, var(--font-ui));
+  --font-editorial: var(--font-editorial, var(--font-ui));
+
+  --shadow-glow-gold: var(--glow-gold);
+  --shadow-glow-ember: var(--glow-ember);
+}
+
+/* ── Base ───────────────────────────────────────────────────────── */
+html {
+  background: var(--color-bg-base);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-optical-sizing: auto;
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prices, times, BPM: tabular figures (B10.3). */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Uppercase label style (B10.3). */
+.label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--text-12);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+/* ── Translucent material (B10.4) ───────────────────────────────── */
+.material {
+  background: var(--material-bg);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  border-top: 1px solid var(--color-line-strong);
+}
+
+/* Content → floating chrome: fade with a mask, not a 1px divider. */
+.scroll-fade-top {
+  mask-image: linear-gradient(to bottom, transparent 0, black 24px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 24px);
+}
+
+/* ── Skeleton shimmer (1.4s) ────────────────────────────────────── */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-chip);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 225, 170, 0.06),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ── Beat Pulse ring (signature; period set via --beat-period) ──── */
+.beat-pulse {
+  --beat-period: 0.5s;
+  position: relative;
+}
+.beat-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1.5px solid var(--color-gold-500);
+  opacity: 0;
+  animation: beat-ring var(--beat-period) ease-out infinite;
+  pointer-events: none;
+}
+@keyframes beat-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+/* ── System preferences (B10.4 / B10.6) ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .beat-pulse::before {
+    animation: none;
+    opacity: 0.35;
+    transform: none;
+  }
+  .skeleton::after {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .material {
+    background: var(--color-bg-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .material {
+    background: var(--color-bg-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--color-line-strong);
+  }
+}
+
+/* ── Focus (console keyboard support, AA) ───────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-gold-500);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbars stay discreet in the dark UI ────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-3) transparent;
+}

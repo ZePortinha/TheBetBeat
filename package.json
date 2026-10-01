@@ -1,0 +1,68 @@
+{
+  "name": "betbeat",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.8.1",
+  "scripts": {
+    "dev": "next dev",
+    "worker": "tsx worker/index.ts",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "db:reset": "supabase db reset",
+    "db:audit": "tsx scripts/db-audit.ts",
+    "simulate": "tsx scripts/simulate.ts",
+    "prepare": "node scripts/install-hooks.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.58.0",
+    "lucide-react": "^0.544.0",
+    "motion": "^12.23.0",
+    "next": "^15.5.4",
+    "next-intl": "^4.3.0",
+    "pg": "^8.16.0",
+    "pg-boss": "^10.3.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "server-only": "^0.0.1",
+    "vaul": "^1.1.2",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.55.0",
+    "@storybook/nextjs-vite": "^9.1.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "eslint": "^9.36.0",
+    "eslint-config-next": "^15.5.4",
+    "fast-check": "^4.3.0",
+    "jsdom": "^27.0.0",
+    "prettier": "^3.6.0",
+    "storybook": "^9.1.0",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "esbuild",
+      "sharp"
+    ]
+  }
+}
