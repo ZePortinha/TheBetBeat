@@ -17,27 +17,49 @@
 
 ## Next step (PAUSED 2026-10-02 at the owner's request — usage limit)
 
-Phases 4–7 were being built by 4 parallel agents (one vertical slice each:
-pages + API + translations + E2E spec). They were STOPPED mid-flight; their
-partial work is committed as a WIP checkpoint (typecheck/lint NOT yet green):
+Overall ≈ 75%. Phases 4–7 are ~85% built (WIP commits `4bcbb98`, `1f2ff25`;
+typecheck/lint NOT yet verified green after the last agent round).
 
-- Guest (`app/(guest)`, `app/api/guest`, `app/api/webhooks`, `app/api/dev`,
-  `messages/*/guest.json`, `components/guest`): server/API layer written;
-  stopped while starting the client components ("shared utilities first").
-- Cockpit (`app/(cockpit)`, `app/api/cockpit`, `components/cockpit`,
-  `messages/pt-PT/cockpit.json`): Ao Vivo/actions/offline done; stopped at the
-  Definições screen; `scripts/simulate.ts`, `public/sw-cockpit.js`, E2E spec
-  may be missing.
-- Display (`app/(display)`, `app/api/display`, `components/display`): stopped
-  while clearing a corrupted `.next` cache (`rm -rf .next` before `pnpm dev`).
-- Console (`app/(console)`, `app/api/console`, `components/console`): venue
-  panel done; stopped at Admin BetBeat pages (casas).
+Per surface — what exists / what is missing:
+
+- **Guest** (`app/(guest)`, `app/api/guest`, `app/api/webhooks`, `app/api/dev`,
+  `components/guest`, `messages/*/guest.json`): all API routes + webhook + dev
+  PSP panel; pages for session, search, track/tier, requests/[id] tracking,
+  requests list, queue ("Agora na pista"), top. Agent was stopped during the
+  curl smoke chain (quote → MB WAY request → dev-panel confirm → status).
+  MISSING: `tests/e2e/guest.spec.ts`; end-to-end smoke not yet proven;
+  phone screenshots not reviewed (first attempt timed out while Turbopack
+  compiled — retry with `--wait 6000`).
+- **Cockpit** (`app/(cockpit)`, `app/api/cockpit`, `components/cockpit`,
+  `messages/pt-PT/cockpit.json`): Ao Vivo, Fila, Sessão & Receita, Definições
+  (settings-screen typechecks), all action/session routes, offline queue,
+  sounds, wake lock. MISSING: `public/sw-cockpit.js` + registration,
+  `scripts/simulate.ts`, `tests/e2e/cockpit.spec.ts`, iPad screenshots.
+- **Display**: DONE and verified — `docs/screens/display-16x9.png` and
+  `display-9x16.png`, state API OK, translations OK. Still to do: E2E run +
+  QR decode from screenshot (Phase 6 criterion).
+- **Console** (`app/(console)`, `app/api/console`, `components/console`,
+  `messages/pt-PT/console.json`): venue panel complete (sessões, zonas+print,
+  preços+simulador, equipa, receita, análise) and admin pages (casas, sessões,
+  falhas, reconciliação, flags, auditoria). Agent was stopped while moving two
+  hardcoded aria-labels to translations and harvesting keys into console.json
+  — VERIFY console.json covers every `t("...")` key (it was a `{}` placeholder
+  before the agent filled it). MISSING: `tests/e2e/console.spec.ts`, the 7
+  earlier typecheck errors may still exist (admin/casas/actions.ts,
+  sessoes/actions.ts, zonas/actions.ts), desktop screenshots.
+
+Infra notes from this round: `pnpm dev` now uses Turbopack (webpack dev on
+Windows corrupted `.next` vendor-chunks under concurrent compiles);
+`lib/i18n/request.ts` uses an explicit import map; `next-env.d.ts` is
+lint-ignored.
 
 To resume: `supabase start` → `pnpm db:reset` → `rm -rf .next` → `pnpm dev`
-+ `pnpm worker`; run `pnpm typecheck` to list the seams; finish each surface
-(re-launch one agent per surface with the SAME prompts/ownership, telling it
-to continue from the existing files); then integration, E2E + screenshots
-(4 viewports), B10.6 checklist, money/security subagent reviews, Phase 8, 9.
+(+ `pnpm worker`); `pnpm typecheck && pnpm lint` and fix seams; finish the
+MISSING items above (one agent per surface, same ownership); then E2E suite +
+screenshots at 393×852 / 1194×834 / 1440×900 with B10.6 checklist review;
+money + security subagent reviews (A2.10); Phase 8 (Sentry/PostHog wiring,
+`scripts/load-test.ts` run, B12 review, `tests/e2e/security.spec.ts`);
+Phase 9 (README, night-operations guide, docs/SECURITY.md, final docs).
 
 Also done this round: RLS access matrix test (108 passing,
 `tests/integration/rls-access.integration.test.ts`), security headers E2E
