@@ -79,9 +79,14 @@ export function GuestProviders({
     let cancelled = false;
     const supabase = createClient();
     void (async () => {
-      const { data } = await supabase.auth.getSession();
-      let user = data.session?.user ?? null;
+      // getUser() validates the stored token against Auth. getSession()
+      // only reads the cookie: after a `db:reset` (or a token for a user
+      // that no longer exists) it reported a session that every API call
+      // then rejected with 401. A stale cookie is dropped and replaced.
+      const { data, error: userError } = await supabase.auth.getUser();
+      let user = userError ? null : data.user;
       if (!user) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
         const { data: anon, error } = await supabase.auth.signInAnonymously();
         if (error) {
           console.error("[guest] anonymous sign-in failed");
