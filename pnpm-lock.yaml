@@ -212,6 +212,9 @@ importers:
       '@axe-core/playwright':
         specifier: ^4.10.0
         version: 4.13.0(playwright-core@1.63.0)
+      '@eslint/eslintrc':
+        specifier: ^3.3.7
+        version: 3.3.7(supports-color@7.2.0)
       '@playwright/test':
         specifier: ^1.55.0
         version: 1.63.0

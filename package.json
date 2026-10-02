@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
+    "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "^1.55.0",
     "@storybook/nextjs-vite": "^9.1.0",
     "@tailwindcss/postcss": "^4.1.0",

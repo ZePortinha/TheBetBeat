@@ -44,6 +44,27 @@
     "network": "You're offline. Check your connection and try again.",
     "rateLimited": "Too many requests. Wait {seconds}s."
   },
+  "auth": {
+    "title": "Sign in",
+    "subtitle": "Access for DJs, managers and the BetBeat team.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "errorInvalid": "Wrong email or password.",
+    "errorRateLimited": "Too many attempts. Wait a few minutes.",
+    "errorBot": "We couldn't verify you're human. Reload the page.",
+    "forbidden": "Your account doesn't have access to this area.",
+    "logout": "Sign out",
+    "mfa": {
+      "title": "Two-step verification",
+      "enrollIntro": "Scan the QR code with your authenticator app (1Password, Google Authenticator…) and enter the 6-digit code.",
+      "verifyIntro": "Enter the 6-digit code from your authenticator app.",
+      "codeLabel": "Code",
+      "submit": "Verify",
+      "error": "Invalid code. Try again.",
+      "loading": "Preparing…"
+    }
+  },
   "devIndex": {
     "title": "BetBeat — development",
     "guest": "Guest app",

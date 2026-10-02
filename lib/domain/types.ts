@@ -7,6 +7,21 @@
 export const TIERS = ["QUEUE", "SOON", "NEXT"] as const;
 export type Tier = (typeof TIERS)[number];
 
+/**
+ * Tier strength: a higher rank is a stronger time promise (B4.1).
+ * Play order on the cockpit is the inverse walk: NEXT → SOON → QUEUE.
+ */
+export const TIER_RANK: Record<Tier, number> = {
+  QUEUE: 0,
+  SOON: 1,
+  NEXT: 2,
+};
+
+/** True when `a` is a strictly stronger promise than `b` (B4.1 upgrades). */
+export function isHigherTier(a: Tier, b: Tier): boolean {
+  return TIER_RANK[a] > TIER_RANK[b];
+}
+
 export const REQUEST_STATUSES = [
   "pending_payment",
   "paid",

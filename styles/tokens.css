@@ -24,6 +24,7 @@
   --color-gold-300: #f8da7a; /* highlight */
   --color-gold-700: #b8901a; /* pressed */
   --color-ember-500: #ff5340; /* live, urgency, destructive */
+  --color-ember-700: #c93a2c; /* destructive pressed */
   --color-amber-500: #ffa31a; /* warning, deadline ending */
   --color-green-500: #3dd68c; /* confirmed, fits, online */
 

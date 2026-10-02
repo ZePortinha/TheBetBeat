@@ -34,6 +34,32 @@ Each entry: date, context, decision, rejected alternative.
   trigger.
 - **Rejected:** Separate debit/credit columns — equivalent semantics, noisier.
 
+## 2026-10-02 — Genre lookups are own-property only (prototype pollution)
+
+- **Context:** fast-check found that a track genre literally named "toString"
+  or "__proto__" (possible via imported rekordbox files) made the multiplier
+  lookup read inherited Object.prototype members and crash quoting.
+- **Decision:** `genreMultiplierFor` uses `Object.hasOwn` guards; property
+  tests keep hostile-string genres in their generator space.
+- **Rejected:** Sanitizing genres at import only — defense belongs in the
+  engine too.
+
+## 2026-10-02 — Declined and expired payments share close reason
+
+- **Context:** B4.2 defines `payment_timeout → expired` but no distinct close
+  reason for PSP declines.
+- **Decision:** `payment_failed` and `payment_expired` both close as
+  `expired/payment_timeout`; the payments table keeps the precise PSP outcome.
+- **Rejected:** Widening CLOSE_REASONS — churn across exhaustive switches with
+  no user-visible benefit (guest sees "não foi cobrado" either way).
+
+## 2026-10-02 — Staff MFA via Supabase TOTP, AAL2 enforced server-side
+
+- **Context:** B12.3 requires MFA for managers/admin.
+- **Decision:** TOTP enroll/challenge on /login/mfa; `requireStaff` enforces
+  AAL2 server-side for manager/admin on every request.
+- **Rejected:** SMS MFA (real SMS provider unavailable; weaker factor).
+
 ## 2026-10-02 — Session "active now" seed
 
 - **Context:** Dev/demo needs a live session whenever `db:reset` runs.

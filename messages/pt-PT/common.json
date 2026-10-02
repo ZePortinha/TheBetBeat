@@ -44,6 +44,27 @@
     "network": "Sem ligação. Verifica a internet e tenta novamente.",
     "rateLimited": "Muitos pedidos seguidos. Aguarda {seconds} s."
   },
+  "auth": {
+    "title": "Entrar",
+    "subtitle": "Acesso para DJs, gestores e equipa BetBeat.",
+    "email": "Email",
+    "password": "Palavra-passe",
+    "submit": "Entrar",
+    "errorInvalid": "Email ou palavra-passe incorretos.",
+    "errorRateLimited": "Muitas tentativas. Aguarda uns minutos.",
+    "errorBot": "Não conseguimos verificar que és humano. Recarrega a página.",
+    "forbidden": "A tua conta não tem acesso a esta área.",
+    "logout": "Sair",
+    "mfa": {
+      "title": "Verificação em dois passos",
+      "enrollIntro": "Lê o código QR com a tua app de autenticação (1Password, Google Authenticator…) e introduz o código de 6 dígitos.",
+      "verifyIntro": "Introduz o código de 6 dígitos da tua app de autenticação.",
+      "codeLabel": "Código",
+      "submit": "Verificar",
+      "error": "Código inválido. Tenta novamente.",
+      "loading": "A preparar…"
+    }
+  },
   "devIndex": {
     "title": "BetBeat — desenvolvimento",
     "guest": "App do Convidado",
