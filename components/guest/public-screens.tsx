@@ -11,7 +11,6 @@ import { useTranslations } from "next-intl";
 import { ListMusic, Trophy } from "lucide-react";
 import { NowPlaying } from "@/components/ui/now-playing";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Chip } from "@/components/ui/fit-chip";
 import { Button } from "@/components/ui/button";
 import { publicChannel } from "@/lib/realtime/events";

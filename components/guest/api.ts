@@ -54,6 +54,12 @@ const KNOWN_ERROR_CODES = new Set([
   "amount_below_price",
   "amount_above_limit",
   "not_upgradable",
+  "requests_closed",
+  "track_blocked",
+  "track_not_found",
+  "invalid_token",
+  "not_found",
+  "unauthorized",
 ]);
 
 /**

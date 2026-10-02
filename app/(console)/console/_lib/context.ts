@@ -49,6 +49,10 @@ export function isPlatformAdmin(staff: StaffContext): boolean {
  */
 export async function requireConsole(nextPath: string): Promise<ConsoleContext> {
   const staff = await requireStaff(["manager", "admin"], { nextPath });
+  return buildContext(staff, nextPath);
+}
+
+async function buildContext(staff: StaffContext, nextPath: string): Promise<ConsoleContext> {
   const admin = isPlatformAdmin(staff);
 
   let venues: VenueOption[];
@@ -90,11 +94,19 @@ export async function requireConsole(nextPath: string): Promise<ConsoleContext> 
  * null venue membership — a venue-scoped admin is not platform staff).
  */
 export async function requireAdminConsole(nextPath: string): Promise<ConsoleContext> {
-  const ctx = await requireConsole(nextPath);
-  if (!ctx.isAdmin) {
+  // requireStaff(['admin']) first (role + AAL2), then the platform check:
+  // a venue-scoped admin membership is not BetBeat staff.
+  const staff = await requireStaff(["admin"], { nextPath });
+  if (!isPlatformAdmin(staff)) {
     redirect("/console");
   }
-  return ctx;
+  return buildContext(staff, nextPath);
+}
+
+/** Pagination helper for admin tables: 1-based page → offset, clamped. */
+export function pageOffset(page: number, pageSize: number): number {
+  const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  return (safePage - 1) * pageSize;
 }
 
 /**

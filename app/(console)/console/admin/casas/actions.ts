@@ -64,18 +64,21 @@ export async function createVenueAction(formData: FormData): Promise<void> {
   });
   if (!parsed.success) redirect("/console/admin/casas?error=invalid");
 
+  let createdId: string | null = null;
   try {
     const res = await query<{ id: string }>(
       `insert into public.venues (name, slug) values ($1, $2) returning id`,
       [parsed.data.name, parsed.data.slug],
     );
-    await audit(ctx, "venue.created", "venue", res.rows[0].id, res.rows[0].id, {
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-    });
+    createdId = res.rows[0]?.id ?? null;
   } catch {
     redirect("/console/admin/casas?error=slugTaken");
   }
+  if (!createdId) redirect("/console/admin/casas?error=invalid");
+  await audit(ctx, "venue.created", "venue", createdId, createdId, {
+    name: parsed.data.name,
+    slug: parsed.data.slug,
+  });
   revalidatePath("/console/admin/casas");
   redirect("/console/admin/casas");
 }

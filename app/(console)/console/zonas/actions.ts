@@ -32,7 +32,7 @@ export async function createZoneAction(formData: FormData): Promise<void> {
     `insert into public.zones (venue_id, name) values ($1, $2) returning id`,
     [venueId, parsed.data.name],
   );
-  await audit(ctx, "zone.created", "zone", res.rows[0].id, venueId, {
+  await audit(ctx, "zone.created", "zone", res.rows[0]?.id ?? null, venueId, {
     name: parsed.data.name,
   });
   revalidatePath("/console/zonas");

@@ -39,7 +39,6 @@ export function TrackingScreen({
   requestId: string;
 }) {
   const t = useTranslations("guest.tracking");
-  const tp = useTranslations("guest.played");
   const tPay = useTranslations("guest.payment");
   const tTiers = useTranslations("common.tiers");
   const router = useRouter();

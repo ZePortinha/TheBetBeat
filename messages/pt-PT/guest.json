@@ -166,7 +166,9 @@
     "emptyHint": "Escolhe uma faixa e diz ao DJ quanto tempo estás disposto a esperar.",
     "receipt": "Recibo {ref}",
     "refunded": "Devolvido {amount}",
-    "active": "A decorrer"
+    "active": "A decorrer",
+    "history": "Anteriores",
+    "refundNote": "Os reembolsos chegam ao mesmo método em 1 a 3 dias úteis."
   },
   "dev": {
     "open": "DEV",
@@ -195,6 +197,14 @@
     "session_not_live": "O set não está a decorrer neste momento.",
     "amount_below_price": "O valor ficou abaixo do preço atual. Atualizámos a cotação.",
     "amount_above_limit": "Esse valor ultrapassa o máximo do nível.",
-    "not_upgradable": "Este pedido já não pode subir de nível."
+    "not_upgradable": "Este pedido já não pode subir de nível.",
+    "pageTitle": "Algo correu mal",
+    "pageHint": "Não foi cobrado nada. Tenta novamente ou volta a ler o QR.",
+    "requests_closed": "Os pedidos estão em pausa. Volta já de seguida.",
+    "track_blocked": "Esta música não está disponível neste set. Escolhe outra.",
+    "track_not_found": "Não encontrámos essa música. Volta à pesquisa.",
+    "invalid_token": "Este QR já não é válido. Volta a lê-lo.",
+    "not_found": "Não encontrámos esse pedido.",
+    "unauthorized": "A tua sessão expirou. Recarrega a página."
   }
 }

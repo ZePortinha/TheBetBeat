@@ -19,6 +19,7 @@ const eslintConfig = [
       "test-results/**",
       "storybook-static/**",
       "supabase/.temp/**",
+      "next-env.d.ts",
     ],
   },
   {

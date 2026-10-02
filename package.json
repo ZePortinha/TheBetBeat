@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.8.1",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "worker": "tsx worker/index.ts",
     "build": "next build",
     "start": "next start",

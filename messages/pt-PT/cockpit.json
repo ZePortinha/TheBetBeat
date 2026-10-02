@@ -155,7 +155,8 @@
       "title": "Preço base",
       "hint": "Ajustável até ±30% dentro dos limites da casa.",
       "decrease": "Baixar preço base",
-      "increase": "Subir preço base"
+      "increase": "Subir preço base",
+      "bounds": "Entre {min} e {max}"
     },
     "catalog": {
       "title": "Catálogo",
@@ -181,7 +182,9 @@
       "volume": "Volume",
       "silent": "Modo silencioso",
       "silentHint": "Sem som: a borda do ecrã pisca a dourado.",
-      "test": "Testar som"
+      "test": "Testar som",
+      "silentOn": "Ligado",
+      "silentOff": "Desligado"
     },
     "library": {
       "title": "Importar biblioteca",
@@ -196,7 +199,9 @@
       "hint": "Entrega o set a outro DJ da casa.",
       "action": "Passar a {name}",
       "none": "Não há outros DJs nesta casa",
-      "done": "Sessão passada a {name}"
+      "done": "Sessão passada a {name}",
+      "current": "DJ atual",
+      "failed": "Não foi possível passar a sessão. Tenta novamente."
     },
     "endSet": {
       "title": "Terminar set",
@@ -207,8 +212,12 @@
       "summaryNone": "Não há pedidos por reembolsar.",
       "hold": "Manter premido para terminar",
       "holdHint": "Mantém premido 2 segundos para confirmar.",
-      "ended": "Set terminado"
-    }
+      "ended": "Set terminado",
+      "loading": "A calcular reembolsos…",
+      "cancel": "Cancelar",
+      "failed": "Não foi possível terminar o set. Tenta novamente."
+    },
+    "saving": "A guardar…"
   },
   "summary": {
     "title": "Resumo do set",
@@ -219,7 +228,9 @@
     "acceptance": "Aceitação",
     "topTracks": "Top faixas",
     "closedRequests": "{count} pedidos reembolsados ao terminar",
-    "backToSettings": "Voltar às definições"
+    "backToSettings": "Voltar às definições",
+    "betbeatFee": "Taxa BetBeat",
+    "ended": "O set terminou. Os pedidos por tocar foram reembolsados."
   },
   "session": {
     "none": "Sem sessão ao vivo",
@@ -230,6 +241,8 @@
     "search": "Procurar na fila",
     "clock": "Hora atual",
     "mainNav": "Navegação do cockpit",
-    "volume": "Volume dos alertas"
+    "volume": "Volume dos alertas",
+    "catalogMode": "Modo de catálogo",
+    "genreToggle": "Bloquear ou desbloquear {genre}"
   }
 }

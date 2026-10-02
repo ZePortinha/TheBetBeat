@@ -68,8 +68,8 @@ function toCents(eurValue: number): number {
 
 /** Europe/Lisbon wall-clock → UTC epoch ms (DST-aware via Intl). */
 function lisbonToUtcMs(date: string, time: string): number {
-  const [y, m, d] = date.split("-").map(Number);
-  const [hh, mm] = time.split(":").map(Number);
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
+  const [hh = 0, mm = 0] = time.split(":").map(Number);
   const naive = Date.UTC(y, m - 1, d, hh, mm);
   const dtf = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Lisbon",
@@ -264,7 +264,8 @@ export async function saveSessionAction(
        returning id`,
       [venueId, data.djStaffId, data.name, genres, data.catalogMode, startsAtMs, endsAtMs],
     );
-    const sessionId = res.rows[0].id;
+    const sessionId = res.rows[0]?.id;
+    if (!sessionId) throw new Error("session insert returned no row");
     await client.query(
       `insert into public.session_settings (session_id, config, venue_share_bps)
        values ($1, $2, $3)`,

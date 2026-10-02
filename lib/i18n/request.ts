@@ -5,18 +5,33 @@ export const LOCALES = ["pt-PT", "en"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "pt-PT";
 
-const NAMESPACES = ["common", "guest", "cockpit", "display", "console"] as const;
-
 type Messages = Record<string, unknown>;
+type Loader = () => Promise<{ default: Messages }>;
+
+/**
+ * Explicit import map (literal paths work in both webpack and Turbopack;
+ * template-literal dynamic imports do not). pt-PT is the complete base;
+ * EN exists only for the guest surface and overlays pt-PT.
+ */
+const LOADERS: Record<Locale, Record<string, Loader>> = {
+  "pt-PT": {
+    common: () => import("@/messages/pt-PT/common.json"),
+    guest: () => import("@/messages/pt-PT/guest.json"),
+    cockpit: () => import("@/messages/pt-PT/cockpit.json"),
+    display: () => import("@/messages/pt-PT/display.json"),
+    console: () => import("@/messages/pt-PT/console.json"),
+  },
+  en: {
+    common: () => import("@/messages/en/common.json"),
+    guest: () => import("@/messages/en/guest.json"),
+  },
+};
 
 async function loadMessages(locale: Locale): Promise<Messages> {
   const out: Messages = {};
-  for (const ns of NAMESPACES) {
+  for (const [ns, load] of Object.entries(LOADERS[locale])) {
     try {
-      const mod = (await import(`@/messages/${locale}/${ns}.json`)) as {
-        default: Messages;
-      };
-      out[ns] = mod.default;
+      out[ns] = (await load()).default;
     } catch {
       out[ns] = {};
     }
@@ -51,7 +66,6 @@ export default getRequestConfig(async () => {
     ? (cookieLocale as Locale)
     : DEFAULT_LOCALE;
 
-  // pt-PT is the complete base; EN overlays it (staff surfaces are pt-PT only).
   const base = await loadMessages(DEFAULT_LOCALE);
   const messages =
     locale === DEFAULT_LOCALE ? base : deepMerge(base, await loadMessages(locale));

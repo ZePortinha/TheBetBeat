@@ -166,7 +166,9 @@
     "emptyHint": "Pick a track and tell the DJ how long you're willing to wait.",
     "receipt": "Receipt {ref}",
     "refunded": "Refunded {amount}",
-    "active": "In progress"
+    "active": "In progress",
+    "history": "Earlier",
+    "refundNote": "Refunds reach the same payment method within 1 to 3 business days."
   },
   "dev": {
     "open": "DEV",
@@ -195,6 +197,14 @@
     "session_not_live": "The set isn't playing right now.",
     "amount_below_price": "The amount fell below the current price. We refreshed the quote.",
     "amount_above_limit": "That amount is above the tier's maximum.",
-    "not_upgradable": "This request can no longer be upgraded."
+    "not_upgradable": "This request can no longer be upgraded.",
+    "pageTitle": "Something went wrong",
+    "pageHint": "Nothing was charged. Try again or scan the QR code again.",
+    "requests_closed": "Requests are paused. Check back in a moment.",
+    "track_blocked": "This song isn't available in this set. Pick another one.",
+    "track_not_found": "We couldn't find that song. Go back to search.",
+    "invalid_token": "This QR code is no longer valid. Scan it again.",
+    "not_found": "We couldn't find that request.",
+    "unauthorized": "Your session expired. Reload the page."
   }
 }
