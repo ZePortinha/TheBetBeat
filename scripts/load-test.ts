@@ -4,8 +4,13 @@
  *
  * Usage: pnpm exec tsx scripts/load-test.ts [--base http://localhost:3000]
  *        [--guests 200] [--quotes 500] [--concurrency 25]
- * Requires: supabase + dev server (production build recommended) running.
+ * Requires: supabase + dev server (production build recommended) running,
+ * plus `.env.local` (Supabase URL + anon key) — read here without dotenv.
+ * Guest routes need an anonymous guest identity (B6): each simulated
+ * guest signs in anonymously and sends its bearer token.
  */
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 interface Args {
   base: string;
@@ -26,6 +31,38 @@ function parseArgs(): Args {
     quotes: Number(get("quotes", "500")),
     concurrency: Number(get("concurrency", "25")),
   };
+}
+
+/** Tiny .env.local reader (values never logged). */
+function loadLocalEnv(): void {
+  const file = path.resolve(process.cwd(), ".env.local");
+  if (!existsSync(file)) return;
+  for (const raw of readFileSync(file, "utf8").split("\n")) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
+async function signInAnonymous(): Promise<string> {
+  loadLocalEnv();
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  if (!url || !anonKey) throw new Error("NEXT_PUBLIC_SUPABASE_URL / ANON_KEY missing (.env.local)");
+  const res = await fetch(`${url}/auth/v1/signup`, {
+    method: "POST",
+    headers: { apikey: anonKey, "content-type": "application/json" },
+    body: JSON.stringify({ data: {} }),
+  });
+  if (!res.ok) throw new Error(`anonymous sign-in failed (${res.status})`);
+  return ((await res.json()) as { access_token: string }).access_token;
 }
 
 function pct(sorted: number[], p: number): number {
@@ -72,8 +109,18 @@ async function main() {
   if (!guestPath) throw new Error("No guest link on dev index — DB seeded? dev server up?");
   const token = decodeURIComponent(guestPath.replace("/s/", ""));
 
+  // A pool of anonymous guests so per-guest rate limits (B4.7) spread out.
+  const guestTokens: string[] = [];
+  for (let i = 0; i < Math.min(args.concurrency, 50); i += 1) {
+    guestTokens.push(await signInAnonymous());
+  }
+  const authFor = (i: number) => ({
+    authorization: `Bearer ${guestTokens[i % guestTokens.length]!}`,
+  });
+
   const searchRes = await fetch(
     `${args.base}/api/guest/search?token=${encodeURIComponent(token)}&q=a`,
+    { headers: authFor(0) },
   );
   if (!searchRes.ok) throw new Error(`search API ${searchRes.status} — guest surface deployed?`);
   const search = (await searchRes.json()) as { results?: Array<{ id: string }> };
@@ -91,8 +138,8 @@ async function main() {
     timeIt(() =>
       fetch(`${args.base}/api/guest/quotes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrToken: token, trackId: trackIds[i % trackIds.length] }),
+        headers: { "Content-Type": "application/json", ...authFor(i) },
+        body: JSON.stringify({ token, trackId: trackIds[i % trackIds.length] }),
       }),
     ),
   );

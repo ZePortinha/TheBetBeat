@@ -18,6 +18,8 @@ export async function middleware(request: NextRequest) {
     `style-src 'self' 'unsafe-inline'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""} https://challenges.cloudflare.com`,
     `frame-src https://challenges.cloudflare.com`,
+    // Cockpit service worker (public/sw-cockpit.js) — same origin only.
+    `worker-src 'self'`,
     `img-src 'self' data: blob:`,
     `font-src 'self'`,
     `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} ${
