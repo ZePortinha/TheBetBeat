@@ -1,0 +1,200 @@
+{
+  "invalid": {
+    "title": "This QR code is no longer valid",
+    "hint": "Scan the QR code in your zone again, or ask the staff for a new one.",
+    "noSession": "There's no set playing at this venue right now. Come back later."
+  },
+  "session": {
+    "withDj": "with {dj}",
+    "zone": "Zone {zone}",
+    "nowPlaying": "Now playing",
+    "nothingPlaying": "The set is about to start",
+    "requestCta": "Request a song",
+    "requestsClosed": "Requests are paused. Check back in a moment.",
+    "sessionEnded": "The set has ended. Thanks for tonight.",
+    "yourRequests": "Your requests",
+    "myRequests": "My requests",
+    "nowOnFloor": "Now on the floor",
+    "topOfNight": "Top of the night",
+    "guarantee": "If it doesn't play, you get it all back"
+  },
+  "status": {
+    "pending_payment": "Awaiting payment",
+    "paid": "Paid",
+    "accepted": "Accepted",
+    "queued": "In queue",
+    "playing": "Playing",
+    "played": "Played",
+    "expired": "Expired",
+    "refunded": "Refunded"
+  },
+  "search": {
+    "title": "Request a song",
+    "placeholder": "Search by title or artist",
+    "sectionResults": "Results",
+    "sectionFits": "Fits the set",
+    "sectionPopular": "Most requested today",
+    "sectionRecent": "Recent",
+    "empty": "We couldn't find anything with that name.",
+    "emptyHint": "Try another title or the artist's name.",
+    "from": "from {price}",
+    "unavailable": {
+      "blocked": "Unavailable in this set",
+      "recently_played": "Played recently",
+      "already_requested": "Already requested"
+    }
+  },
+  "tier": {
+    "title": "Choose how long you'll wait",
+    "promise": {
+      "QUEUE": "Plays during the set, in queue order",
+      "SOON": "Plays within the next 20 minutes",
+      "NEXT": "Plays on the next transition"
+    },
+    "unavailable": {
+      "soon_full": "Tier full · frees up soon",
+      "next_taken": "There's already a song up next",
+      "no_slot_this_set": "No slot left this set",
+      "below_min_fit": "Off style for this set",
+      "recently_played": "Played recently"
+    },
+    "extraLabel": "Want your request to stand out?",
+    "extraHint": "Within a tier, higher amounts reach the DJ first.",
+    "extraMax": "Maximum for this tier: {max}",
+    "guarantee": "If it doesn't play, you get it all back",
+    "quoteValid": "Price valid for {seconds}s",
+    "quoteRefreshing": "Updating the price…",
+    "payCta": "Pay {total}",
+    "vatIncluded": "VAT included",
+    "decreaseExtra": "Decrease extra amount",
+    "increaseExtra": "Increase extra amount"
+  },
+  "payment": {
+    "title": "Payment",
+    "total": "Total",
+    "methods": {
+      "mbway": "MB WAY",
+      "apple_pay": "Apple Pay",
+      "google_pay": "Google Pay",
+      "card": "Card"
+    },
+    "phoneLabel": "Your MB WAY number",
+    "phoneInvalid": "Enter the 9 digits of your number, starting with 9.",
+    "nifToggle": "Invoice with NIF (optional)",
+    "nifLabel": "NIF",
+    "nifInvalid": "That NIF doesn't look valid. Check the 9 digits.",
+    "emailLabel": "Email for the receipt (optional)",
+    "emailInvalid": "Check the email — something's off.",
+    "confirmCta": "Confirm and pay {total}",
+    "waitingTitle": "Confirm in the MB WAY app",
+    "waitingHint": "We sent a request to {phone}. You have {minutes} min.",
+    "resend": "Resend request",
+    "expiredTitle": "The MB WAY request expired",
+    "expiredHint": "Nothing was charged. You can try again.",
+    "failedTitle": "The payment was declined",
+    "failedHint": "Nothing was charged. Try another method.",
+    "confirmedTitle": "Payment confirmed",
+    "confirmedHint": "Your request is on its way to the DJ.",
+    "walletNote": "Secure payment with instant authorization.",
+    "secureNote": "You only pay if the song plays. If it doesn't, you get it all back."
+  },
+  "tracking": {
+    "title": "Your request",
+    "steps": {
+      "paid": "Paid",
+      "accepted": "Accepted",
+      "queued": "In queue",
+      "playing": "Playing",
+      "played": "Played"
+    },
+    "position": "Position {position} · ~{eta} min",
+    "etaOnly": "~{eta} min",
+    "acceptedLine": "The DJ accepted. Plays in ~{eta} min",
+    "paidLine": "The DJ is looking at your request",
+    "playingLine": "This is it. Playing on the floor now",
+    "demoted": "Moved to In Queue · we refunded {amount}",
+    "refundedTitle": "We refunded {amount}. It's on its way.",
+    "refundedByReason": {
+      "rejected_by_dj": "The DJ couldn't fit this song into the set.",
+      "dj_timeout": "The DJ didn't decide in time.",
+      "cancelled_by_dj": "The DJ cancelled this request.",
+      "session_ended": "The set ended before the song could play."
+    },
+    "expiredTitle": "This request expired",
+    "expiredHint": "The payment wasn't completed, so nothing was charged. You can request again.",
+    "upgradeCta": "Upgrade tier",
+    "upgradeTitle": "Upgrade tier",
+    "upgradeHint": "You only pay the difference to the current price. The clock restarts now.",
+    "upgradeDiff": "+{diff}",
+    "upgradeIncluded": "Already covered by what you paid",
+    "upgradeConfirm": "Upgrade to {tier}",
+    "upgradeApplied": "Upgraded to {tier}",
+    "upgradeUnavailable": "That tier isn't available right now.",
+    "backToSession": "Back to the set",
+    "requestAgain": "Request another song"
+  },
+  "played": {
+    "title": "Your song played",
+    "subtitle": "{track} filled the floor.",
+    "share": "Share",
+    "shareHeadline": "My song played",
+    "shareError": "We couldn't open sharing. Save the image and share it yourself."
+  },
+  "queue": {
+    "title": "Now on the floor",
+    "upNext": "Up next",
+    "empty": "No requests in the queue yet.",
+    "emptyHint": "Be the first to request a song."
+  },
+  "top": {
+    "title": "Top of the night",
+    "topTracks": "Most requested tracks",
+    "topGuests": "Guests of the night",
+    "requestsCount": "{count, plural, one {# request} other {# requests}}",
+    "empty": "The night is just getting started.",
+    "emptyHint": "The first requests will show up here.",
+    "joinTitle": "Join the top",
+    "joinHint": "Pick a @handle to appear in the ranking and on the venue screen.",
+    "handlePlaceholder": "your-name",
+    "join": "Join",
+    "joined": "You're in the top as @{handle}",
+    "amountsHidden": "Amounts stay between you and the DJ."
+  },
+  "myRequests": {
+    "title": "My requests",
+    "empty": "You haven't requested a song yet",
+    "emptyHint": "Pick a track and tell the DJ how long you're willing to wait.",
+    "receipt": "Receipt {ref}",
+    "refunded": "Refunded {amount}",
+    "active": "In progress"
+  },
+  "dev": {
+    "open": "DEV",
+    "title": "PSP simulator (dev)",
+    "empty": "No recent payments.",
+    "confirm": "Confirm MB WAY",
+    "decline": "Decline",
+    "expire": "Expire",
+    "duplicate": "Duplicate webhook",
+    "networkFail": "Network failure",
+    "done": "Sent: {action}"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "withCode": "Something went wrong (ref. {code}). Please try again.",
+    "rate_limited": "Too many requests in a row. Wait a moment.",
+    "bot_check_failed": "We couldn't confirm you're human. Reload the page.",
+    "quote_expired": "The price expired. We've already requested a new one.",
+    "tier_unavailable": "That tier just became unavailable. Pick another one.",
+    "guest_limit": "You already have 3 active requests. Wait for one to play.",
+    "spend_limit": "You've reached tonight's spending limit.",
+    "already_requested": "That song was already requested. It plays soon.",
+    "recently_played": "That song played recently. Pick another one.",
+    "phone_required": "Enter your MB WAY number.",
+    "nif_invalid": "That NIF doesn't look valid.",
+    "session_not_live": "The set isn't playing right now.",
+    "amount_below_price": "The amount fell below the current price. We refreshed the quote.",
+    "amount_above_limit": "That amount is above the tier's maximum.",
+    "not_upgradable": "This request can no longer be upgraded."
+  }
+}

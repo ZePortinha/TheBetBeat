@@ -1,0 +1,21 @@
+{
+  "title": "Ecrã da Casa",
+  "live": "Ao vivo",
+  "nowPlaying": "A tocar",
+  "nowEmpty": "O DJ está a preparar o set",
+  "next": "A seguir",
+  "nextEmpty": "O teu pedido pode ser o próximo",
+  "qrCaption": "Pede a tua música",
+  "top": {
+    "title": "Top da noite",
+    "requests": "{count, plural, one {# pedido} other {# pedidos}}"
+  },
+  "paused": {
+    "title": "A música está quase a voltar",
+    "subtitle": "Aponta a câmara ao QR e prepara o teu pedido"
+  },
+  "error": {
+    "title": "Este ecrã não está ligado",
+    "subtitle": "Pede à equipa da casa um novo link do Ecrã da Casa."
+  }
+}

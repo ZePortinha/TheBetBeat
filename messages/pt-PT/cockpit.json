@@ -1,0 +1,235 @@
+{
+  "nav": {
+    "live": "Ao Vivo",
+    "queue": "Fila",
+    "session": "Sessão & Receita",
+    "settings": "Definições"
+  },
+  "topBar": {
+    "requestsOpen": "Pedidos abertos",
+    "requestsPaused": "Pedidos em pausa",
+    "searchPlaceholder": "Procurar na fila…",
+    "revenueLabel": "Receita da sessão",
+    "youReceive": "Recebes {amount}",
+    "endsAt": "Termina às {time}",
+    "connection": {
+      "connected": "Ligado",
+      "connecting": "A ligar…",
+      "reconnecting": "A religar…",
+      "offline": "Sem ligação"
+    }
+  },
+  "offline": {
+    "banner": "Sem ligação — ações guardadas",
+    "replayed": "Ligação recuperada. Ações sincronizadas."
+  },
+  "now": {
+    "title": "Agora",
+    "nothingPlaying": "Nada a tocar",
+    "nothingPlayingHint": "Marca um pedido aceite para começar.",
+    "nextSlot": "Próxima",
+    "nextEmpty": "Sem próxima fixada",
+    "markPlaying": "Marcar a tocar",
+    "deadlineLabel": "Prazo da promessa"
+  },
+  "decide": {
+    "title": "Decidir",
+    "empty": "Sem pedidos por decidir",
+    "emptyHint": "Os novos pedidos pagos aparecem aqui.",
+    "accept": "Aceitar",
+    "reject": "Recusar",
+    "deadlineLabel": "Prazo de decisão"
+  },
+  "queued": {
+    "title": "Alinhados",
+    "empty": "Ainda sem pedidos aceites",
+    "emptyHint": "Aceita pedidos em Decidir para os alinhar.",
+    "pin": "Fixar como próxima",
+    "unpin": "Soltar",
+    "play": "Marcar a tocar",
+    "cancel": "Cancelar",
+    "pinnedChip": "Próxima",
+    "deadlineLabel": "Prazo da promessa"
+  },
+  "card": {
+    "inLibrary": "Na biblioteca",
+    "outOfLibrary": "Fora da biblioteca",
+    "hideMessage": "Ocultar",
+    "youReceive": "Recebes {amount}"
+  },
+  "rejectSheet": {
+    "title": "Recusar pedido",
+    "titleCancel": "Cancelar pedido",
+    "description": "{track} · {artist}",
+    "refundNote": "O convidado é reembolsado na totalidade.",
+    "reasons": {
+      "off_style": "Fora do estilo",
+      "missing_track": "Não tenho a faixa",
+      "already_played": "Já tocou",
+      "other": "Outro"
+    }
+  },
+  "toast": {
+    "rejected": "Pedido recusado",
+    "cancelled": "Pedido cancelado",
+    "undo": "Desfazer",
+    "accepted": "Pedido aceite",
+    "acceptFailed": "Não foi possível aceitar. Tenta novamente.",
+    "pinFailed": "Não foi possível fixar. Tenta novamente.",
+    "playFailed": "Não foi possível marcar a tocar. Tenta novamente.",
+    "actionFailed": "A ação falhou. Tenta novamente.",
+    "actionQueued": "Sem ligação. A ação fica guardada.",
+    "newRequest": "Novo pedido · {tier}",
+    "paused": "Pedidos em pausa",
+    "resumed": "Pedidos abertos",
+    "refund": "Reembolso · {track}"
+  },
+  "feed": {
+    "title": "Atividade",
+    "empty": "Sem atividade ainda",
+    "paid": "Pago {amount} · {track}",
+    "refunded": "Reembolsado · {track}",
+    "slaMissed": "Prazo falhado · {track}",
+    "played": "Tocou · {track}"
+  },
+  "queueScreen": {
+    "title": "Fila completa",
+    "empty": "A fila está vazia",
+    "emptyHint": "Os pedidos pagos e aceites aparecem aqui.",
+    "filters": {
+      "allTiers": "Todos os níveis",
+      "allGenres": "Todos os géneros",
+      "bpm": "BPM",
+      "bpmAny": "Qualquer BPM",
+      "bpmRange": "{min}–{max} BPM"
+    },
+    "timeline": {
+      "title": "Prazos das promessas",
+      "nowMark": "agora",
+      "noDeadlines": "Sem prazos ativos — os pedidos Na Fila tocam até ao fim do set."
+    }
+  },
+  "stats": {
+    "title": "Sessão & Receita",
+    "revenuePerHour": "Receita por hora",
+    "acceptance": "Aceitação",
+    "acceptanceDetail": "{accepted} de {decided} decididos",
+    "refundsByReason": "Reembolsos por motivo",
+    "noRefunds": "Sem reembolsos nesta sessão",
+    "topTracks": "Top faixas",
+    "noTracks": "Ainda sem pedidos",
+    "requestsLabel": "{count} pedidos",
+    "payout": "Payout",
+    "payoutNone": "Disponível depois de terminar o set",
+    "payoutStatus": {
+      "pending": "Pendente",
+      "paid": "Pago",
+      "failed": "Falhou"
+    },
+    "exportCsv": "Exportar CSV",
+    "exportPdf": "Exportar PDF",
+    "gmv": "Receita bruta",
+    "refundsTotal": "Reembolsos",
+    "djNet": "Recebes",
+    "closeReasons": {
+      "rejected_by_dj": "Recusado pelo DJ",
+      "dj_timeout": "Sem decisão a tempo",
+      "cancelled_by_dj": "Cancelado pelo DJ",
+      "session_ended": "Fim do set",
+      "payment_timeout": "Pagamento expirado",
+      "sla_missed": "Prazo falhado (diferença)"
+    }
+  },
+  "settings": {
+    "title": "Definições",
+    "saved": "Definições guardadas",
+    "saveFailed": "Não foi possível guardar. Tenta novamente.",
+    "rhythm": {
+      "title": "Ritmo",
+      "hint": "Pedidos que aceitas tocar por hora. Ajusta os preços ao vivo.",
+      "unit": "{value}/hora",
+      "decrease": "Reduzir ritmo",
+      "increase": "Aumentar ritmo"
+    },
+    "basePrice": {
+      "title": "Preço base",
+      "hint": "Ajustável até ±30% dentro dos limites da casa.",
+      "decrease": "Baixar preço base",
+      "increase": "Subir preço base"
+    },
+    "catalog": {
+      "title": "Catálogo",
+      "hint": "Com o catálogo global, os convidados pedem além da tua biblioteca.",
+      "library": "Só biblioteca",
+      "libraryPlus": "Biblioteca + catálogo"
+    },
+    "genres": {
+      "title": "Géneros bloqueados",
+      "hint": "Faixas destes géneros deixam de poder ser pedidas.",
+      "none": "Sem géneros na biblioteca"
+    },
+    "noRepeat": {
+      "title": "Janela de não repetição",
+      "hint": "Uma faixa tocada há menos deste tempo não pode ser pedida.",
+      "unit": "{value} min",
+      "decrease": "Reduzir janela",
+      "increase": "Aumentar janela"
+    },
+    "sounds": {
+      "title": "Sons",
+      "hint": "Alerta curto a cada pedido pago, com um tom por nível.",
+      "volume": "Volume",
+      "silent": "Modo silencioso",
+      "silentHint": "Sem som: a borda do ecrã pisca a dourado.",
+      "test": "Testar som"
+    },
+    "library": {
+      "title": "Importar biblioteca",
+      "hint": "rekordbox XML ou CSV (title, artist, genre, bpm, key, duration_sec). Máx. 10 MB.",
+      "choose": "Escolher ficheiro",
+      "importing": "A importar…",
+      "done": "{count} faixas importadas ({skipped} ignoradas)",
+      "failed": "Importação falhou. Verifica o ficheiro."
+    },
+    "transfer": {
+      "title": "Passar a sessão",
+      "hint": "Entrega o set a outro DJ da casa.",
+      "action": "Passar a {name}",
+      "none": "Não há outros DJs nesta casa",
+      "done": "Sessão passada a {name}"
+    },
+    "endSet": {
+      "title": "Terminar set",
+      "hint": "Fecha a sessão e reembolsa os pedidos por tocar.",
+      "open": "Terminar set",
+      "sheetTitle": "Terminar o set?",
+      "summary": "{count} pedidos por tocar serão reembolsados ({amount}).",
+      "summaryNone": "Não há pedidos por reembolsar.",
+      "hold": "Manter premido para terminar",
+      "holdHint": "Mantém premido 2 segundos para confirmar.",
+      "ended": "Set terminado"
+    }
+  },
+  "summary": {
+    "title": "Resumo do set",
+    "gmv": "Receita bruta",
+    "refunds": "Reembolsos",
+    "djNet": "Recebes",
+    "venueNet": "Casa",
+    "acceptance": "Aceitação",
+    "topTracks": "Top faixas",
+    "closedRequests": "{count} pedidos reembolsados ao terminar",
+    "backToSettings": "Voltar às definições"
+  },
+  "session": {
+    "none": "Sem sessão ao vivo",
+    "noneHint": "Quando uma sessão desta casa estiver ao vivo, o cockpit liga-se sozinho."
+  },
+  "a11y": {
+    "pauseSwitch": "Abrir ou pausar pedidos",
+    "search": "Procurar na fila",
+    "clock": "Hora atual",
+    "mainNav": "Navegação do cockpit",
+    "volume": "Volume dos alertas"
+  }
+}

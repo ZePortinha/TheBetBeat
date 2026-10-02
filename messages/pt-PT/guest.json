@@ -1,0 +1,200 @@
+{
+  "invalid": {
+    "title": "Este QR já não é válido",
+    "hint": "Volta a ler o QR da tua zona ou pede um novo ao staff.",
+    "noSession": "Não há nenhum set a decorrer nesta casa. Volta mais tarde."
+  },
+  "session": {
+    "withDj": "com {dj}",
+    "zone": "Zona {zone}",
+    "nowPlaying": "A tocar agora",
+    "nothingPlaying": "O set está quase a começar",
+    "requestCta": "Pedir música",
+    "requestsClosed": "Os pedidos estão em pausa. Volta já de seguida.",
+    "sessionEnded": "O set terminou. Obrigado por esta noite.",
+    "yourRequests": "Os teus pedidos",
+    "myRequests": "Os meus pedidos",
+    "nowOnFloor": "Agora na pista",
+    "topOfNight": "Top da noite",
+    "guarantee": "Se não tocar, devolvemos tudo"
+  },
+  "status": {
+    "pending_payment": "A aguardar pagamento",
+    "paid": "Pago",
+    "accepted": "Aceite",
+    "queued": "Na fila",
+    "playing": "A tocar",
+    "played": "Tocou",
+    "expired": "Expirou",
+    "refunded": "Devolvido"
+  },
+  "search": {
+    "title": "Pedir música",
+    "placeholder": "Procura por título ou artista",
+    "sectionResults": "Resultados",
+    "sectionFits": "Encaixa no set",
+    "sectionPopular": "Mais pedidas hoje",
+    "sectionRecent": "Recentes",
+    "empty": "Não encontrámos nada com esse nome.",
+    "emptyHint": "Tenta outro título ou o nome do artista.",
+    "from": "desde {price}",
+    "unavailable": {
+      "blocked": "Indisponível neste set",
+      "recently_played": "Tocou há pouco",
+      "already_requested": "Já pedida"
+    }
+  },
+  "tier": {
+    "title": "Escolhe quanto queres esperar",
+    "promise": {
+      "QUEUE": "Toca durante o set, pela ordem da fila",
+      "SOON": "Toca nos próximos 20 minutos",
+      "NEXT": "Toca na próxima transição"
+    },
+    "unavailable": {
+      "soon_full": "Nível cheio · liberta em breve",
+      "next_taken": "Já há uma música a seguir",
+      "no_slot_this_set": "Sem lugar neste set",
+      "below_min_fit": "Fora do estilo deste set",
+      "recently_played": "Tocou há pouco"
+    },
+    "extraLabel": "Queres destacar o teu pedido?",
+    "extraHint": "Dentro do nível, valores maiores aparecem primeiro ao DJ.",
+    "extraMax": "Máximo neste nível: {max}",
+    "guarantee": "Se não tocar, devolvemos tudo",
+    "quoteValid": "Preço válido durante {seconds} s",
+    "quoteRefreshing": "A atualizar o preço…",
+    "payCta": "Pagar {total}",
+    "vatIncluded": "IVA incluído",
+    "decreaseExtra": "Reduzir valor extra",
+    "increaseExtra": "Aumentar valor extra"
+  },
+  "payment": {
+    "title": "Pagamento",
+    "total": "Total",
+    "methods": {
+      "mbway": "MB WAY",
+      "apple_pay": "Apple Pay",
+      "google_pay": "Google Pay",
+      "card": "Cartão"
+    },
+    "phoneLabel": "O teu número MB WAY",
+    "phoneInvalid": "Escreve os 9 dígitos do teu número, a começar por 9.",
+    "nifToggle": "Fatura com NIF (opcional)",
+    "nifLabel": "NIF",
+    "nifInvalid": "Esse NIF não parece válido. Confirma os 9 dígitos.",
+    "emailLabel": "Email para o recibo (opcional)",
+    "emailInvalid": "Confirma o email — algo não bate certo.",
+    "confirmCta": "Confirmar e pagar {total}",
+    "waitingTitle": "Confirma na app MB WAY",
+    "waitingHint": "Enviámos um pedido para {phone}. Tens {minutes} min.",
+    "resend": "Reenviar pedido",
+    "expiredTitle": "O pedido MB WAY expirou",
+    "expiredHint": "Não foi cobrado nada. Podes tentar outra vez.",
+    "failedTitle": "O pagamento foi recusado",
+    "failedHint": "Não foi cobrado nada. Tenta outro método.",
+    "confirmedTitle": "Pagamento confirmado",
+    "confirmedHint": "O teu pedido seguiu para o DJ.",
+    "walletNote": "Pagamento seguro com autorização imediata.",
+    "secureNote": "Só pagas se a música tocar. Se não tocar, devolvemos tudo."
+  },
+  "tracking": {
+    "title": "O teu pedido",
+    "steps": {
+      "paid": "Pago",
+      "accepted": "Aceite",
+      "queued": "Na fila",
+      "playing": "A tocar",
+      "played": "Tocou"
+    },
+    "position": "Posição {position} · ~{eta} min",
+    "etaOnly": "~{eta} min",
+    "acceptedLine": "O DJ aceitou. Toca dentro de ~{eta} min",
+    "paidLine": "O DJ está a ver o teu pedido",
+    "playingLine": "É agora. Está a tocar na pista",
+    "demoted": "Passou para Na Fila · devolvemos {amount}",
+    "refundedTitle": "Devolvemos {amount}. Já vai a caminho.",
+    "refundedByReason": {
+      "rejected_by_dj": "O DJ não encaixou esta música no set.",
+      "dj_timeout": "O DJ não decidiu a tempo.",
+      "cancelled_by_dj": "O DJ cancelou este pedido.",
+      "session_ended": "O set terminou antes de a música tocar."
+    },
+    "expiredTitle": "Este pedido expirou",
+    "expiredHint": "O pagamento não foi concluído, por isso não foi cobrado nada. Podes pedir outra vez.",
+    "upgradeCta": "Subir de nível",
+    "upgradeTitle": "Subir de nível",
+    "upgradeHint": "Pagas só a diferença para o preço atual. O prazo recomeça agora.",
+    "upgradeDiff": "+{diff}",
+    "upgradeIncluded": "Já coberto pelo que pagaste",
+    "upgradeConfirm": "Subir para {tier}",
+    "upgradeApplied": "Subiste para {tier}",
+    "upgradeUnavailable": "Este nível não está disponível agora.",
+    "backToSession": "Voltar ao set",
+    "requestAgain": "Pedir outra música"
+  },
+  "played": {
+    "title": "A tua música tocou",
+    "subtitle": "{track} encheu a pista.",
+    "share": "Partilhar",
+    "shareHeadline": "A minha música tocou",
+    "shareError": "Não conseguimos abrir a partilha. Guarda a imagem e partilha à mão."
+  },
+  "queue": {
+    "title": "Agora na pista",
+    "upNext": "A seguir",
+    "empty": "Ainda não há pedidos na fila.",
+    "emptyHint": "Sê o primeiro a pedir uma música."
+  },
+  "top": {
+    "title": "Top da noite",
+    "topTracks": "Faixas mais pedidas",
+    "topGuests": "Convidados da noite",
+    "requestsCount": "{count, plural, one {# pedido} other {# pedidos}}",
+    "empty": "A noite ainda agora começou.",
+    "emptyHint": "Os primeiros pedidos aparecem aqui.",
+    "joinTitle": "Entra no top",
+    "joinHint": "Escolhe um @nome para apareceres no ranking e no ecrã da casa.",
+    "handlePlaceholder": "o-teu-nome",
+    "join": "Participar",
+    "joined": "Estás no top como @{handle}",
+    "amountsHidden": "Os valores ficam entre ti e o DJ."
+  },
+  "myRequests": {
+    "title": "Os meus pedidos",
+    "empty": "Ainda não pediste nenhuma música",
+    "emptyHint": "Escolhe uma faixa e diz ao DJ quanto tempo estás disposto a esperar.",
+    "receipt": "Recibo {ref}",
+    "refunded": "Devolvido {amount}",
+    "active": "A decorrer"
+  },
+  "dev": {
+    "open": "DEV",
+    "title": "Simulador PSP (dev)",
+    "empty": "Sem pagamentos recentes.",
+    "confirm": "Confirmar MB WAY",
+    "decline": "Recusar",
+    "expire": "Expirar",
+    "duplicate": "Webhook duplicado",
+    "networkFail": "Falha de rede",
+    "done": "Enviado: {action}"
+  },
+  "errors": {
+    "generic": "Algo correu mal. Tenta novamente.",
+    "withCode": "Algo correu mal (ref. {code}). Tenta novamente.",
+    "rate_limited": "Muitos pedidos seguidos. Espera um momento.",
+    "bot_check_failed": "Não conseguimos confirmar que és humano. Recarrega a página.",
+    "quote_expired": "O preço expirou. Já pedimos um novo.",
+    "tier_unavailable": "Esse nível acabou de ficar indisponível. Escolhe outro.",
+    "guest_limit": "Já tens 3 pedidos ativos. Espera que um toque.",
+    "spend_limit": "Atingiste o limite de gasto desta noite.",
+    "already_requested": "Essa música já foi pedida. Toca em breve.",
+    "recently_played": "Essa música tocou há pouco. Escolhe outra.",
+    "phone_required": "Escreve o teu número MB WAY.",
+    "nif_invalid": "Esse NIF não parece válido.",
+    "session_not_live": "O set não está a decorrer neste momento.",
+    "amount_below_price": "O valor ficou abaixo do preço atual. Atualizámos a cotação.",
+    "amount_above_limit": "Esse valor ultrapassa o máximo do nível.",
+    "not_upgradable": "Este pedido já não pode subir de nível."
+  }
+}

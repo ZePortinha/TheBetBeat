@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Unbounded, Instrument_Serif } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const unbounded = Unbounded({
@@ -42,9 +43,12 @@ export default async function RootLayout({
       className={`${unbounded.variable} ${instrumentSerif.variable}`}
     >
       <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
-        </NextIntlClientProvider>
+        {/* data-vaul-drawer-wrapper lets sheets push the page back (B10.4). */}
+        <div data-vaul-drawer-wrapper="" className="min-h-dvh bg-bg-base">
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <Providers>{children}</Providers>
+          </NextIntlClientProvider>
+        </div>
       </body>
     </html>
   );
