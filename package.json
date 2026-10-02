@@ -18,6 +18,7 @@
     "build-storybook": "storybook build",
     "db:reset": "supabase db reset",
     "db:audit": "tsx scripts/db-audit.ts",
+    "i18n:check": "tsx scripts/i18n-check.ts",
     "simulate": "tsx scripts/simulate.ts",
     "prepare": "node scripts/install-hooks.mjs"
   },

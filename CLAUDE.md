@@ -16,7 +16,7 @@ The source of truth is the brief: `BETBEAT_BRIEF.md` (never summarize it away).
 - Worker: Node + pg-boss (`worker/`)
 - Tests: Vitest + fast-check, Playwright + axe, Storybook
 - `pnpm dev` · `pnpm worker` · `pnpm typecheck` · `pnpm lint` · `pnpm test` ·
-  `pnpm test:e2e` · `pnpm storybook` · `pnpm db:reset` · `pnpm db:audit` ·
+  `pnpm test:e2e` · `pnpm storybook` · `pnpm db:reset` · `pnpm db:audit` · `pnpm i18n:check` ·
   `pnpm simulate`
 
 ## Folder map
