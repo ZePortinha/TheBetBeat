@@ -6,74 +6,89 @@
 | --- | --- | --- |
 | 0 — Plan | done | Env verified: Node 25, pnpm 12, Docker OK, supabase CLI 2.78, gitleaks installed |
 | 1 — Foundations | done* | Scaffold, tokens, DB+RLS+seed, 18 components+stories, staff auth+MFA. *Visual review of tokens/Storybook happens with the surfaces screenshot pass |
-| 2 — Pricing engine | done | B5 complete incl. exact B5.2 example + fast-check (simulator UI ships with console, Phase 7) |
+| 2 — Pricing engine | done | B5 complete incl. exact B5.2 example + fast-check; simulator ships in the console |
 | 3 — Domain & money | done | FSM (168 tests), mock PSP, ledger, services, worker; 393 unit + 20 integration tests green; money/security subagent review pending (scheduled before Phase 8 close) |
-| 4 — Guest app | todo | |
-| 5 — DJ cockpit | todo | |
-| 6 — Venue display | todo | |
-| 7 — Console | todo | |
-| 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing credentials unavailable → adapters stay mocked behind interfaces, documented |
-| 9 — Delivery | todo | |
+| 4 — Guest app | built, unverified | All screens + API + webhook + dev PSP panel; `tests/e2e/guest.spec.ts` written; E2E run, phone screenshots, B10.6 checklist and axe pending (need DB) |
+| 5 — DJ cockpit | built, unverified | All screens, actions, offline queue, sounds, wake lock, `public/sw-cockpit.js`, `scripts/simulate.ts`; `tests/e2e/cockpit.spec.ts` written; E2E run, iPad screenshots, < 1 s check with `pnpm simulate` pending |
+| 6 — Venue display | done* | Screenshots reviewed (`docs/screens/display-*.png`); *E2E run + QR decode from screenshot pending |
+| 7 — Console | built, unverified | Venue panel + admin pages; `console.json` complete (`pnpm i18n:check` clean); `tests/e2e/console.spec.ts` written; E2E run, desktop screenshots, `pnpm db:audit` pending |
+| 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing/catalog credentials unavailable → adapters stay mocked behind interfaces; Sentry/PostHog wiring, load-test run, B12 review pending |
+| 9 — Delivery | docs done | README, `docs/OPERATIONS.md`, `docs/SECURITY.md`, DECISIONS updated. Final `db:audit` result still to paste into SECURITY.md |
 
-## Next step (PAUSED 2026-10-02 at the owner's request — usage limit)
+## This round (cloud session, no Docker / Supabase — 2026-10-02)
 
-Overall ≈ 75%. Phases 4–7 are ~85% built (WIP commits `4bcbb98`, `1f2ff25`;
-typecheck/lint NOT yet verified green after the last agent round).
+Branch `cloud/finish-surfaces` (also pushed to the session branch). Everything
+that does not need a database was finished and verified:
 
-Per surface — what exists / what is missing:
+- `pnpm install`, `pnpm typecheck`, `pnpm lint`: green from the start (the 7
+  earlier typecheck errors were already fixed in the WIP commits).
+- `pnpm test`: 393 unit + property tests green.
+- `pnpm i18n:check` (new): 0 missing keys in pt-PT and EN across all surfaces.
+  `messages/pt-PT/console.json` went from `{}` to the full namespace; the two
+  hardcoded aria-labels and two placeholders in the console moved to
+  translations.
+- `public/sw-cockpit.js` (registration already existed in `cockpit-shell.tsx`;
+  CSP gained `worker-src 'self'`).
+- `scripts/simulate.ts`; `scripts/load-test.ts` fixed (wrong quote body field,
+  missing guest auth).
+- `tests/e2e/fixtures.ts` (anonymous guest + API-driven paid requests, TOTP MFA
+  login), `guest.spec.ts`, `cockpit.spec.ts`, `console.spec.ts`.
+- Phase 9 docs.
 
-- **Guest** (`app/(guest)`, `app/api/guest`, `app/api/webhooks`, `app/api/dev`,
-  `components/guest`, `messages/*/guest.json`): all API routes + webhook + dev
-  PSP panel; pages for session, search, track/tier, requests/[id] tracking,
-  requests list, queue ("Agora na pista"), top. Agent was stopped during the
-  curl smoke chain (quote → MB WAY request → dev-panel confirm → status).
-  MISSING: `tests/e2e/guest.spec.ts`; end-to-end smoke not yet proven;
-  phone screenshots not reviewed (first attempt timed out while Turbopack
-  compiled — retry with `--wait 6000`).
-- **Cockpit** (`app/(cockpit)`, `app/api/cockpit`, `components/cockpit`,
-  `messages/pt-PT/cockpit.json`): Ao Vivo, Fila, Sessão & Receita, Definições
-  (settings-screen typechecks), all action/session routes, offline queue,
-  sounds, wake lock. MISSING: `public/sw-cockpit.js` + registration,
-  `scripts/simulate.ts`, `tests/e2e/cockpit.spec.ts`, iPad screenshots.
-- **Display**: DONE and verified — `docs/screens/display-16x9.png` and
-  `display-9x16.png`, state API OK, translations OK. Still to do: E2E run +
-  QR decode from screenshot (Phase 6 criterion).
-- **Console** (`app/(console)`, `app/api/console`, `components/console`,
-  `messages/pt-PT/console.json`): venue panel complete (sessões, zonas+print,
-  preços+simulador, equipa, receita, análise) and admin pages (casas, sessões,
-  falhas, reconciliação, flags, auditoria). Agent was stopped while moving two
-  hardcoded aria-labels to translations and harvesting keys into console.json
-  — VERIFY console.json covers every `t("...")` key (it was a `{}` placeholder
-  before the agent filled it). MISSING: `tests/e2e/console.spec.ts`, the 7
-  earlier typecheck errors may still exist (admin/casas/actions.ts,
-  sessoes/actions.ts, zonas/actions.ts), desktop screenshots.
+## To verify locally (needs `supabase start` + `pnpm db:reset` + `pnpm dev` + `pnpm worker`)
 
-Infra notes from this round: `pnpm dev` now uses Turbopack (webpack dev on
-Windows corrupted `.next` vendor-chunks under concurrent compiles);
-`lib/i18n/request.ts` uses an explicit import map; `next-env.d.ts` is
-lint-ignored.
+In this order; fix selectors/labels as needed, then record results here:
 
-To resume: `supabase start` → `pnpm db:reset` → `rm -rf .next` → `pnpm dev`
-(+ `pnpm worker`); `pnpm typecheck && pnpm lint` and fix seams; finish the
-MISSING items above (one agent per surface, same ownership); then E2E suite +
-screenshots at 393×852 / 1194×834 / 1440×900 with B10.6 checklist review;
-money + security subagent reviews (A2.10); Phase 8 (Sentry/PostHog wiring,
-`scripts/load-test.ts` run, B12 review, `tests/e2e/security.spec.ts`);
-Phase 9 (README, night-operations guide, docs/SECURITY.md, final docs).
+1. `pnpm db:audit` → paste the result into `docs/SECURITY.md` §B12.7.
+2. `SUPABASE_TEST=1 pnpm test` (integration: transitions, exactly-once
+   refunds, NEXT concurrency, RLS matrix).
+3. `pnpm test:e2e` (all projects). Known assumptions written into the specs:
+   - fixtures sign guests in through `POST {SUPABASE_URL}/auth/v1/signup`
+     (anonymous sign-ins enabled in `supabase/config.toml`);
+   - manager/admin MFA: fixtures delete the account's TOTP factors through the
+     Supabase admin API (`SUPABASE_SERVICE_ROLE_KEY` from `.env.local`) and
+     compute codes from the enrolment secret shown on `/login/mfa`;
+   - guest spec reaches "Tocou" by having the DJ play a second request (the
+     play route marks the previous playing request as played);
+   - the pause test expects `createPaidRequest` to be refused while paused;
+   - the console session form defaults must pass server validation.
+4. `E2E_END_SET=1 pnpm test:e2e --project=ipad -g "manter premido"` and the
+   gated console test, LAST (they end the seeded live session), then
+   `pnpm db:reset`.
+5. `pnpm simulate --rate 20 --minutes 2` with the cockpit open: confirm the
+   < 1 s payment → card latency (B1.5) and the webhook p95 the script prints.
+6. Screenshots with `scripts/screenshot.ts` at 393×852 (guest: session, search,
+   tier, payment sheet, tracking, played), 1194×834 (cockpit: live, queue,
+   stats, settings, end-set sheet) and 1440×900 (console: every page), plus
+   the slow-motion review of the key animations; B10.6 checklist per screen,
+   reduced motion / reduced transparency / increased contrast; axe on each.
+7. Display Phase 6 criterion: decode the QR from `docs/screens/display-16x9.png`.
+8. Money + security subagent reviews (A2.10) before closing Phase 8.
 
-Also done this round: RLS access matrix test (108 passing,
-`tests/integration/rls-access.integration.test.ts`), security headers E2E
-(`tests/e2e/security.spec.ts`), funnel analytics lib (`lib/analytics`),
-load test + screenshot scripts, tokens page reviewed (`docs/screens/tokens.png`).
+## Next step
+
+Phase 8: wire Sentry (with `beforeSend` scrubbing) and PostHog behind env,
+close the two Turnstile gaps named in `docs/SECURITY.md` (anonymous sign-in
+captcha, staff login widget), run `scripts/load-test.ts` against a production
+build and document the numbers, `pnpm audit`, gitleaks, B12 review; real PSP,
+SMS, invoicing and catalog adapters when credentials arrive.
 
 ## Known issues
 
 - Supabase CLI 2.78.1 (2.119 available) — fine for local dev.
-- Real PSP/SMS/invoicing/catalog credentials not available in this environment;
-  Phase 8 ships sandbox-ready adapters + docs instead of live validation.
+- Real PSP/SMS/invoicing/catalog credentials not available; Phase 8 ships
+  sandbox-ready adapters + docs instead of live validation.
+- Turnstile is not enforced on anonymous session creation nor rendered on the
+  staff login form (see `docs/SECURITY.md` B12.4) — Phase 8.
 - `price.changed` broadcasts not yet emitted (screens refetch quotes on
   `queue.changed`); wire a quote-service hook if live tickers are wanted.
 - TierQuote.reason lacks an `order_conflict` code: a tier made unavailable by
   the guaranteed-order rule returns `available:false` without a reason enum.
 - Mock PSP keeps intent state in-process; cross-process status relies on
   webhooks + the payments table (fine for mock; real PSP has real status API).
+- Cockpit SW offline fallback page carries one inline pt-PT line (documented in
+  DECISIONS: a service worker cannot use next-intl).
+- The `pnpm install` in a fresh environment reports ignored build scripts
+  (`@swc/core`, `esbuild`, `unrs-resolver`, `@parcel/watcher`); the approved
+  list in `package.json` is intentional (B12.6). Add to
+  `pnpm.onlyBuiltDependencies` only if a tool actually needs its native build.
