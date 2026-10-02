@@ -22,11 +22,18 @@ function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
 
-export function ConsoleNav({ groups }: { groups: NavGroup[] }) {
+export function ConsoleNav({
+  groups,
+  ariaLabel,
+}: {
+  groups: NavGroup[];
+  /** Translated accessible name for the landmark (console.shell.navLabel). */
+  ariaLabel: string;
+}) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-6" aria-label="Consola">
+    <nav className="flex flex-col gap-6" aria-label={ariaLabel} data-testid="console-nav">
       {groups.map((group) => (
         <div key={group.label} className="flex flex-col gap-1">
           <p className="label px-3 pb-1 text-text-tertiary">{group.label}</p>

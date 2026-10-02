@@ -41,6 +41,10 @@ export default async function RootLayout({
     <html
       lang={locale}
       className={`${unbounded.variable} ${instrumentSerif.variable}`}
+      // Browser extensions (analytics blockers, translators) inject
+      // attributes on <html> before React hydrates; that is not a mismatch
+      // we can fix, so keep the dev overlay quiet for this element only.
+      suppressHydrationWarning
     >
       <body>
         {/* data-vaul-drawer-wrapper lets sheets push the page back (B10.4). */}

@@ -116,7 +116,7 @@ export function SessionForm({
       setTiers((prev) => ({ ...prev, [key]: Number(e.target.value) || 0 }));
 
   return (
-    <form action={formAction} className="flex max-w-3xl flex-col gap-8">
+    <form action={formAction} data-testid="session-form" className="flex max-w-3xl flex-col gap-8">
       <input type="hidden" name="venueId" value={venueId} />
       {initial.sessionId ? (
         <input type="hidden" name="sessionId" value={initial.sessionId} />

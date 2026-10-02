@@ -1,0 +1,10 @@
+# pnpm 12 install-script approvals (B12.6: install scripts blocked by
+# default; only the native builds we rely on may run, the rest are denied
+# explicitly so `pnpm install` never stops to ask).
+allowBuilds:
+  "@tailwindcss/oxide": true
+  esbuild: true
+  sharp: true
+  "@parcel/watcher": false
+  "@swc/core": false
+  unrs-resolver: false

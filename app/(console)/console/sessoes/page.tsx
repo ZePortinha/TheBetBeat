@@ -53,6 +53,7 @@ export default async function SessionsPage() {
         actions={
           <Link
             href="/console/sessoes/nova"
+            data-testid="sessions-new-link"
             className="inline-flex min-h-11 items-center gap-2 rounded-button bg-gold-500
               px-5 text-base font-semibold text-text-on-accent transition-transform
               duration-100 active:scale-[0.97]"
@@ -79,7 +80,13 @@ export default async function SessionsPage() {
             </thead>
             <tbody>
               {sessions.map((s) => (
-                <tr key={s.id} className="border-b border-line-subtle last:border-0">
+                <tr
+                  key={s.id}
+                  data-testid="session-row"
+                  data-session-id={s.id}
+                  data-session-status={s.status}
+                  className="border-b border-line-subtle last:border-0"
+                >
                   <td className="px-4 py-3">
                     <p className="font-semibold text-text-primary">{s.name}</p>
                     <p className="text-xs text-text-tertiary">{s.genres.join(" · ")}</p>
@@ -105,6 +112,7 @@ export default async function SessionsPage() {
                           <input type="hidden" name="sessionId" value={s.id} />
                           <button
                             type="submit"
+                            data-testid="session-end-button"
                             className="rounded-button bg-ember-500 px-3 py-1.5
                               font-semibold text-text-on-accent transition-transform
                               duration-100 active:scale-[0.97]"

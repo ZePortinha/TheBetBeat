@@ -126,7 +126,7 @@ export default async function AdminAuditPage({
             name="action"
             defaultValue={f.action ?? ""}
             maxLength={80}
-            placeholder="session."
+            placeholder={t("filters.actionPlaceholder")}
             className={`${inputCls} w-44`}
           />
         </label>
