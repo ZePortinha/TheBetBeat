@@ -1,0 +1,6 @@
+# pnpm ≥ 10 reads install-script approvals here, not from package.json
+# (B12.6: install scripts blocked by default; only these may build).
+onlyBuiltDependencies:
+  - "@tailwindcss/oxide"
+  - esbuild
+  - sharp
