@@ -88,28 +88,46 @@ export default async function SessionStatementPage({
       </p>
 
       <div className="grid grid-cols-5 gap-4">
-        <Stat label={t("gmv")} value={formatEuros(statement.gmv)} money />
-        <Stat label={t("venueNet")} value={formatEuros(statement.venueNet)} money />
-        <Stat label={t("djNet")} value={formatEuros(statement.djNet)} />
-        <Stat label={t("betbeatFee")} value={formatEuros(statement.betbeatFee)} />
-        <Stat label={t("refunds")} value={formatEuros(statement.refunds)} />
+        <Stat label={t("gmv")} value={formatEuros(statement.gmv)} money testId="statement-gmv" />
+        <Stat
+          label={t("venueNet")}
+          value={formatEuros(statement.venueNet)}
+          money
+          testId="statement-venue-net"
+        />
+        <Stat label={t("djNet")} value={formatEuros(statement.djNet)} testId="statement-dj-net" />
+        <Stat
+          label={t("betbeatFee")}
+          value={formatEuros(statement.betbeatFee)}
+          testId="statement-betbeat-fee"
+        />
+        <Stat label={t("refunds")} value={formatEuros(statement.refunds)} testId="statement-refunds" />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <Stat label={t("requestsTotal")} value={String(counts?.total ?? 0)} />
+        <Stat
+          label={t("requestsTotal")}
+          value={String(counts?.total ?? 0)}
+          testId="statement-requests-total"
+        />
         <Stat label={t("requestsPlayed")} value={String(counts?.played ?? 0)} />
         <Stat label={t("requestsRefunded")} value={String(counts?.refunded ?? 0)} />
       </div>
 
-      <section>
+      <section data-testid="statement-payouts">
         <h2 className="pb-3 text-lg font-semibold text-text-primary">{t("payouts")}</h2>
         {payoutsRes.rows.length === 0 ? (
-          <p className="text-sm text-text-tertiary">{t("noPayouts")}</p>
+          <p data-testid="statement-payouts-empty" className="text-sm text-text-tertiary">
+            {t("noPayouts")}
+          </p>
         ) : (
           <ul className="flex max-w-xl flex-col gap-2">
             {payoutsRes.rows.map((p) => (
               <li
                 key={p.id}
+                data-testid="statement-payout"
+                data-recipient={p.recipient_type}
+                data-status={p.status}
                 className="flex items-center justify-between gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 text-sm"
               >
                 <span className="font-semibold text-text-primary">

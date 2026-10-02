@@ -6,7 +6,10 @@ import { ConsoleNav, type NavGroup } from "@/components/console/nav";
 import { VenueSwitcher } from "@/components/console/venue-switcher";
 import { requireConsole } from "./_lib/context";
 
-export const metadata = { title: "Consola · BetBeat" };
+export async function generateMetadata() {
+  const t = await getTranslations("console.shell");
+  return { title: t("metaTitle") };
+}
 
 /**
  * Console shell (B9): staff-only desktop surface. The layout gates
@@ -63,7 +66,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
           activeVenueId={ctx.activeVenue?.id ?? null}
           label={t("shell.venue")}
         />
-        <ConsoleNav groups={groups} />
+        <ConsoleNav groups={groups} ariaLabel={t("shell.navLabel")} />
         <div className="mt-auto flex flex-col gap-3 border-t border-line-subtle pt-4">
           <p className="truncate px-3 text-xs text-text-tertiary">{displayName}</p>
           <form action={logoutAction}>

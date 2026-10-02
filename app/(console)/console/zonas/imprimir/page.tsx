@@ -66,6 +66,8 @@ export default async function PrintZonesPage() {
           return (
             <section
               key={zone.id}
+              data-testid="zone-print-card"
+              data-zone-name={zone.name}
               className="bb-qr-card flex w-[148mm] flex-col items-center justify-center
                 gap-8 rounded-card border border-line-subtle bg-white py-16 text-center"
             >

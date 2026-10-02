@@ -108,8 +108,13 @@ export default async function RevenuePage() {
           title={t("title")}
         />
         <div className="grid grid-cols-5 gap-4">
-          <Stat label={t("gmv")} value={formatEuros(overall.gmv)} money />
-          <Stat label={t("venueNet")} value={formatEuros(overall.venueNet)} money />
+          <Stat label={t("gmv")} value={formatEuros(overall.gmv)} money testId="revenue-gmv" />
+          <Stat
+            label={t("venueNet")}
+            value={formatEuros(overall.venueNet)}
+            money
+            testId="revenue-venue-net"
+          />
           <Stat label={t("djNet")} value={formatEuros(overall.djNet)} />
           <Stat label={t("betbeatFee")} value={formatEuros(overall.betbeatFee)} />
           <Stat label={t("refunds")} value={formatEuros(overall.refunds)} />
@@ -137,7 +142,12 @@ export default async function RevenuePage() {
                 {sessionsRes.rows.map((s) => {
                   const st = sessionStatement(bySession.get(s.id) ?? []);
                   return (
-                    <tr key={s.id} className="border-b border-line-subtle last:border-0">
+                    <tr
+                      key={s.id}
+                      data-testid="revenue-session-row"
+                      data-session-id={s.id}
+                      className="border-b border-line-subtle last:border-0"
+                    >
                       <td className="px-4 py-3">
                         <p className="font-semibold text-text-primary">{s.name}</p>
                         <p className="text-xs text-text-tertiary tnum">
@@ -177,12 +187,17 @@ export default async function RevenuePage() {
         <div>
           <h2 className="pb-3 text-lg font-semibold text-text-primary">{t("payouts")}</h2>
           {payoutsRes.rows.length === 0 ? (
-            <p className="text-sm text-text-tertiary">{t("noPayouts")}</p>
+            <p data-testid="revenue-payouts-empty" className="text-sm text-text-tertiary">
+              {t("noPayouts")}
+            </p>
           ) : (
             <ul className="flex flex-col gap-2">
               {payoutsRes.rows.map((p) => (
                 <li
                   key={p.id}
+                  data-testid="revenue-payout"
+                  data-recipient={p.recipient_type}
+                  data-status={p.status}
                   className="flex items-center justify-between gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 text-sm"
                 >
                   <div>

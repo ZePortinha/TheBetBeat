@@ -85,7 +85,7 @@ export default async function AdminVenuesPage({
             required
             pattern="[a-z0-9-]{3,60}"
             maxLength={60}
-            placeholder="club-exemplo"
+            placeholder={t("slugPlaceholder")}
             className={`${inputCls} w-56`}
           />
         </label>

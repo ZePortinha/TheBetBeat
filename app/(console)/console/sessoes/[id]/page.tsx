@@ -108,6 +108,7 @@ export default async function SessionDetailPage({
               <input type="hidden" name="sessionId" value={session.id} />
               <button
                 type="submit"
+                data-testid="session-end-button"
                 className="min-h-11 rounded-button bg-ember-500 px-5 text-base
                   font-semibold text-text-on-accent transition-transform duration-100
                   active:scale-[0.97]"
@@ -128,7 +129,10 @@ export default async function SessionDetailPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-text-secondary">{t("displayLink")}</p>
-          <code className="max-w-xl truncate rounded-chip bg-surface-3 px-2 py-1 text-xs text-text-primary">
+          <code
+            data-testid="session-display-link"
+            className="max-w-xl truncate rounded-chip bg-surface-3 px-2 py-1 text-xs text-text-primary"
+          >
             {displayUrl}
           </code>
           <CopyButton
@@ -140,6 +144,7 @@ export default async function SessionDetailPage({
         {session.status === "ended" && (
           <Link
             href={`/console/receita/${session.id}`}
+            data-testid="session-statement-link"
             className="self-start text-sm font-semibold text-gold-500 hover:text-gold-300"
           >
             {t("viewStatement")}

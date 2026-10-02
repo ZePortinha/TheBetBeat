@@ -61,6 +61,7 @@ export default async function ZonesPage({
           zones.length > 0 ? (
             <Link
               href="/console/zonas/imprimir"
+              data-testid="zones-print-link"
               className="inline-flex min-h-11 items-center gap-2 rounded-button border
                 border-line-subtle bg-surface-2 px-5 text-base font-semibold
                 text-text-primary hover:bg-surface-3"
@@ -105,6 +106,8 @@ export default async function ZonesPage({
             return (
               <div
                 key={zone.id}
+                data-testid="zone-card"
+                data-zone-name={zone.name}
                 className="flex flex-col gap-4 rounded-card border border-line-subtle bg-surface-1 p-5"
               >
                 <form action={renameZoneAction} className="flex items-center gap-2">
@@ -128,7 +131,10 @@ export default async function ZonesPage({
                 <div className="self-center">
                   <QRBlock url={url} size={140} alt={t("qrAlt", { zone: zone.name })} />
                 </div>
-                <code className="truncate rounded-chip bg-surface-3 px-2 py-1 text-xs text-text-secondary">
+                <code
+                  data-testid="zone-link"
+                  className="truncate rounded-chip bg-surface-3 px-2 py-1 text-xs text-text-secondary"
+                >
                   {url}
                 </code>
                 <div className="flex items-center justify-between gap-2">
@@ -165,6 +171,8 @@ export default async function ZonesPage({
               return (
                 <li
                   key={s.id}
+                  data-testid="display-link"
+                  data-session-id={s.id}
                   className="flex items-center gap-4 rounded-card border border-line-subtle bg-surface-1 px-5 py-3"
                 >
                   <span className="min-w-40 font-semibold text-text-primary">

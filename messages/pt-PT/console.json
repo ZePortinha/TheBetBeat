@@ -1,1 +1,562 @@
-{}
+{
+  "shell": {
+    "console": "Consola",
+    "metaTitle": "Consola · BetBeat",
+    "venue": "Casa",
+    "navLabel": "Navegação da consola",
+    "breadcrumbLabel": "Caminho",
+    "logout": "Sair"
+  },
+  "nav": {
+    "venue": "Painel da Casa",
+    "sessions": "Sessões",
+    "zones": "Zonas e QR",
+    "pricing": "Preços",
+    "team": "Equipa",
+    "revenue": "Receita",
+    "analytics": "Análise",
+    "admin": "Admin BetBeat",
+    "adminVenues": "Casas e contratos",
+    "adminLive": "Sessões ao vivo",
+    "adminFailures": "Falhas",
+    "adminReconciliation": "Reconciliação",
+    "adminFlags": "Feature flags",
+    "adminAudit": "Auditoria"
+  },
+  "sessions": {
+    "crumbRoot": "Painel da Casa",
+    "title": "Sessões",
+    "new": "Nova sessão",
+    "emptyTitle": "Ainda não há sessões",
+    "emptyHint": "Cria a primeira sessão para gerar o link do Ecrã da Casa e abrir pedidos.",
+    "table": {
+      "session": "Sessão",
+      "dj": "DJ",
+      "when": "Início",
+      "status": "Estado",
+      "actions": "Ações"
+    },
+    "status": {
+      "scheduled": "Agendada",
+      "live": "Ao vivo",
+      "paused": "Em pausa",
+      "ended": "Terminada"
+    },
+    "view": "Ver",
+    "edit": "Editar",
+    "end": "Terminar sessão",
+    "displayLink": "Link do Ecrã da Casa",
+    "copyLink": "Copiar link",
+    "copied": "Copiado",
+    "viewStatement": "Ver extrato da sessão",
+    "endedReadOnly": "Esta sessão terminou. Os dados ficam só de leitura.",
+    "form": {
+      "general": "Geral",
+      "name": "Nome da sessão",
+      "date": "Data",
+      "startTime": "Início",
+      "endTime": "Fim",
+      "dj": "DJ",
+      "djPlaceholder": "Escolhe o DJ",
+      "catalogMode": "Catálogo",
+      "catalogLibrary": "Só a biblioteca do DJ",
+      "catalogPlus": "Biblioteca e catálogo global",
+      "genres": "Géneros da noite",
+      "pricing": "Preços e prazos",
+      "basePrice": "Preço base (€)",
+      "rate": "Ritmo de aceitação (pedidos por hora)",
+      "soonDeadline": "Prazo Em Breve (min)",
+      "nextDeadline": "Prazo A Seguir (min)",
+      "tierRule": "Cada nível começa pelo menos 5 € acima do anterior. O preço base fica dentro dos limites de Na Fila.",
+      "min": "Mínimo (€)",
+      "max": "Máximo (€)",
+      "split": "Divisão da receita",
+      "splitHint": "A BetBeat fica com {fee}% da receita bruta. O resto divide-se entre a casa e o DJ.",
+      "venueShare": "Parte da casa (%)",
+      "save": "Guardar sessão",
+      "saving": "A guardar…"
+    },
+    "tiers": {
+      "QUEUE": "Na Fila",
+      "SOON": "Em Breve",
+      "NEXT": "A Seguir"
+    },
+    "errors": {
+      "invalid": "Valor inválido. Verifica e tenta novamente.",
+      "maxBelowMin": "O máximo tem de ser igual ou superior ao mínimo.",
+      "tierStep": "Este nível tem de começar pelo menos 5 € acima do anterior.",
+      "tierStepMax": "O máximo não deixa espaço para os 5 € entre níveis. Sobe o máximo.",
+      "baseOutsideQueue": "O preço base tem de ficar entre o mínimo e o máximo de Na Fila.",
+      "notEditable": "Esta sessão já terminou e não pode ser alterada."
+    }
+  },
+  "zones": {
+    "crumbRoot": "Painel da Casa",
+    "title": "Zonas e QR",
+    "print": "Imprimir QR",
+    "errorInUse": "Esta zona já tem pedidos e não pode ser apagada. Muda-lhe o nome se precisares.",
+    "newZoneName": "Nova zona",
+    "create": "Criar zona",
+    "emptyTitle": "Ainda não há zonas",
+    "emptyHint": "Cria uma zona por área ou mesa. Cada zona tem o seu QR.",
+    "zoneName": "Nome da zona",
+    "rename": "Renomear",
+    "qrAlt": "Código QR da zona {zone}",
+    "copyLink": "Copiar link",
+    "copied": "Copiado",
+    "delete": "Apagar a zona {zone}",
+    "deleteShort": "Apagar",
+    "displayLinks": "Links do Ecrã da Casa",
+    "noSessions": "Sem sessões ativas. Cria uma sessão para gerar o link do ecrã.",
+    "printTitle": "Imprimir QR das zonas",
+    "printNow": "Imprimir",
+    "printHint": "Um cartão A5 por zona. Imprime ou guarda como PDF a partir da janela de impressão.",
+    "printCta": "Pede a tua música ao DJ",
+    "printSub": "Lê o QR, escolhe a música e quanto queres esperar. Se não tocar, devolvemos tudo."
+  },
+  "pricing": {
+    "crumbRoot": "Painel da Casa",
+    "title": "Preços",
+    "defaults": {
+      "hint": "Limites por nível para as novas sessões desta casa. Cada nível começa pelo menos 5 € acima do anterior.",
+      "basePrice": "Preço base (€)",
+      "queue": "Na Fila",
+      "soon": "Em Breve",
+      "next": "A Seguir",
+      "min": "Mínimo (€)",
+      "max": "Máximo (€)",
+      "save": "Guardar limites",
+      "saving": "A guardar…",
+      "saved": "Limites guardados."
+    },
+    "genres": {
+      "title": "Recomendações por género",
+      "hint": "Todas as semanas a BetBeat recomenda um multiplicador por género com base na conversão e na procura. Aprova, ajusta à mão ou deixa aplicar automaticamente.",
+      "genre": "Género",
+      "current": "Atual",
+      "recommended": "Recomendado",
+      "conversion": "Conversão",
+      "volume": "Cotações",
+      "revenue": "Receita · 30 dias",
+      "reason": "Motivo",
+      "actions": "Ações",
+      "recommendedPrice": "Preço base com multiplicador: {price}",
+      "approve": "Aprovar",
+      "adjustLabel": "Multiplicador de {genre}",
+      "adjust": "Ajustar",
+      "autoApply": "Auto",
+      "reasons": {
+        "none": "Sem dados suficientes",
+        "stable": "Estável",
+        "high_conversion_high_demand": "Conversão alta e muita procura",
+        "low_conversion": "Conversão baixa"
+      }
+    },
+    "simulator": {
+      "title": "Simulador de preços",
+      "hint": "Mexe nos controlos e vê como reagem os três níveis. É uma simulação: não altera nenhuma sessão.",
+      "basePrice": "Preço base",
+      "rate": "Ritmo de aceitação",
+      "activeRequests": "Pedidos Na Fila ativos",
+      "soonActive": "Pedidos Em Breve ativos",
+      "fit": "Encaixe no set",
+      "genre": "Género",
+      "tiers": {
+        "QUEUE": "Na Fila",
+        "SOON": "Em Breve",
+        "NEXT": "A Seguir"
+      },
+      "unavailable": "Indisponível",
+      "chartLabel": "Evolução dos preços por nível",
+      "chartHint": "Últimas 60 cotações calculadas enquanto moves os controlos.",
+      "breakdown": "Como se chega ao preço",
+      "factors": {
+        "base": "Preço base",
+        "genre": "Multiplicador do género",
+        "fit": "Fator de encaixe",
+        "demand": "Fator de procura",
+        "occupancy": "Ocupação de Em Breve",
+        "rho": "Carga da fila (ρ)"
+      }
+    }
+  },
+  "team": {
+    "crumbRoot": "Painel da Casa",
+    "title": "Equipa",
+    "errors": {
+      "invalid": "Dados inválidos. Verifica o nome, o email e o papel.",
+      "emailExists": "Já existe uma conta com este email.",
+      "createFailed": "Não foi possível criar a conta. Tenta novamente.",
+      "self": "Não podes remover a tua própria conta.",
+      "inUse": "Esta pessoa tem sessões associadas e não pode ser removida."
+    },
+    "emptyTitle": "Ainda não há equipa",
+    "emptyHint": "Convida o primeiro DJ ou gestor desta casa.",
+    "name": "Nome",
+    "email": "Email",
+    "role": "Papel",
+    "actions": "Ações",
+    "you": "(tu)",
+    "roles": {
+      "dj": "DJ",
+      "manager": "Gestor",
+      "admin": "Admin"
+    },
+    "makeManager": "Tornar gestor",
+    "makeDj": "Tornar DJ",
+    "remove": "Remover",
+    "inviteTitle": "Convidar para a equipa",
+    "inviting": "A convidar…",
+    "invite": "Convidar",
+    "tempPasswordTitle": "Conta criada para {email}",
+    "tempPasswordHint": "Palavra-passe temporária. Aparece só uma vez: copia-a e envia-a com segurança.",
+    "copy": "Copiar",
+    "copied": "Copiado"
+  },
+  "revenue": {
+    "crumbRoot": "Painel da Casa",
+    "title": "Receita",
+    "gmv": "Receita bruta",
+    "venueNet": "Líquido da casa",
+    "djNet": "Líquido do DJ",
+    "betbeatFee": "Taxa BetBeat",
+    "refunds": "Reembolsos",
+    "bySession": "Por sessão",
+    "emptyTitle": "Ainda não há receita",
+    "emptyHint": "A receita aparece aqui assim que uma sessão receber pedidos pagos.",
+    "session": "Sessão",
+    "statement": "Ver extrato",
+    "payouts": "Liquidações",
+    "noPayouts": "Sem liquidações. Criam-se quando uma sessão termina.",
+    "recipient": {
+      "venue": "Casa",
+      "dj": "DJ"
+    },
+    "payoutStatus": {
+      "pending": "Pendente",
+      "processing": "Em processamento",
+      "paid": "Paga",
+      "failed": "Falhou"
+    },
+    "refundsTitle": "Reembolsos recentes",
+    "noRefunds": "Sem reembolsos.",
+    "refundReason": {
+      "rejected_by_dj": "Recusado pelo DJ",
+      "dj_timeout": "Sem decisão a tempo",
+      "cancelled_by_dj": "Cancelado pelo DJ",
+      "session_ended": "Fim do set",
+      "sla_missed": "Prazo falhado (diferença)",
+      "payment_timeout": "Pagamento expirado",
+      "tier_demoted": "Desceu para Na Fila",
+      "refund": "Reembolso"
+    },
+    "refundStatus": {
+      "pending": "Pendente",
+      "processing": "Em processamento",
+      "succeeded": "Devolvido",
+      "failed": "Falhou"
+    },
+    "invoices": "Faturas",
+    "noInvoices": "Sem faturas emitidas.",
+    "invoiceRef": "Referência",
+    "amount": "Valor",
+    "status": "Estado",
+    "date": "Data",
+    "sessionStatus": {
+      "scheduled": "Agendada",
+      "live": "Ao vivo",
+      "paused": "Em pausa",
+      "ended": "Terminada"
+    },
+    "requestsTotal": "Pedidos",
+    "requestsPlayed": "Tocaram",
+    "requestsRefunded": "Reembolsados"
+  },
+  "analytics": {
+    "crumbRoot": "Painel da Casa",
+    "title": "Análise",
+    "period": {
+      "label": "Período",
+      "tonight": "Esta noite",
+      "7d": "7 dias",
+      "30d": "30 dias"
+    },
+    "revenue": "Receita",
+    "acceptance": "Aceitação",
+    "acceptanceHint": "Pedidos aceites pelo DJ sobre pedidos pagos",
+    "conversion": "Conversão",
+    "conversionHint": "Pagamentos sobre cotações",
+    "revenuePerGuest": "Receita por convidado",
+    "occupancySet": "Com lotação de {occupancy}",
+    "occupancyUnset": "Introduz a lotação para calcular",
+    "funnel": {
+      "title": "Funil",
+      "scan": "Scan",
+      "quote": "Cotação",
+      "paid": "Pagamento",
+      "played": "Tocou",
+      "scanNote": "Scan = convidados distintos que pediram uma cotação nesta casa."
+    },
+    "byTier": {
+      "title": "Conversão por nível",
+      "tier": "Nível",
+      "paid": "Pagos",
+      "played": "Tocaram",
+      "conversion": "Conversão"
+    },
+    "tiers": {
+      "QUEUE": "Na Fila",
+      "SOON": "Em Breve",
+      "NEXT": "A Seguir"
+    },
+    "revenueByHour": "Receita por hora",
+    "refundsByReason": "Reembolsos por motivo",
+    "noRefunds": "Sem reembolsos neste período.",
+    "refundReason": {
+      "rejected_by_dj": "Recusado pelo DJ",
+      "dj_timeout": "Sem decisão a tempo",
+      "cancelled_by_dj": "Cancelado pelo DJ",
+      "session_ended": "Fim do set",
+      "sla_missed": "Prazo falhado (diferença)",
+      "payment_timeout": "Pagamento expirado",
+      "tier_demoted": "Desceu para Na Fila",
+      "refund": "Reembolso"
+    },
+    "occupancyTitle": "Lotação",
+    "occupancyHint": "Quantas pessoas estiveram na casa. Serve para calcular a receita por convidado.",
+    "occupancyLabel": "Pessoas",
+    "occupancySave": "Guardar lotação"
+  },
+  "admin": {
+    "venues": {
+      "crumbRoot": "Admin BetBeat",
+      "title": "Casas e contratos",
+      "errors": {
+        "invalid": "Dados inválidos. Verifica o nome, o slug e as percentagens.",
+        "slugTaken": "Esse slug já existe. Escolhe outro."
+      },
+      "createTitle": "Nova casa",
+      "name": "Nome",
+      "slug": "Slug",
+      "slugPlaceholder": "club-exemplo",
+      "create": "Criar casa",
+      "createHint": "O slug entra nos links e não muda depois de criado. Só letras minúsculas, números e hífens.",
+      "emptyTitle": "Ainda não há casas",
+      "emptyHint": "Cria a primeira casa para lhe dar equipa, zonas e sessões.",
+      "venue": "Casa",
+      "sessions": "Sessões",
+      "staff": "Equipa",
+      "gmv30d": "Receita bruta · 30 dias",
+      "contract": "Contrato",
+      "liveNow": "{count, plural, one {# sessão ao vivo} other {# sessões ao vivo}}",
+      "feePct": "Taxa BetBeat (%)",
+      "defaultSharePct": "Parte da casa por defeito (%)",
+      "save": "Guardar",
+      "contractHint": "A taxa aplica-se às sessões criadas a partir de agora. A parte da casa preenche o formulário de nova sessão."
+    },
+    "live": {
+      "crumbRoot": "Admin BetBeat",
+      "title": "Sessões ao vivo",
+      "summary": "{sessions, plural, one {# sessão} other {# sessões}} · {pending} por decidir · {gmv}",
+      "emptyTitle": "Nenhuma sessão ao vivo",
+      "emptyHint": "As sessões ao vivo e em pausa de todas as casas aparecem aqui.",
+      "venue": "Casa",
+      "session": "Sessão",
+      "status": "Estado",
+      "pending": "Por decidir",
+      "accepted": "Aceites",
+      "played": "Tocaram",
+      "gmv": "Receita bruta",
+      "statuses": {
+        "live": "Ao vivo",
+        "paused": "Em pausa"
+      },
+      "requestsClosed": "Pedidos em pausa",
+      "upcomingTitle": "Próximas 24 horas",
+      "upcomingEmpty": "Sem sessões agendadas para as próximas 24 horas."
+    },
+    "failures": {
+      "crumbRoot": "Admin BetBeat",
+      "title": "Falhas de pagamento e reembolso",
+      "errors": {
+        "invalid": "Pedido inválido. Recarrega a página e tenta novamente.",
+        "notRetryable": "Este reembolso já não está em falha."
+      },
+      "retried": "Reembolso de volta na fila. O worker repete-o nos próximos minutos.",
+      "refunds": {
+        "title": "Reembolsos em falha",
+        "owed": "{amount} em dívida a convidados",
+        "emptyTitle": "Nenhum reembolso em falha",
+        "emptyHint": "Todos os reembolsos chegaram aos convidados.",
+        "reason": "Motivo",
+        "state": "Estado",
+        "attempts": "{count, plural, one {# tentativa} other {# tentativas}}",
+        "noProviderRef": "Pagamento sem referência no PSP",
+        "retry": "Repetir",
+        "inFlight": "A processar",
+        "retryHint": "Repetir volta a pôr o reembolso na fila do worker com a mesma chave de idempotência. Nunca devolve duas vezes."
+      },
+      "when": "Quando",
+      "where": "Casa · sessão",
+      "track": "Faixa",
+      "amount": "Valor",
+      "actions": "Ações",
+      "refundReason": {
+        "rejected_by_dj": "Recusado pelo DJ",
+        "dj_timeout": "Sem decisão a tempo",
+        "cancelled_by_dj": "Cancelado pelo DJ",
+        "session_ended": "Fim do set",
+        "sla_missed": "Prazo falhado (diferença)",
+        "payment_timeout": "Pagamento expirado",
+        "tier_demoted": "Desceu para Na Fila",
+        "refund": "Reembolso"
+      },
+      "refundStatus": {
+        "pending": "Pendente",
+        "processing": "Em processamento",
+        "succeeded": "Devolvido",
+        "failed": "Falhou"
+      },
+      "payments": {
+        "title": "Pagamentos falhados",
+        "empty": "Sem pagamentos falhados.",
+        "method": "Método",
+        "hint": "Pagamentos falhados são informativos: o convidado não pagou e não há nada a devolver."
+      },
+      "paymentMethod": {
+        "mbway": "MB WAY",
+        "card": "Cartão",
+        "apple_pay": "Apple Pay",
+        "google_pay": "Google Pay"
+      }
+    },
+    "reconciliation": {
+      "crumbRoot": "Admin BetBeat",
+      "title": "Reconciliação",
+      "emptyTitle": "Ainda não há relatórios",
+      "emptyHint": "O worker corre a reconciliação diária e o relatório aparece aqui.",
+      "verdict": {
+        "ok": "Bate certo",
+        "mismatch": "Diferença"
+      },
+      "reportFor": "Relatório de {day} · corrido às {at}",
+      "activity": {
+        "captured": "Capturado",
+        "refunded": "Reembolsado",
+        "recognized": "Reconhecido",
+        "payout": "Liquidado",
+        "hint": "Movimento do dia segundo o ledger."
+      },
+      "totals": {
+        "title": "Tabelas vs ledger",
+        "flow": "Fluxo",
+        "table": "Tabela",
+        "ledger": "Ledger",
+        "delta": "Diferença",
+        "state": "Estado",
+        "hint": "Cada fluxo compara a soma na tabela de origem com os lançamentos do ledger."
+      },
+      "flows": {
+        "captures": "Capturas",
+        "refunds": "Reembolsos",
+        "payouts": "Liquidações"
+      },
+      "mismatches": {
+        "title": "Diferenças encontradas",
+        "hint": "O worker encontrou valores que não batem certo. Investiga antes de fechar o dia.",
+        "line": "tabela {table} · ledger {ledger} · diferença {delta}"
+      },
+      "history": {
+        "title": "Últimos 14 relatórios",
+        "day": "Dia",
+        "ranAt": "Corrido às",
+        "verdict": "Resultado"
+      }
+    },
+    "flags": {
+      "crumbRoot": "Admin BetBeat",
+      "title": "Feature flags",
+      "hint": "Define por casa as funcionalidades e os valores por defeito. «Herdar» usa o valor global da plataforma.",
+      "errors": {
+        "invalid": "Valor fora dos limites. Verifica os campos e tenta novamente."
+      },
+      "emptyTitle": "Ainda não há casas",
+      "saved": "Flags guardadas.",
+      "keys": {
+        "guestMessagesEnabled": {
+          "label": "Mensagens do convidado",
+          "hint": "Permite uma mensagem curta junto ao pedido."
+        },
+        "catalogFallbackEnabled": {
+          "label": "Catálogo global",
+          "hint": "Procura no catálogo global quando a faixa não está na biblioteca do DJ."
+        },
+        "invoicesEnabled": {
+          "label": "Faturas",
+          "hint": "Emite fatura por cada pagamento confirmado."
+        },
+        "smsNotificationsEnabled": {
+          "label": "Notificações por SMS",
+          "hint": "Avisa o convidado por SMS quando a música vai tocar."
+        },
+        "displayTopEnabled": {
+          "label": "Top no Ecrã da Casa",
+          "hint": "Mostra o top de pedidos no Ecrã da Casa."
+        },
+        "basePriceCents": {
+          "label": "Preço base (cêntimos)",
+          "hint": "Preço base por defeito nas sessões desta casa."
+        },
+        "occupancy": {
+          "label": "Lotação",
+          "hint": "Pessoas na casa, para a receita por convidado."
+        },
+        "defaultVenueShareBps": {
+          "label": "Parte da casa (bps)",
+          "hint": "Parte da casa no remanescente, em pontos base (5000 = 50%)."
+        }
+      },
+      "choices": {
+        "inherit": "Herdar",
+        "on": "Ligado",
+        "off": "Desligado"
+      },
+      "otherKeys": "{count, plural, one {# outra chave (só leitura)} other {# outras chaves (só leitura)}}",
+      "save": "Guardar flags"
+    },
+    "audit": {
+      "crumbRoot": "Admin BetBeat",
+      "title": "Auditoria",
+      "total": "{count, plural, one {# registo} other {# registos}}",
+      "filters": {
+        "action": "Ação",
+        "actionPlaceholder": "session.",
+        "entity": "Entidade",
+        "any": "Todas",
+        "venue": "Casa",
+        "actor": "Autor",
+        "from": "De",
+        "to": "Até",
+        "apply": "Filtrar",
+        "clear": "Limpar"
+      },
+      "emptyTitle": "Sem registos para estes filtros",
+      "emptyHint": "Alarga o período ou limpa os filtros.",
+      "columns": {
+        "when": "Quando",
+        "actor": "Autor",
+        "action": "Ação",
+        "entity": "Entidade",
+        "venue": "Casa",
+        "payload": "Detalhe",
+        "showPayload": "Ver detalhe"
+      },
+      "pagination": {
+        "label": "Páginas",
+        "prev": "Anterior",
+        "page": "Página {page} de {pages}",
+        "next": "Seguinte"
+      }
+    }
+  }
+}
