@@ -367,17 +367,22 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "saved">("idle");
   const pendingRef = React.useRef<SettingsPatch>({});
+  /** True while a save request is out — the server's answer wins then. */
+  const inFlightRef = React.useRef(false);
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRef = React.useRef<CockpitSession | null>(null);
   sessionRef.current = session;
 
   React.useEffect(() => {
-    // Adopt the server's values whenever nothing is in flight.
-    if (session && Object.keys(pendingRef.current).length === 0 && saveStatus !== "saving") {
-      setDraft(draftOf(session));
-    }
-  }, [session, saveStatus]);
+    // Adopt the server's values when they change, keeping taps that are
+    // still pending on top. Only `session` drives this: re-running it on a
+    // status flip used to copy the STALE session back over a value the
+    // server had just confirmed (the refetch had not landed yet), which
+    // made every change look like it snapped back to the old price.
+    if (!session || inFlightRef.current) return;
+    setDraft({ ...draftOf(session), ...pendingRef.current });
+  }, [session]);
 
   React.useEffect(
     () => () => {
@@ -394,11 +399,15 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
     saveTimer.current = null;
     if (!current || Object.keys(patch).length === 0) return;
     setSaveStatus("saving");
+    inFlightRef.current = true;
     void postJson("/api/cockpit/session/settings", { sessionId: current.id, ...patch }).then(
       (res) => {
+        inFlightRef.current = false;
         if (res.ok) {
           const config = (res.data as { config?: Partial<Draft> } | null)?.config;
           if (config) {
+            // Server-confirmed (clamped) values win over what we sent, but
+            // taps made DURING the save are newer still: keep those.
             setDraft((prev) =>
               prev
                 ? {
@@ -408,6 +417,7 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
                     ),
                     basePriceCents: config.basePriceCents ?? prev.basePriceCents,
                     noRepeatWindowMin: config.noRepeatWindowMin ?? prev.noRepeatWindowMin,
+                    ...pendingRef.current,
                   }
                 : prev,
             );
@@ -418,7 +428,9 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
           refetch();
         } else {
           setSaveStatus("idle");
-          if (sessionRef.current) setDraft(draftOf(sessionRef.current));
+          if (sessionRef.current) {
+            setDraft({ ...draftOf(sessionRef.current), ...pendingRef.current });
+          }
           toast({ title: t("saveFailed"), variant: "error" });
         }
       },
