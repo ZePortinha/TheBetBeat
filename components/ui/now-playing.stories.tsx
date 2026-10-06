@@ -34,8 +34,8 @@ type Story = StoryObj<typeof meta>;
 /** Live progress + Beat Pulse at 124 BPM (real clock). */
 export const Live: Story = {
   args: {
-    title: "Gata Only",
-    artist: "FloyyMenor, Cris MJ",
+    title: "Velvet Drift",
+    artist: "Linha Oito, Kova Ray",
     coverUrl: COVER,
     bpm: 124,
     startedAt: Date.now() - 65_000,
@@ -48,8 +48,8 @@ export const Live: Story = {
 /** Deterministic mid-track render (frozen clock, ~31%). */
 export const MidTrack: Story = {
   args: {
-    title: "Pepas",
-    artist: "Farruko",
+    title: "Midnight Circuit",
+    artist: "Arco Verde",
     coverUrl: COVER,
     bpm: 130,
     startedAt: NOW - 65_000,
@@ -71,8 +71,8 @@ export const NearEnd: Story = {
 /** Anonymous request, no amount shown (public-facing variant). */
 export const Anonymous: Story = {
   args: {
-    title: "Vida Louca",
-    artist: "Mc Kevin o Chris",
+    title: "Coastal Horizon",
+    artist: "Rui Norte",
     bpm: 130,
     startedAt: NOW - 30_000,
     durationSec: 180,

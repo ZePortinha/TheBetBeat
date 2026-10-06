@@ -27,6 +27,7 @@ export default async function MfaPage({
           submit: t("submit"),
           error: t("error"),
           loading: t("loading"),
+          qrAlt: t("qrAlt"),
         }}
       />
     </AuthShell>

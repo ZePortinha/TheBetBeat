@@ -532,3 +532,6 @@ Measured in a cloud session without Docker: Postgres 16 with stubbed `auth`/`rea
 - Venue display: the "Próximo leilão" heading is hidden when nothing is open or scheduled (it was a heading over an empty row on the TV).
 - Guest layout preconnects to Supabase (anonymous sign-in and realtime start there).
 - `htmlLimitedBots: /.*/` in next.config: Next 15 streamed the page metadata into `<body>` for every client; it now goes in `<head>` (link previews and audits that do not run JS were missing the description).
+- /casas copy caught up with the auction-first guest app (2026-10-06): the hero, step 2 and the guarantee no longer describe the old "Na Fila / Em Breve / A Seguir" tiers; they describe bidding and the balance refund, in the same words the guest app uses.
+- Storybook stories used real artists and track titles; replaced with the fictional seed names (A2.5).
+- List cover images load lazily; the MFA QR alt text moved to translations.

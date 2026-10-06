@@ -35,8 +35,8 @@ type Story = StoryObj<typeof meta>;
 
 const baseArgs = {
   headline: "A minha música tocou",
-  trackTitle: "Gata Only",
-  trackArtist: "FloyyMenor, Cris MJ",
+  trackTitle: "Velvet Drift",
+  trackArtist: "Linha Oito, Kova Ray",
   coverUrl: COVER,
   venueName: "Club Noir · Lisboa",
   dateTimeLabel: "Sáb · 21 Set · 01:24",
@@ -77,8 +77,8 @@ export const SquareLongTitle: Story = {
   args: {
     ...baseArgs,
     format: "square",
-    trackTitle: "I'm Good (Blue) — Festival Rework",
-    trackArtist: "David Guetta, Bebe Rexha",
+    trackTitle: "Hidden Signal (Festival Rework)",
+    trackArtist: "Electric Pulse, Maré Alta",
   },
   render: (args) => (
     <Scaled format="square">

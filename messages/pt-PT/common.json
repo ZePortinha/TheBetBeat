@@ -64,7 +64,8 @@
       "codeLabel": "Código",
       "submit": "Verificar",
       "error": "Código inválido. Tenta novamente.",
-      "loading": "A preparar…"
+      "loading": "A preparar…",
+      "qrAlt": "Código QR para a app de autenticação"
     }
   },
   "devIndex": {
@@ -87,7 +88,7 @@
     "hero": {
       "titleA": "Pede a tua música",
       "titleB": "ao DJ.",
-      "sub": "Escolhe o tema, decide quanto esperas e paga em segundos. Se não tocar, devolvemos tudo.",
+      "sub": "Escolhe a faixa, licita no leilão aberto e paga em segundos. Se não tocar, devolvemos tudo.",
       "cta": "Ver como funciona",
       "ctaSecondary": "Para DJs e casas"
     },
@@ -99,8 +100,8 @@
         "body": "Abre no telemóvel. Sem instalar nada, sem registo e sem palavra-passe."
       },
       "choose": {
-        "title": "Escolhe a música e a espera.",
-        "body": "Na Fila, Em Breve ou A Seguir. O preço final e o tempo estimado ficam à vista antes de pagares."
+        "title": "Escolhe a faixa e licita.",
+        "body": "Os leilões abrem ao longo da noite. Vês o valor antes de pagar e, se fores ultrapassado, o dinheiro volta ao teu saldo."
       },
       "decide": {
         "title": "O DJ decide.",
@@ -130,7 +131,7 @@
     "guarantee": {
       "title": "Se não tocar,",
       "titleAccent": "devolvemos tudo.",
-      "body": "Reembolso total e automático. Se a espera prometida falhar, devolvemos a diferença."
+      "body": "Reembolso total e automático. Se fores ultrapassado num leilão, o valor volta ao teu saldo."
     },
     "footer": {
       "rights": "© 2026 BetBeat",
@@ -138,7 +139,7 @@
     }
   },
   "meta": {
-    "description": "Pede a tua música ao DJ da festa. Escolhe a faixa, vê o preço final antes de pagar e, se não tocar, devolvemos tudo.",
+    "description": "Pede a tua música ao DJ da festa. Escolhe a faixa, licita no leilão aberto e, se não tocar, devolvemos tudo.",
     "ogAlt": "BetBeat: pede a tua música ao DJ",
     "venuesTitle": "Para DJs e casas",
     "venuesDescription": "BetBeat para casas noturnas e DJs: os convidados pedem músicas a pagar, o DJ decide sempre o que toca e o que não toca é devolvido automaticamente.",
