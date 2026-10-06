@@ -27,6 +27,9 @@ const nextConfig: NextConfig = {
               // camera: the guests' front door reads the event QR.
               "camera=(self), microphone=(), geolocation=(), payment=(self), usb=()",
           },
+          // Isolates the window from cross-origin openers (tabnabbing, XS-Leaks).
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",

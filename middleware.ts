@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isCrossSiteApiWrite } from "@/lib/security/csrf";
 
 /**
  * Security middleware (B12.4): per-request CSP nonce + strict headers,
@@ -7,6 +8,10 @@ import { createServerClient } from "@supabase/ssr";
  * server layouts/routes — the client never decides permissions).
  */
 export async function middleware(request: NextRequest) {
+  if (isCrossSiteApiWrite(request.method, request.nextUrl.pathname, request.headers)) {
+    return NextResponse.json({ error: { code: "forbidden_origin", id: "csrf" } }, { status: 403 });
+  }
+
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString(
     "base64",
   );
@@ -29,6 +34,9 @@ export async function middleware(request: NextRequest) {
     `frame-ancestors 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
+    `object-src 'none'`,
+    `manifest-src 'self'`,
+    ...(isDev ? [] : [`upgrade-insecure-requests`]),
   ].join("; ");
 
   const requestHeaders = new Headers(request.headers);

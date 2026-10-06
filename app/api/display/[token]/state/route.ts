@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { clientIpFrom } from "@/lib/security/client-ip";
 import { verifyToken } from "@/lib/security/tokens";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { getDisplayState } from "../../_lib/state";
@@ -24,16 +25,11 @@ const paramsSchema = z.object({
     .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/),
 });
 
-function clientIp(request: NextRequest): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  return fwd ? (fwd.split(",")[0]?.trim() ?? "unknown") : "local";
-}
-
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ token: string }> },
 ) {
-  const limit = rateLimit(`display-state:${clientIp(request)}`, 60, 60_000);
+  const limit = rateLimit(`display-state:${clientIpFrom(request.headers)}`, 60, 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "rate_limited" },

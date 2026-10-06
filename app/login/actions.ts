@@ -4,6 +4,8 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createHash } from "node:crypto";
+import { clientIpFrom } from "@/lib/security/client-ip";
 import { rateLimit, LIMITS } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 
@@ -31,10 +33,14 @@ export async function loginAction(
   });
   if (!parsed.success) return { error: "invalid" };
 
-  const hdrs = await headers();
-  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
-  const rl = rateLimit(`login:${ip}`, LIMITS.login.limit, LIMITS.login.windowMs);
-  if (!rl.ok) return { error: "rate_limited" };
+  const ip = clientIpFrom(await headers());
+  // Per IP, and per account so a botnet cannot spray one staff password.
+  const account = createHash("sha256").update(parsed.data.email.toLowerCase()).digest("hex").slice(0, 32);
+  const limited = [
+    rateLimit(`login:${ip}`, LIMITS.login.limit, LIMITS.login.windowMs),
+    rateLimit(`login-account:${account}`, LIMITS.login.limit, LIMITS.login.windowMs),
+  ].some((r) => !r.ok);
+  if (limited) return { error: "rate_limited" };
 
   if (parsed.data.turnstileToken) {
     const human = await verifyTurnstile(parsed.data.turnstileToken, ip);

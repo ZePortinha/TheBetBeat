@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { buildLoginCodeMessage, getSmsProvider } from "@/lib/notifications";
 import { decrypt, encrypt, hashPhone, hashSmsCode } from "@/lib/security/crypto";
-import { checkSmsCode, newSmsCode, SMS_CODE_TTL_MS } from "@/lib/security/otp";
+import { checkSmsCode, newSmsCode, SMS_CODE_TTL_MS, SMS_CODES_PER_DAY, SMS_CODES_PER_HOUR } from "@/lib/security/otp";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { linkPhoneHandle } from "@/lib/guests/phone-handle";
@@ -161,6 +161,22 @@ export async function POST(request: Request) {
   // Every SMS costs money: anti-bot like a payment start (B12.4).
   const human = await verifyTurnstile(parsed.data.turnstileToken ?? "missing", clientIp(request));
   if (!human) return apiError("bot_check_failed", 403);
+
+  // Durable caps (the in-memory limits above reset on restart and are per
+  // instance): a number gets at most 5 codes an hour and 10 a day, so the
+  // 5 guesses per code cannot be multiplied into a brute force.
+  const recent = await pool.query<{ hour: string; day: string; mine: string }>(
+    `select count(*) filter (where created_at > now() - interval '1 hour') as hour,
+            count(*) as day,
+            count(*) filter (where guest_id = $2) as mine
+       from public.guest_phone_codes
+      where (phone_hash = $1 or guest_id = $2) and created_at > now() - interval '1 day'`,
+    [phoneHash, guestId],
+  );
+  const counts = recent.rows[0];
+  if (counts && (Number(counts.hour) >= SMS_CODES_PER_HOUR || Number(counts.day) >= SMS_CODES_PER_DAY || Number(counts.mine) >= SMS_CODES_PER_DAY)) {
+    return rateLimitedResponse();
+  }
 
   await ensureGuestRow(guestId);
   const smsCode = newSmsCode();

@@ -5,6 +5,7 @@ import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { apiError, rateLimitedResponse } from "../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../_lib/auth";
 import { handleTaken, linkPhoneHandle } from "@/lib/guests/phone-handle";
+import { isReservedHandle } from "@/lib/guests/reserved-handles";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,10 @@ export async function POST(request: Request) {
     [identity.guestId],
   );
   const provenHash = me.rows[0]?.phone_verified_at ? me.rows[0].phone_hash : null;
-  if (parsed.data.handle && (await handleTaken(getPool(), parsed.data.handle, provenHash))) {
+  if (
+    parsed.data.handle &&
+    (isReservedHandle(parsed.data.handle) || (await handleTaken(getPool(), parsed.data.handle, provenHash)))
+  ) {
     return apiError("handle_taken", 409);
   }
   await getPool().query(
