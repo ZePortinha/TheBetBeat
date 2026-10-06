@@ -450,3 +450,33 @@ Owner follow-up (same day):
   one: with the defaults it runs 23:00 → 01:00 at the ramp price. Later
   auctions keep the 4-minute window (specials 30 min). Applies to nights
   planned from now on (a planned night keeps its snapshot).
+
+## 2026-10-06 - Full music catalog, BPM detection and transition pricing
+
+Owner asks: guests can pick any song (Spotify/Deezer size), search by album
+and see its songs, an "AI" tells the BPM and how viable the transition from
+the current track is, and harder transitions start at a higher price.
+
+- Catalog = Deezer public API (`CATALOG_PROVIDER=deezer`, no key): search
+  with paging ("Mostrar mais"), album search + every song of an album,
+  charts ("Em alta agora"), covers. Spotify was not used: its catalog is
+  essentially the same, it needs developer credentials, and it no longer
+  gives BPM (audio features) to new apps. Deezer's quota is per server IP
+  (~50 requests / 5 s): searches are cached 10 min per instance.
+- BPM: Deezer's value when present (~30 % of tracks), otherwise measured
+  on the server from the 30 s preview (`lib/catalog/tempo.ts`: spectral
+  flux + autocorrelation with a 120 BPM prior; 9/10 right on a reference
+  set, the miss was half-time). Server-side so a guest cannot fake a tempo.
+  Measured by the worker in the background (`tracks.bpm_wanted_at`); the
+  bid screen measures on open if still unknown.
+- "AI" = a deterministic transition assistant (`lib/auction/transition.ts`),
+  not a language model: tempo change after half/double time (easy ≤ 4 %,
+  medium ≤ 8 % = the usual pitch range, else hard), one step harder on a
+  Camelot key clash when both keys are known. Accurate, instant and free;
+  a generative model would guess BPMs.
+- Price: a new bid must reach the auction minimum × the difficulty
+  multiplier (easy ×1, medium ×1.5, hard ×2.5, unknown ×1.5), editable
+  per club in Console › Leilões, enforced in `placeInTx`. Raising or
+  backing an existing bid is not re-priced.
+- New nights open the full catalog by default; the DJ can still choose
+  "Só biblioteca". Library imports now skip songs already in the library.

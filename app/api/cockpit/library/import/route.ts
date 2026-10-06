@@ -76,31 +76,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const imported = await withTransaction(async (client) => {
       let count = 0;
-      // Batched parameterized inserts (500 tracks per statement).
+      // Batched inserts (500 tracks per statement). A song already in the
+      // library (same title + artist, any case) is skipped, so re-importing
+      // an updated rekordbox export never duplicates the library.
       const BATCH = 500;
       for (let i = 0; i < result.tracks.length; i += BATCH) {
         const slice = result.tracks.slice(i, i + BATCH);
-        const values: string[] = [];
-        const params: unknown[] = [scope.venueId];
-        slice.forEach((t, j) => {
-          const base = 1 + j * 6;
-          values.push(
-            `($1, $${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`,
-          );
-          params.push(
-            t.title,
-            t.artist,
-            t.genre ?? "unknown",
-            t.bpm,
-            t.camelotKey,
-            t.durationSec,
-          );
-        });
         const res = await client.query(
-          `insert into public.library_tracks
-             (venue_id, title, artist, genre, bpm, camelot_key, duration_sec)
-           values ${values.join(", ")}`,
-          params,
+          `insert into public.library_tracks (venue_id, title, artist, genre, bpm, camelot_key, duration_sec)
+           select distinct on (lower(t.title), lower(t.artist))
+                  $1, t.title, t.artist, t.genre, t.bpm, t.camelot_key, t.duration_sec
+             from unnest($2::text[], $3::text[], $4::text[], $5::numeric[], $6::text[], $7::int[])
+                  as t(title, artist, genre, bpm, camelot_key, duration_sec)
+            where not exists (
+              select 1 from public.library_tracks l
+               where l.venue_id = $1 and lower(l.title) = lower(t.title) and lower(l.artist) = lower(t.artist))`,
+          [
+            scope.venueId,
+            slice.map((t) => t.title),
+            slice.map((t) => t.artist),
+            slice.map((t) => t.genre ?? "unknown"),
+            slice.map((t) => t.bpm),
+            slice.map((t) => t.camelotKey),
+            slice.map((t) => t.durationSec),
+          ],
         );
         count += res.rowCount ?? 0;
       }
@@ -116,7 +115,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return count;
     });
 
-    return NextResponse.json({ ok: true, imported, skipped: result.skipped });
+    // Songs already in the library count as skipped too.
+    return NextResponse.json({ ok: true, imported, skipped: result.skipped + (result.tracks.length - imported) });
   } catch (error) {
     const correlationId = Math.random().toString(16).slice(2, 10);
     console.error(

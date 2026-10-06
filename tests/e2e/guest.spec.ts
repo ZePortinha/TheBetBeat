@@ -28,7 +28,8 @@ test.describe("guest app · leilões", () => {
   async function openGuest(page: Page): Promise<string> {
     const guestUrl = await getGuestUrl(page);
     await page.goto(guestUrl);
-    await expect(page.getByTestId("boot-intro")).toBeHidden({ timeout: 10_000 });
+    // Gone from the page, not just faded (its short fade-out may still run).
+    await expect(page.getByTestId("boot-intro")).toHaveCount(0, { timeout: 10_000 });
     return guestUrl;
   }
 
@@ -117,6 +118,8 @@ test.describe("guest app · leilões", () => {
     await openAuction(request, 600);
     await openGuest(page);
     await page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }).click();
+    // Wait for the search page: the home button also ends in "licitar".
+    await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
     await page.getByRole("radio", { name: /mb way/i }).click();
     await page.getByRole("textbox", { name: /mb way/i }).fill("912345678");
@@ -161,6 +164,8 @@ test.describe("guest app · leilões", () => {
     expect(home.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
 
     await page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }).click();
+    // Wait for the search page: the home button also ends in "licitar".
+    await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
     // A catalog track measures its BPM on first open (dev compiles too).
     await expect(page.getByRole("radiogroup").first()).toBeVisible({ timeout: 45_000 });
