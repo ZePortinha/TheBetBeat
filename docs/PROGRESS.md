@@ -118,8 +118,8 @@ SMS, invoicing and catalog adapters when credentials arrive.
 - Supabase CLI 2.78.1 (2.119 available) — fine for local dev.
 - Real PSP/SMS/invoicing/catalog credentials not available; Phase 8 ships
   sandbox-ready adapters + docs instead of live validation.
-- Turnstile is not enforced on anonymous session creation (Supabase captcha setting; the
-  staff login now requires it in production). See `docs/SECURITY.md` B12.4.
+- Turnstile on anonymous session creation needs Supabase CAPTCHA on in production plus
+  `NEXT_PUBLIC_SUPABASE_CAPTCHA=1` (off locally). See `docs/SECURITY.md` B12.4.
 - `price.changed` broadcasts not yet emitted (screens refetch quotes on
   `queue.changed`); wire a quote-service hook if live tickers are wanted.
 - TierQuote.reason lacks an `order_conflict` code: a tier made unavailable by

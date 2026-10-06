@@ -9,6 +9,7 @@ import { clientIpFrom } from "@/lib/security/client-ip";
 import { safeNextPath } from "@/lib/security/redirect";
 import { rateLimit, LIMITS } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
+import { publicEnv } from "@/lib/security/public-env";
 
 const schema = z.object({
   email: z.string().email().max(200),
@@ -41,18 +42,22 @@ export async function loginAction(
   if (limited) return { error: "rate_limited" };
 
   // The form renders the widget; production refuses a sign-in without it.
+  // With Supabase CAPTCHA on, Auth verifies the (single-use) token itself.
   const token = parsed.data.turnstileToken;
-  if (token || process.env.NODE_ENV === "production") {
+  const authCaptcha = publicEnv.supabaseCaptcha;
+  if (!authCaptcha && (token || process.env.NODE_ENV === "production")) {
     const human = await verifyTurnstile(token ?? "", ip);
     if (!human) return { error: "bot" };
   }
+  if (authCaptcha && !token) return { error: "bot" };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
+    ...(authCaptcha ? { options: { captchaToken: token } } : {}),
   });
-  if (error) return { error: "invalid" };
+  if (error) return { error: error.code === "captcha_failed" ? "bot" : "invalid" };
 
   redirect(parsed.data.next);
 }
