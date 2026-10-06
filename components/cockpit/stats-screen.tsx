@@ -213,7 +213,7 @@ export function StatsScreen({ sessionId }: { sessionId: string | null }) {
         </Card>
 
         <Card title={t("acceptance")}>
-          <p className="tnum text-[length:var(--text-40)] font-bold text-gold-500">
+          <p className="tnum text-[length:var(--text-40)] font-bold text-accent-400">
             {acceptancePct === null ? "—" : `${acceptancePct}%`}
           </p>
           <p className="mt-1 text-sm text-text-secondary">
@@ -262,7 +262,7 @@ export function StatsScreen({ sessionId }: { sessionId: string | null }) {
                   <span className="tnum text-text-tertiary">
                     {t("requestsLabel", { count: track.count })}
                   </span>
-                  <span className="tnum font-semibold text-gold-500">
+                  <span className="tnum font-semibold text-accent-400">
                     {formatEurosDisplay(track.totalCents)}
                   </span>
                 </li>

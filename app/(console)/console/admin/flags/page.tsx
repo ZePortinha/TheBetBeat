@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 const selectCls =
   "rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm " +
-  "text-text-primary focus:border-gold-500 focus:outline-none";
+  "text-text-primary focus:border-accent-500 focus:outline-none";
 
 /**
  * Admin BetBeat — Feature flags (B9 admin): per-venue editor over the
@@ -127,7 +127,7 @@ export default async function AdminFlagsPage({
 
               <button
                 type="submit"
-                className="min-h-10 self-start rounded-button bg-gold-500 px-5 text-sm
+                className="min-h-10 self-start rounded-button bg-accent-500 px-5 text-sm
                   font-semibold text-text-on-accent transition-transform duration-100
                   active:scale-[0.97]"
               >

@@ -41,7 +41,7 @@ export function formatCountdown(remainingMs: number): string {
 }
 
 const PHASE_COLOR: Record<CountdownPhase, string> = {
-  gold: "var(--color-gold-500)",
+  gold: "var(--color-accent-500)",
   amber: "var(--color-amber-500)",
   ember: "var(--color-ember-500)",
 };

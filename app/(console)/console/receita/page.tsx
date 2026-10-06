@@ -154,7 +154,7 @@ export default async function RevenuePage() {
                           {formatDateTime(s.starts_at)}
                         </p>
                       </td>
-                      <td className="px-4 py-3 text-right text-gold-500 tnum">
+                      <td className="px-4 py-3 text-right text-accent-400 tnum">
                         {formatEuros(st.gmv)}
                       </td>
                       <td className="px-4 py-3 text-right text-text-primary tnum">
@@ -169,7 +169,7 @@ export default async function RevenuePage() {
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/console/receita/${s.id}`}
-                          className="font-semibold text-gold-500 hover:text-gold-300"
+                          className="font-semibold text-accent-400 hover:text-accent-300"
                         >
                           {t("statement")}
                         </Link>

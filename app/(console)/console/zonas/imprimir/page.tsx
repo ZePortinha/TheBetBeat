@@ -72,12 +72,12 @@ export default async function PrintZonesPage() {
                 gap-8 rounded-card border border-line-subtle bg-white py-16 text-center"
             >
               <p
-                className="label text-[#948a79]"
+                className="label text-[#8f8f8c]"
                 style={{ letterSpacing: "0.08em" }}
               >
                 {venue.name} · {zone.name}
               </p>
-              <h2 className="font-display px-8 text-[2rem] font-extrabold leading-tight text-[#0a0806]">
+              <h2 className="font-display px-8 text-[2rem] font-extrabold leading-tight text-[#0b0b0c]">
                 {t("printCta")}
               </h2>
               <QRBlock url={url} size={280} alt={t("qrAlt", { zone: zone.name })} />

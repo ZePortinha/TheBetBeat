@@ -14,7 +14,8 @@
  */
 
 import * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Disc } from "./disc";
 import { PriceTag } from "./price-tag";
 
 export interface NowPlayingProps {
@@ -60,6 +61,7 @@ export function NowPlaying({
   const getNowRef = useRef(now);
   getNowRef.current = now;
 
+  const titleId = useId();
   const fillRef = useRef<HTMLDivElement>(null);
   const [elapsedSec, setElapsedSec] = useState(() =>
     clamp((getNowRef.current() - startedAt) / 1000, 0, durationSec),
@@ -86,54 +88,43 @@ export function NowPlaying({
   return (
     <div
       className={[
-        "rounded-card border border-line-subtle bg-surface-1 p-4",
+        "relative isolate overflow-hidden rounded-sheet bg-surface-1 p-5",
         className ?? "",
       ].join(" ")}
       style={{ lineHeight: "var(--leading-dense)" }}
     >
-      <div className="flex items-center gap-4">
-        <span
-          className={[
-            "relative block size-16 shrink-0 overflow-hidden rounded-cover",
-            beatPeriod ? "beat-pulse" : "",
-          ].join(" ")}
-          style={
-            beatPeriod
-              ? ({ "--beat-period": beatPeriod } as React.CSSProperties)
-              : undefined
-          }
-        >
-          {coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+      <div aria-hidden className="ambient-center absolute inset-0 -z-10 opacity-60" />
+      <div className="flex items-center gap-5">
+        {coverUrl ? (
+          <span
+            className={[
+              "relative block size-[5.5rem] shrink-0 overflow-hidden rounded-cover",
+              beatPeriod ? "beat-pulse" : "",
+            ].join(" ")}
+            style={
+              beatPeriod
+                ? ({ "--beat-period": beatPeriod } as React.CSSProperties)
+                : undefined
+            }
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={coverUrl} alt="" className="size-full object-cover" />
-          ) : (
-            <span
-              className="flex size-full items-center justify-center text-base font-semibold text-text-secondary"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--color-surface-3), var(--color-surface-1))",
-              }}
-            >
-              {title
-                .split(/\s+/)
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((word) => word.charAt(0).toUpperCase())
-                .join("")}
-            </span>
-          )}
-        </span>
+          </span>
+        ) : (
+          <Disc bpm={bpm} className="size-[5.5rem] shrink-0" />
+        )}
 
         <div className="min-w-0 flex-1">
           <p
-            className="truncate text-base font-bold text-text-primary"
-            title={`${title} — ${artist}`}
+            id={titleId}
+            className="truncate text-xl font-bold tracking-[-0.01em] text-text-primary"
+            title={`${title} - ${artist}`}
           >
             {title}
           </p>
-          <p className="truncate text-sm text-text-secondary">{artist}</p>
+          <p className="mt-0.5 truncate text-base text-text-secondary">{artist}</p>
           {amountCents != null || handle ? (
-            <p className="mt-1 flex items-baseline gap-2">
+            <p className="mt-1.5 flex items-baseline gap-2">
               {amountCents != null ? <PriceTag cents={amountCents} size="md" /> : null}
               {handle ? (
                 <span className="truncate text-sm text-text-tertiary">{handle}</span>
@@ -144,17 +135,20 @@ export function NowPlaying({
       </div>
 
       {/* Progress: heat gradient, scaleX-only animation via rAF. */}
-      <div className="mt-3">
+      <div className="mt-5">
         <div
-          className="h-1.5 overflow-hidden rounded-full bg-surface-3"
+          className="h-1 overflow-hidden rounded-full bg-surface-3"
           role="progressbar"
+          aria-labelledby={titleId}
           aria-valuemin={0}
           aria-valuemax={Math.round(durationSec)}
           aria-valuenow={Math.round(elapsedSec)}
+          suppressHydrationWarning
         >
           <div
             ref={fillRef}
             className="h-full w-full origin-left will-change-transform"
+            suppressHydrationWarning
             style={{
               background: "var(--gradient-heat)",
               transform: `scaleX(${fraction})`,
@@ -162,7 +156,7 @@ export function NowPlaying({
           />
         </div>
         <div className="tnum mt-1 flex justify-between text-xs text-text-tertiary">
-          <span>{formatClock(elapsedSec)}</span>
+          <span suppressHydrationWarning>{formatClock(elapsedSec)}</span>
           <span>{formatClock(durationSec)}</span>
         </div>
       </div>

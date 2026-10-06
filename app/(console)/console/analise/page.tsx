@@ -140,7 +140,7 @@ export default async function AnalyticsPage({
 
   const inputCls =
     "w-28 rounded-button border border-line-subtle bg-surface-3 px-3 py-2 " +
-    "text-sm text-text-primary tnum focus:border-gold-500 focus:outline-none";
+    "text-sm text-text-primary tnum focus:border-accent-500 focus:outline-none";
 
   return (
     <div className="flex flex-col gap-10">
@@ -157,7 +157,7 @@ export default async function AnalyticsPage({
                   aria-current={p === period ? "page" : undefined}
                   className={`rounded-chip px-3 py-1.5 text-sm ${
                     p === period
-                      ? "bg-surface-3 font-semibold text-gold-500"
+                      ? "bg-surface-3 font-semibold text-accent-400"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
@@ -199,7 +199,7 @@ export default async function AnalyticsPage({
                 <span className="w-40 text-sm text-text-secondary">{label}</span>
                 <div className="h-6 flex-1 overflow-hidden rounded-chip bg-surface-2">
                   <div
-                    className="h-full rounded-chip bg-gold-500/80"
+                    className="h-full rounded-chip bg-accent-500/80"
                     style={{ width: `${(n / funnelMax) * 100}%` }}
                   />
                 </div>
@@ -306,7 +306,7 @@ export default async function AnalyticsPage({
             </label>
             <button
               type="submit"
-              className="min-h-10 rounded-button bg-gold-500 px-4 text-sm font-semibold
+              className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
                 text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
             >
               {t("occupancySave")}

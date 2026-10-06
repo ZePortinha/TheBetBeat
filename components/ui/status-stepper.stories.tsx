@@ -54,7 +54,7 @@ function SteppingDemo() {
         <button
           type="button"
           onClick={() => setActive((a) => Math.min(STEPS.length, a + 1))}
-          className="rounded-button bg-gold-500 px-3 py-1.5 text-[length:var(--text-14)] font-semibold text-text-on-accent active:scale-[0.97]"
+          className="rounded-button bg-accent-500 px-3 py-1.5 text-[length:var(--text-14)] font-semibold text-text-on-accent active:scale-[0.97]"
         >
           Avançar
         </button>

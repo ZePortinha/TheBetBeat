@@ -26,7 +26,7 @@ export function Stat({
       <p
         data-testid={testId ? `${testId}-value` : undefined}
         className={`font-display text-[length:var(--text-24)] font-bold tnum ${
-          money ? "text-gold-500" : "text-text-primary"
+          money ? "text-accent-400" : "text-text-primary"
         }`}
       >
         {value}

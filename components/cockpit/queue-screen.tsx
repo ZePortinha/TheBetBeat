@@ -69,7 +69,7 @@ function DeadlineTimeline({
                 ? "var(--color-ember-500)"
                 : remaining < 2 * 60_000
                   ? "var(--color-amber-500)"
-                  : "var(--color-gold-500)";
+                  : "var(--color-accent-500)";
             return (
               <div key={r.requestId} className="flex items-center gap-3 text-sm">
                 <span className="w-44 truncate text-text-secondary" title={r.trackTitle}>
@@ -172,7 +172,7 @@ export function QueueScreen({ sessionId }: { sessionId: string | null }) {
           className={cx(
             "min-h-12 rounded-full border px-4 text-sm font-semibold",
             tierFilter === null
-              ? "border-gold-500/40 bg-gold-500/10 text-gold-500"
+              ? "border-accent-500/40 bg-accent-500/10 text-accent-400"
               : "border-line-subtle bg-surface-2 text-text-secondary",
           )}
         >
@@ -185,7 +185,7 @@ export function QueueScreen({ sessionId }: { sessionId: string | null }) {
             className={cx(
               "min-h-12 rounded-full border px-4 text-sm font-semibold",
               tierFilter === tier
-                ? "border-gold-500/40 bg-gold-500/10 text-gold-500"
+                ? "border-accent-500/40 bg-accent-500/10 text-accent-400"
                 : "border-line-subtle bg-surface-2 text-text-secondary",
             )}
           >
@@ -198,7 +198,7 @@ export function QueueScreen({ sessionId }: { sessionId: string | null }) {
         <select
           value={genreFilter}
           onChange={(event) => setGenreFilter(event.target.value)}
-          className="min-h-12 rounded-full border border-line-subtle bg-surface-2 px-4 text-sm font-semibold text-text-secondary focus:border-gold-500/50 focus:outline-none"
+          className="min-h-12 rounded-full border border-line-subtle bg-surface-2 px-4 text-sm font-semibold text-text-secondary focus:border-accent-500/50 focus:outline-none"
         >
           <option value="">{t("queueScreen.filters.allGenres")}</option>
           {genres.map((genre) => (
@@ -215,7 +215,7 @@ export function QueueScreen({ sessionId }: { sessionId: string | null }) {
             setBpmBucket(bucket ?? BPM_BUCKETS[0]);
           }}
           aria-label={t("queueScreen.filters.bpm")}
-          className="tnum min-h-12 rounded-full border border-line-subtle bg-surface-2 px-4 text-sm font-semibold text-text-secondary focus:border-gold-500/50 focus:outline-none"
+          className="tnum min-h-12 rounded-full border border-line-subtle bg-surface-2 px-4 text-sm font-semibold text-text-secondary focus:border-accent-500/50 focus:outline-none"
         >
           {BPM_BUCKETS.map((bucket) => (
             <option key={bucket.key} value={bucket.key}>

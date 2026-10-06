@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const inputCls =
   "w-24 rounded-button border border-line-subtle bg-surface-3 px-2 py-1.5 text-sm " +
-  "text-text-primary tnum focus:border-gold-500 focus:outline-none";
+  "text-text-primary tnum focus:border-accent-500 focus:outline-none";
 
 /**
  * Admin BetBeat — Casas & contratos (B9 admin). Platform admins only.
@@ -91,7 +91,7 @@ export default async function AdminVenuesPage({
         </label>
         <button
           type="submit"
-          className="min-h-10 rounded-button bg-gold-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
         >
           {t("create")}
@@ -130,7 +130,7 @@ export default async function AdminVenuesPage({
                 <Td align="right" numeric>
                   {Number(v.staff)}
                 </Td>
-                <Td align="right" numeric className="text-gold-500">
+                <Td align="right" numeric className="text-accent-400">
                   {formatEuros(Number(v.gmv_30d))}
                 </Td>
                 <Td>

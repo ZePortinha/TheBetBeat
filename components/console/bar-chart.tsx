@@ -40,7 +40,7 @@ export function BarChart({
               width={barWidth * 0.7}
               height={Math.max(h, bar.value > 0 ? 1 : 0)}
               rx={1}
-              fill="var(--color-gold-500)"
+              fill="var(--color-accent-500)"
               opacity={0.9}
             >
               <title>{`${bar.label} · ${bar.display}`}</title>

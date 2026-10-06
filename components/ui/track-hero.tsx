@@ -10,7 +10,7 @@
  */
 
 import * as React from "react";
-import { coverInitials } from "./track-row";
+import { Disc } from "./disc";
 
 export interface TrackHeroProps {
   title: string;
@@ -42,38 +42,30 @@ export function TrackHero({
 
   return (
     <div className={["flex items-center gap-4", className ?? ""].join(" ")}>
-      <span className="relative block size-24 shrink-0 overflow-hidden rounded-cover">
-        {coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+      {coverUrl ? (
+        <span className="relative block size-24 shrink-0 overflow-hidden rounded-cover">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={coverUrl} alt="" className="size-full object-cover" />
-        ) : (
-          <span
-            className="flex size-full items-center justify-center text-xl font-semibold text-text-secondary"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--color-surface-3), var(--color-surface-1))",
-            }}
-          >
-            {coverInitials(title)}
-          </span>
-        )}
-      </span>
+        </span>
+      ) : (
+        <Disc seed={title} className="size-24 shrink-0" />
+      )}
 
       <div className="min-w-0 flex-1">
         <h2
-          className="truncate text-2xl font-bold text-text-primary"
+          className="line-clamp-2 text-2xl font-bold text-text-primary"
           style={{
             letterSpacing: "var(--tracking-heading)",
             lineHeight: "var(--leading-title)",
           }}
-          title={`${title} — ${artist}`}
+          title={`${title} - ${artist}`}
         >
           {title}
         </h2>
         <p className="mt-0.5 truncate text-base text-text-secondary">{artist}</p>
         {metaParts.length > 0 ? (
           <p className="tnum mt-1 truncate text-sm text-text-tertiary">
-            {metaParts.join(" · ")}
+            {metaParts.join(", ")}
           </p>
         ) : null}
         {children ? <div className="mt-2">{children}</div> : null}

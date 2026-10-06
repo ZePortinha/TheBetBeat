@@ -11,7 +11,7 @@ const COVER =
   encodeURIComponent(
     "<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'>" +
       "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
-      "<stop offset='0' stop-color='#B8901A'/><stop offset='1' stop-color='#2B241C'/>" +
+      "<stop offset='0' stop-color='#b50e24'/><stop offset='1' stop-color='#2c2c2e'/>" +
       "</linearGradient></defs><rect width='128' height='128' fill='url(#g)'/></svg>",
   );
 

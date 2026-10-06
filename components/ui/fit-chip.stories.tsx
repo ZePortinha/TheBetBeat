@@ -38,8 +38,8 @@ export const AllFitLabels: Story = {
 export const GenericChips: Story = {
   render: () => (
     <div className="flex flex-wrap items-center gap-2">
-      <Chip tone="gold">A Seguir</Chip>
-      <Chip tone="gold">Em Breve</Chip>
+      <Chip tone="accent">A Seguir</Chip>
+      <Chip tone="accent">Em Breve</Chip>
       <Chip tone="neutral">Na Fila</Chip>
       <Chip
         tone="neutral"

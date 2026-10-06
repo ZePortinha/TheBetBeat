@@ -5,10 +5,10 @@ import { PriceTag } from "./price-tag";
 const meta = {
   title: "UI/PriceTag",
   component: PriceTag,
-  args: { cents: 1200, size: "md", tone: "gold" },
+  args: { cents: 1200, size: "md", tone: "accent" },
   argTypes: {
     size: { control: "radio", options: ["md", "lg", "display"] },
-    tone: { control: "radio", options: ["gold", "inherit"] },
+    tone: { control: "radio", options: ["accent", "inherit"] },
   },
 } satisfies Meta<typeof PriceTag>;
 
@@ -57,7 +57,7 @@ function OdometerDemo() {
         <button
           type="button"
           onClick={() => setCents((c) => c + 500)}
-          className="rounded-button bg-gold-500 px-3 py-1.5 text-[length:var(--text-14)] font-semibold text-text-on-accent active:scale-[0.97]"
+          className="rounded-button bg-accent-500 px-3 py-1.5 text-[length:var(--text-14)] font-semibold text-text-on-accent active:scale-[0.97]"
         >
           +5 €
         </button>

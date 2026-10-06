@@ -16,7 +16,7 @@ import { CopyButton } from "@/components/console/copy-button";
 
 const inputCls =
   "rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm " +
-  "text-text-primary focus:border-gold-500 focus:outline-none";
+  "text-text-primary focus:border-accent-500 focus:outline-none";
 
 export function InviteForm({ venueId }: { venueId: string }) {
   const t = useTranslations("console.team");
@@ -48,7 +48,7 @@ export function InviteForm({ venueId }: { venueId: string }) {
         <button
           type="submit"
           disabled={pending}
-          className="min-h-10 rounded-button bg-gold-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]
             disabled:opacity-60"
         >
@@ -65,16 +65,16 @@ export function InviteForm({ venueId }: { venueId: string }) {
       {state?.ok && state.tempPassword ? (
         <div
           role="status"
-          className="flex items-center gap-3 rounded-card border border-gold-500/40 bg-surface-2 p-4"
+          className="flex items-center gap-3 rounded-card border border-accent-500/40 bg-surface-2 p-4"
         >
-          <KeyRound aria-hidden size={20} strokeWidth={1.75} className="text-gold-500" />
+          <KeyRound aria-hidden size={20} strokeWidth={1.75} className="text-accent-400" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-text-primary">
               {t("tempPasswordTitle", { email: state.email ?? "" })}
             </p>
             <p className="text-xs text-text-tertiary">{t("tempPasswordHint")}</p>
           </div>
-          <code className="rounded-chip bg-surface-3 px-3 py-1.5 text-base font-semibold text-gold-500 tnum">
+          <code className="rounded-chip bg-surface-3 px-3 py-1.5 text-base font-semibold text-accent-400 tnum">
             {state.tempPassword}
           </code>
           <CopyButton

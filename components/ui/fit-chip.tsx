@@ -9,11 +9,11 @@ import type { ReactNode } from "react";
 import { CircleCheck, Shuffle, TriangleAlert } from "lucide-react";
 import type { FitLabel } from "@/lib/domain/types";
 
-export type ChipTone = "neutral" | "gold" | "green" | "amber" | "ember";
+export type ChipTone = "neutral" | "accent" | "green" | "amber" | "ember";
 
 const TONE_CLASSES: Record<ChipTone, string> = {
   neutral: "border-line-strong bg-surface-2 text-text-secondary",
-  gold: "border-gold-500/35 bg-gold-500/10 text-gold-500",
+  accent: "border-accent-500/35 bg-accent-500/10 text-accent-400",
   green: "border-green-500/35 bg-green-500/10 text-green-500",
   amber: "border-amber-500/35 bg-amber-500/10 text-amber-500",
   ember: "border-ember-500/35 bg-ember-500/10 text-ember-500",

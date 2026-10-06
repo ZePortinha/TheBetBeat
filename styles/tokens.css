@@ -1,50 +1,55 @@
 /* ──────────────────────────────────────────────────────────────────
-   BetBeat design tokens — single source of truth (BRIEF B10).
-   Exposed to Tailwind via @theme inline in app/globals.css.
-   Dark-only interface: these are the only colors in the product.
+   BetBeat design tokens: single source of truth. Apple dark system
+   neutrals (2026-10-05) with the one BetBeat red; states use the iOS
+   dark system colors. Exposed to Tailwind via @theme inline in
+   app/globals.css. Dark-only interface: these are the only colors.
    ────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Backgrounds (B10.2) ── */
-  --color-bg-base: #0a0806;
-  --color-bg-raised: #110e0b;
-  --color-surface-1: #18140f; /* cards */
-  --color-surface-2: #211b15; /* elevated, active */
-  --color-surface-3: #2b241c; /* inputs, secondary */
-  --color-line-subtle: rgba(255, 225, 170, 0.07);
-  --color-line-strong: rgba(255, 225, 170, 0.14);
+  --color-bg-base: #000000;
+  --color-bg-raised: #101011;
+  --color-surface-1: #1c1c1e; /* cards, grouped lists */
+  --color-surface-2: #242426; /* elevated, active */
+  --color-surface-3: #2c2c2e; /* inputs, secondary */
+  --color-line-subtle: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
 
   /* ── Text ── */
-  --color-text-primary: #f6f0e6;
-  --color-text-secondary: #b9ae9c;
-  --color-text-tertiary: #948a79; /* only on bg, surface-1, surface-2 */
-  --color-text-on-accent: #1a1206;
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #aeaeb2;
+  --color-text-tertiary: #8e8e93; /* only on bg, surface-1, surface-2 */
+  --color-text-on-accent: #ffffff;
 
   /* ── Brand & states ── */
-  --color-gold-500: #f2c230; /* primary action, prices, active */
-  --color-gold-300: #f8da7a; /* highlight */
-  --color-gold-700: #b8901a; /* pressed */
-  --color-ember-500: #ff5340; /* live, urgency, destructive */
-  --color-ember-700: #c93a2c; /* destructive pressed */
-  --color-amber-500: #ffa31a; /* warning, deadline ending */
-  --color-green-500: #3dd68c; /* confirmed, fits, online */
+  --color-accent-500: #e8112d; /* BetBeat red: fills, primary action (white text 4.6:1) */
+  --color-accent-400: #ff453a; /* iOS systemRed (dark): accent as text/icon */
+  --color-accent-300: #ff6961; /* iOS accessible red: highlight, hover */
+  --color-accent-700: #b50e24; /* pressed */
+  --color-ember-500: #ff453a; /* live, urgency, destructive text */
+  --color-ember-700: #b50e24; /* destructive fill (white text AAA) */
+  --color-amber-500: #ff9f0a; /* iOS systemOrange: warning, deadline ending */
+  --color-green-500: #30d158; /* iOS systemGreen: confirmed, fits, online */
 
   /* ── Effects ── */
-  --glow-gold: 0 0 0 1px rgba(242, 194, 48, 0.45), 0 8px 32px rgba(242, 194, 48, 0.22);
-  --glow-ember: 0 0 24px rgba(255, 83, 64, 0.35);
+  --glow-accent: 0 0 0 1px rgba(232, 17, 45, 0.55), 0 8px 32px rgba(232, 17, 45, 0.3);
+  --glow-ember: 0 0 24px rgba(255, 69, 58, 0.35);
   /* Heat gradient — demand indicators & progress only. */
-  --gradient-heat: linear-gradient(90deg, #f2c230 0%, #ffa31a 50%, #ff5340 100%);
+  --gradient-heat: linear-gradient(90deg, #ff9f0a 0%, #ff453a 55%, #e8112d 100%);
 
   /* ── Radii (B10.4) ── */
   --radius-chip: 8px;
-  --radius-button: 12px;
+  --radius-button: 12px; /* inputs; buttons themselves are capsules */
   --radius-cover: 12px;
-  --radius-card: 16px;
-  --radius-sheet: 24px;
+  --radius-card: 18px;
+  --radius-sheet: 28px;
   --radius-pill: 9999px;
 
   /* ── Translucent material (B10.4) ── */
-  --material-bg: rgba(10, 8, 6, 0.72);
+  --material-bg: rgba(22, 22, 23, 0.8);
   --material-blur: blur(20px) saturate(180%);
+
+  /* ── Guest tab bar height: content padding and CTAs that sit above it ── */
+  --dock-h: calc(4.25rem + env(safe-area-inset-bottom));
 
   /* ── Type scale (rem; respects system text size) ── */
   --text-12: 0.75rem;
@@ -57,12 +62,13 @@
   --text-56: 3.5rem;
   --text-80: 5rem; /* display screen only */
 
-  /* ── Tracking by size (B10.3) — never one value for all sizes ── */
-  --tracking-display: -0.02em; /* ≥ 40px */
-  --tracking-heading: -0.01em; /* 24–32px */
-  --tracking-body: 0;
-  --tracking-small: 0.01em;
-  --tracking-label: 0.06em; /* uppercase labels */
+  /* ── Tracking by size (B10.3) — never one value for all sizes.
+        Values follow Inter's dynamic metrics; SF ships similar tables. ── */
+  --tracking-display: -0.022em; /* ≥ 40px */
+  --tracking-heading: -0.019em; /* 24–32px */
+  --tracking-body: -0.011em; /* 16–20px */
+  --tracking-small: 0;
+  --tracking-label: 0; /* sentence-case section headers, iOS style */
 
   /* ── Leading ── */
   --leading-title: 1.1;
@@ -70,9 +76,13 @@
   --leading-dense: 1.3; /* cockpit dense UI */
 
   /* ── Font stacks ── */
+  /* System font first (SF Pro on Apple devices, with its own optical
+     sizes); Inter with an opsz axis everywhere else. */
   --font-ui:
-    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* --font-display / --font-editorial are set by next/font on <html>. */
+    -apple-system, BlinkMacSystemFont, var(--font-sans), system-ui, sans-serif;
+  /* One family: weight and size carry the hierarchy (no serif). */
+  --font-display: var(--font-ui);
+  --font-editorial: var(--font-ui);
 
   /* ── Motion: tween durations & easing (B10.6) ── */
   --duration-instant: 100ms;

@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Entrar" };
@@ -12,14 +13,7 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-4 py-12">
-      <h1
-        className="mb-2 text-3xl font-bold text-text-primary"
-        style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}
-      >
-        {t("title")}
-      </h1>
-      <p className="mb-8 text-sm text-text-secondary">{t("subtitle")}</p>
+    <AuthShell title={t("title")} subtitle={t("subtitle")}>
       {params.error === "forbidden" ? (
         <p
           role="alert"
@@ -39,6 +33,6 @@ export default async function LoginPage({
           errorBot: t("errorBot"),
         }}
       />
-    </main>
+    </AuthShell>
   );
 }

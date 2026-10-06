@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { MfaClient } from "./mfa-client";
 
 export const metadata = { title: "Verificação em dois passos" };
@@ -12,13 +13,7 @@ export default async function MfaPage({
   const params = await searchParams;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-4 py-12">
-      <h1
-        className="mb-2 text-2xl font-bold text-text-primary"
-        style={{ fontFamily: "var(--font-display)" }}
-      >
-        {t("title")}
-      </h1>
+    <AuthShell title={t("title")}>
       <MfaClient
         next={params.next ?? "/console"}
         labels={{
@@ -30,6 +25,6 @@ export default async function MfaPage({
           loading: t("loading"),
         }}
       />
-    </main>
+    </AuthShell>
   );
 }

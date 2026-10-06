@@ -32,18 +32,19 @@ export interface ShareCardProps {
 
 /** Literal mirrors of styles/tokens.css (rasterizer-safe — no var()). */
 const TOKENS = {
-  bgBase: "#0A0806",
-  surface1: "#18140F",
-  surface3: "#2B241C",
-  textPrimary: "#F6F0E6",
-  textSecondary: "#B9AE9C",
-  textTertiary: "#948A79",
-  gold500: "#F2C230",
-  gold300: "#F8DA7A",
-  lineStrong: "rgba(255, 225, 170, 0.14)",
+  bgBase: "#000000",
+  surface1: "#1c1c1e",
+  surface3: "#2c2c2e",
+  textPrimary: "#f5f5f7",
+  textSecondary: "#aeaeb2",
+  textTertiary: "#8e8e93",
+  accent500: "#e8112d",
+  accent400: "#ff453a",
+  accent300: "#ff6961",
+  lineStrong: "rgba(255, 255, 255, 0.14)",
 } as const;
 
-const FONT_DISPLAY = 'Unbounded, "Unbounded", system-ui, sans-serif';
+const FONT_DISPLAY = '-apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif';
 const FONT_UI = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 export const SHARE_CARD_SIZES: Record<
@@ -87,7 +88,7 @@ export function ShareCard({
     >
       {/* Headline */}
       <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-        <div style={{ display: "flex", width: 96, height: 4, background: TOKENS.gold500 }} />
+        <div style={{ display: "flex", width: 96, height: 4, background: TOKENS.accent500 }} />
         <div
           style={{
             display: "flex",
@@ -95,7 +96,7 @@ export function ShareCard({
             fontWeight: 600,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
-            color: TOKENS.gold500,
+            color: TOKENS.accent400,
           }}
         >
           {headline}
@@ -135,7 +136,7 @@ export function ShareCard({
               height: coverSize,
               borderRadius: 48,
               background: `linear-gradient(135deg, ${TOKENS.surface3}, ${TOKENS.surface1})`,
-              color: TOKENS.gold300,
+              color: TOKENS.accent300,
               fontFamily: FONT_DISPLAY,
               fontSize: coverSize / 4,
               fontWeight: 700,
@@ -151,7 +152,8 @@ export function ShareCard({
             flexDirection: "column",
             gap: 20,
             minWidth: 0,
-            flex: story ? undefined : 1,
+            // Satori throws on an explicit `flex: undefined`.
+            ...(story ? {} : { flex: 1 }),
           }}
         >
           <div
@@ -221,16 +223,16 @@ export function ShareCard({
               fontSize: story ? 44 : 38,
               fontWeight: 700,
               letterSpacing: "-0.01em",
-              color: TOKENS.gold500,
+              color: TOKENS.accent400,
             }}
           >
             {wordmark}
           </div>
           {/* Beat mark — three static bars echoing the Beat Pulse signature. */}
           <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-            <div style={{ display: "flex", width: 10, height: 24, background: TOKENS.gold500, borderRadius: 5 }} />
-            <div style={{ display: "flex", width: 10, height: 44, background: TOKENS.gold500, borderRadius: 5 }} />
-            <div style={{ display: "flex", width: 10, height: 32, background: TOKENS.gold500, borderRadius: 5 }} />
+            <div style={{ display: "flex", width: 10, height: 24, background: TOKENS.accent500, borderRadius: 5 }} />
+            <div style={{ display: "flex", width: 10, height: 44, background: TOKENS.accent500, borderRadius: 5 }} />
+            <div style={{ display: "flex", width: 10, height: 32, background: TOKENS.accent500, borderRadius: 5 }} />
           </div>
         </div>
       </div>

@@ -31,7 +31,7 @@ export function VenueSwitcher({ venues, activeVenueId, label }: VenueSwitcherPro
         defaultValue={activeVenueId ?? undefined}
         onChange={() => formRef.current?.requestSubmit()}
         className="w-full rounded-button border border-line-subtle bg-surface-3 px-3
-          py-2 text-sm text-text-primary focus:border-gold-500 focus:outline-none"
+          py-2 text-sm text-text-primary focus:border-accent-500 focus:outline-none"
       >
         {venues.map((v) => (
           <option key={v.id} value={v.id}>

@@ -28,9 +28,10 @@ export function LoginForm({ next, labels }: { next: string; labels: Labels }) {
           : null;
 
   const inputCls =
-    "w-full rounded-button bg-surface-3 border border-line-subtle px-4 py-3 " +
+    "min-h-12 w-full rounded-button bg-surface-2 border border-line-strong px-4 py-3 " +
     "text-base text-text-primary placeholder:text-text-tertiary " +
-    "focus:border-gold-500 focus:outline-none";
+    "transition-[border-color,box-shadow] duration-100 " +
+    "focus:border-accent-400 focus:outline-none focus:ring-4 focus:ring-accent-500/25";
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -64,9 +65,9 @@ export function LoginForm({ next, labels }: { next: string; labels: Labels }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 min-h-11 rounded-button bg-gold-500 px-4 py-3 text-base
-          font-semibold text-text-on-accent transition-transform duration-100
-          active:scale-[0.97] disabled:opacity-60"
+        className="mt-3 min-h-12 rounded-full bg-accent-500 px-4 py-3 text-base
+          font-semibold text-text-on-accent transition-[background-color,transform] duration-100
+          hover:bg-accent-400 active:scale-[0.97] active:bg-accent-700 disabled:opacity-60"
       >
         {labels.submit}
       </button>

@@ -62,5 +62,13 @@ The source of truth is the brief: `BETBEAT_BRIEF.md` (never summarize it away).
 - Load the `apple-design` skill (`.claude/skills/apple-design/SKILL.md`) before
   building or reviewing any screen, component, gesture or animation. B10 wins on
   brand conflicts (log the decision).
+- Also load `design-taste-frontend` (`.claude/skills/design-taste-frontend/SKILL.md`)
+  for guest-facing and House Screen pages (landing, QR entry, hero, share cards): its
+  anti-slop rules (AI tells, no em-dashes in UI copy, one accent, layout variety,
+  pre-flight check) apply. Out of scope for Cockpit/Console dashboards (its section 13).
+  B10 wins on layout and motion rules; palette, type and shape follow the Apple
+  decision of 2026-10-05 in `docs/DECISIONS.md` (Apple dark neutrals + accent
+  red, SF Pro/Inter, capsule buttons; no gold, no serif, no grain) on every
+  surface, guest app included. Log any conflict in `docs/DECISIONS.md`.
 - Never commit secrets (`.env.local` only); never push without being asked.
 - External integrations are mocks behind interfaces until Phase 8.

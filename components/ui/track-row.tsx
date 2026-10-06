@@ -13,6 +13,7 @@
 import * as React from "react";
 import { motion } from "motion/react";
 import type { FitLabel } from "@/lib/domain/types";
+import { Disc } from "./disc";
 import { FitChip } from "./fit-chip";
 import { cx, usePressable, usePressAnimation } from "./pressable";
 
@@ -112,27 +113,15 @@ function Cover({
   coverUrl?: string | null;
   grayed: boolean;
 }) {
-  return (
+  const tone = grayed ? "opacity-45 grayscale" : "";
+  return coverUrl ? (
     <span
-      className={cx(
-        "relative block size-12 shrink-0 overflow-hidden rounded-cover",
-        grayed && "opacity-45 grayscale",
-      )}
+      className={cx("relative block size-12 shrink-0 overflow-hidden rounded-cover", tone)}
     >
-      {coverUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={coverUrl} alt="" className="size-full object-cover" />
-      ) : (
-        <span
-          className="flex size-full items-center justify-center text-sm font-semibold text-text-secondary"
-          style={{
-            background:
-              "linear-gradient(135deg, var(--color-surface-3), var(--color-surface-1))",
-          }}
-        >
-          {coverInitials(title)}
-        </span>
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={coverUrl} alt="" className="size-full object-cover" />
     </span>
+  ) : (
+    <Disc seed={title} className={cx("size-12 shrink-0", tone)} />
   );
 }

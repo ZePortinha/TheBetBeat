@@ -152,7 +152,7 @@ export function RequestCard({
         <div className="min-w-0 flex-1">
           <p
             className="truncate text-xl font-bold text-text-primary"
-            title={`${title} — ${artist}`}
+            title={`${title} - ${artist}`}
           >
             {title}
             <span className="font-bold text-text-secondary"> · {artist}</span>
@@ -164,11 +164,11 @@ export function RequestCard({
           ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {pinned && pinnedText ? (
-              <Chip tone="gold" icon={<Pin size={14} strokeWidth={1.75} aria-hidden />}>
+              <Chip tone="accent" icon={<Pin size={14} strokeWidth={1.75} aria-hidden />}>
                 {pinnedText}
               </Chip>
             ) : null}
-            <Chip tone="gold">{tierLabel}</Chip>
+            <Chip tone="accent">{tierLabel}</Chip>
             {fit && fitText ? <FitChip label={fit} text={fitText} /> : null}
             {libraryText ? (
               <Chip

@@ -90,7 +90,7 @@ export default async function PricingPage() {
 
   const inputCls =
     "w-20 rounded-button border border-line-subtle bg-surface-3 px-2 py-1.5 " +
-    "text-sm text-text-primary tnum focus:border-gold-500 focus:outline-none";
+    "text-sm text-text-primary tnum focus:border-accent-500 focus:outline-none";
 
   return (
     <div className="flex flex-col gap-10">
@@ -166,7 +166,7 @@ export default async function PricingPage() {
                             <input type="hidden" name="genre" value={row.genre} />
                             <button
                               type="submit"
-                              className="rounded-button bg-gold-500 px-3 py-1.5
+                              className="rounded-button bg-accent-500 px-3 py-1.5
                                 font-semibold text-text-on-accent transition-transform
                                 duration-100 active:scale-[0.97]"
                             >
@@ -208,7 +208,7 @@ export default async function PricingPage() {
                             aria-pressed={row.auto_apply}
                             className={`rounded-button border px-3 py-1.5 ${
                               row.auto_apply
-                                ? "border-gold-500 text-gold-500"
+                                ? "border-accent-500 text-accent-400"
                                 : "border-line-subtle text-text-tertiary hover:text-text-primary"
                             }`}
                           >

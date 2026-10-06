@@ -44,7 +44,7 @@ function GoldEdgeFlash() {
           key={flashKey}
           aria-hidden
           className="pointer-events-none fixed inset-0 z-[60] rounded-none"
-          style={{ boxShadow: "inset 0 0 0 3px var(--color-gold-500), inset 0 0 48px rgba(242,194,48,0.25)" }}
+          style={{ boxShadow: "inset 0 0 0 3px var(--color-accent-500), inset 0 0 48px rgba(232, 17, 45,0.25)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0.2, 1, 0] }}
           exit={{ opacity: 0 }}
@@ -125,7 +125,7 @@ export function CockpitShell({ children }: { children: React.ReactNode }) {
         className="flex w-[84px] shrink-0 flex-col items-stretch gap-2 border-r border-line-subtle bg-bg-raised px-2 py-3 print:hidden"
       >
         <span
-          className="mb-2 px-1 text-center text-sm font-bold text-gold-500"
+          className="mb-2 px-1 text-center text-sm font-bold text-accent-400"
           style={{ fontFamily: "var(--font-display)" }}
           aria-hidden
         >
@@ -143,7 +143,7 @@ export function CockpitShell({ children }: { children: React.ReactNode }) {
                 "flex min-h-14 flex-col items-center justify-center gap-1 rounded-button px-1",
                 "transition-colors duration-100",
                 active
-                  ? "bg-surface-2 text-gold-500"
+                  ? "bg-surface-2 text-accent-400"
                   : "text-text-secondary active:bg-surface-2",
               )}
             >

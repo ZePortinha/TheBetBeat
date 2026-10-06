@@ -49,7 +49,7 @@ export function ConsoleNav({
                 className={cx(
                   "rounded-button px-3 py-2 text-sm transition-colors duration-100",
                   active
-                    ? "bg-surface-2 font-semibold text-gold-500"
+                    ? "bg-surface-2 font-semibold text-accent-400"
                     : "text-text-secondary hover:bg-surface-1 hover:text-text-primary",
                 )}
               >

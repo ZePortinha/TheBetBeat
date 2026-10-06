@@ -60,7 +60,7 @@ function StepNode({
 }) {
   if (state === "done") {
     return (
-      <span className="grid h-6 w-6 place-items-center rounded-full bg-gold-500 text-text-on-accent">
+      <span className="grid h-6 w-6 place-items-center rounded-full bg-accent-500 text-text-on-accent">
         <DoneCheck instant={instant} />
       </span>
     );
@@ -68,7 +68,7 @@ function StepNode({
   if (state === "active") {
     return (
       <motion.span
-        className="grid h-6 w-6 place-items-center rounded-full border-2 border-gold-500 bg-surface-2"
+        className="grid h-6 w-6 place-items-center rounded-full border-2 border-accent-500 bg-surface-2"
         animate={pulse ? { scale: [1, 1.08, 1] } : { scale: 1 }}
         transition={
           pulse
@@ -76,7 +76,7 @@ function StepNode({
             : { duration: 0 }
         }
       >
-        <span className="h-2 w-2 rounded-full bg-gold-500" />
+        <span className="h-2 w-2 rounded-full bg-accent-500" />
       </motion.span>
     );
   }
@@ -112,7 +112,7 @@ export function StatusStepper({
         aria-hidden="true"
       >
         <motion.div
-          className="h-full w-full origin-left rounded-full bg-gold-500"
+          className="h-full w-full origin-left rounded-full bg-accent-500"
           initial={false}
           animate={{ scaleX: progress }}
           transition={reducedMotion ? { duration: 0 } : springDefault}

@@ -2,9 +2,10 @@
 
 /**
  * TierCard — tier selection card (BRIEF B6 screen 3 + B10.6 animation 1).
+ * Compact column (name, price, ETA) so the three tiers sit side by side.
  *
  * Selected: card scales to 1.02 with springDefault, a gold inset outline
- * draws in (fast tween on opacity/scaleX) and the glow-gold shadow enters.
+ * draws in (fast tween on opacity/scaleX) and the glow-accent shadow enters.
  * Only ONE glow per screen — the parent guarantees a single selected card.
  * Press feedback on pointer-down (scale 0.97, instant tween) through the
  * shared `usePressable` engine (hit slop, drag-away cancel, double-tap guard).
@@ -74,10 +75,9 @@ export function TierCard({
           : springDefault
       }
       className={cx(
-        "relative block w-full touch-manipulation select-none text-left",
-        "rounded-card border border-line-subtle p-4",
-        "min-h-[88px]",
-        selected ? "bg-surface-2 shadow-glow-gold" : "bg-surface-1",
+        "relative flex w-full touch-manipulation select-none flex-col items-center justify-center text-center",
+        "min-h-[7.5rem] rounded-card border border-line-subtle px-2 py-3",
+        selected ? "bg-surface-2 shadow-glow-accent" : "bg-surface-1",
         available ? "cursor-pointer" : "cursor-not-allowed",
         className,
       )}
@@ -87,28 +87,29 @@ export function TierCard({
       {/* Gold outline that draws in on selection (B10.6 animation 1). */}
       <motion.span
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-card border-[1.5px] border-gold-500"
+        className="pointer-events-none absolute inset-0 rounded-card border-[1.5px] border-accent-500"
         initial={false}
         animate={{ opacity: selected ? 1 : 0, scaleX: selected || reducedMotion ? 1 : 0.65 }}
         transition={{ duration: durations.fast, ease: [...easeStandard] }}
-        style={{ transformOrigin: "left center" }}
+        style={{ transformOrigin: "center" }}
       />
 
-      <span className={cx("block", !available && "opacity-45")}>
-        <span className="flex items-baseline justify-between gap-3">
-          <span className="text-base font-bold text-text-primary">{name}</span>
-          <span className="tnum shrink-0 text-sm text-text-secondary">{etaLabel}</span>
+      <span className={cx("flex flex-col items-center", !available && "opacity-45")}>
+        <span className={cx("label", selected ? "text-accent-400" : "text-text-secondary")}>
+          {name}
         </span>
-
-        <span className="mt-0.5 block text-sm text-text-secondary">{promise}</span>
-
         <span className="mt-2 block">
-          <PriceTag cents={priceCents} size="md" />
+          <PriceTag cents={priceCents} size="md" tone={selected ? "accent" : "inherit"} />
         </span>
+        <span className="tnum mt-1 text-xs text-text-tertiary">{etaLabel}</span>
+        {/* The promise stays in the accessible name; the screen shows it for the selected tier. */}
+        <span className="sr-only">{promise}</span>
       </span>
 
       {!available && unavailableReason ? (
-        <span className="mt-2 block text-xs text-text-tertiary">{unavailableReason}</span>
+        <span className="mt-1.5 block text-[0.6875rem] leading-tight text-text-tertiary">
+          {unavailableReason}
+        </span>
       ) : null}
     </motion.button>
   );

@@ -3,7 +3,7 @@
 /**
  * Button — the BetBeat action primitive (BRIEF B10.5), built on Pressable.
  *
- * Variants: primary (gold), secondary (surface), ghost, destructive (ember).
+ * Variants: primary (accent red), secondary (surface), ghost, destructive (ember).
  * Sizes: md (44px min target) and lg (56px, cockpit gloves-and-dark size).
  * Loading keeps the width (inline spinner over an invisible label).
  *
@@ -37,7 +37,7 @@ export type ButtonSize = "md" | "lg";
 /** Pressed colors ride the `data-pressed` attribute set by Pressable. */
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-gold-500 text-text-on-accent data-pressed:bg-gold-700",
+    "bg-accent-500 text-text-on-accent data-pressed:bg-accent-700",
   secondary:
     "border border-line-subtle bg-surface-2 text-text-primary data-pressed:bg-surface-3",
   ghost: "bg-transparent text-text-primary data-pressed:bg-surface-2",
@@ -106,7 +106,7 @@ export function Button({
       aria-busy={loading || undefined}
       data-pressed={isPressed || undefined}
       className={cx(
-        "relative isolate inline-flex touch-manipulation select-none items-center justify-center gap-2 rounded-button font-semibold",
+        "relative isolate inline-flex touch-manipulation select-none items-center justify-center gap-2 rounded-full font-semibold",
         // Color changes are tweens, never on the gesture path (B10.6).
         "transition-[background-color,filter] duration-100",
         "disabled:cursor-not-allowed disabled:opacity-40",
@@ -259,7 +259,7 @@ export function HoldButton({
       disabled={disabled}
       aria-label={ariaLabel}
       className={cx(
-        "relative isolate inline-flex touch-none select-none items-center justify-center overflow-hidden rounded-button border border-line-strong bg-surface-2 font-semibold",
+        "relative isolate inline-flex touch-none select-none items-center justify-center overflow-hidden rounded-full border border-line-strong bg-surface-2 font-semibold",
         "disabled:cursor-not-allowed disabled:opacity-40",
         SIZE_CLASSES[size],
         fullWidth && "w-full",

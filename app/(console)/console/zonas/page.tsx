@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 const inputCls =
   "rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm " +
-  "text-text-primary focus:border-gold-500 focus:outline-none";
+  "text-text-primary focus:border-accent-500 focus:outline-none";
 
 export default async function ZonesPage({
   searchParams,
@@ -90,7 +90,7 @@ export default async function ZonesPage({
         </label>
         <button
           type="submit"
-          className="min-h-10 rounded-button bg-gold-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
         >
           {t("create")}

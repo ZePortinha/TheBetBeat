@@ -14,9 +14,10 @@
   --color-text-secondary: var(--color-text-secondary);
   --color-text-tertiary: var(--color-text-tertiary);
   --color-text-on-accent: var(--color-text-on-accent);
-  --color-gold-300: var(--color-gold-300);
-  --color-gold-500: var(--color-gold-500);
-  --color-gold-700: var(--color-gold-700);
+  --color-accent-300: var(--color-accent-300);
+  --color-accent-400: var(--color-accent-400);
+  --color-accent-500: var(--color-accent-500);
+  --color-accent-700: var(--color-accent-700);
   --color-ember-500: var(--color-ember-500);
   --color-ember-700: var(--color-ember-700);
   --color-amber-500: var(--color-amber-500);
@@ -29,10 +30,10 @@
   --radius-sheet: var(--radius-sheet);
 
   --font-ui: var(--font-ui);
-  --font-display: var(--font-display, var(--font-ui));
-  --font-editorial: var(--font-editorial, var(--font-ui));
+  --font-display: var(--font-display);
+  --font-editorial: var(--font-editorial);
 
-  --shadow-glow-gold: var(--glow-gold);
+  --shadow-glow-accent: var(--glow-accent);
   --shadow-glow-ember: var(--glow-ember);
 }
 
@@ -48,6 +49,7 @@ body {
   font-family: var(--font-ui);
   font-optical-sizing: auto;
   line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -57,12 +59,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Uppercase label style (B10.3). */
+/* Section header: sentence case, footnote size (iOS grouped lists). */
 .label {
   font-family: var(--font-ui);
   font-weight: 600;
-  font-size: var(--text-12);
-  text-transform: uppercase;
+  font-size: 0.8125rem;
   letter-spacing: var(--tracking-label);
 }
 
@@ -80,6 +81,89 @@ body {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 24px);
 }
 
+/* Sticky top chrome: blur only, no divider (scroll-edge, not a 1px line). */
+.material-top {
+  background: var(--material-bg);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+}
+
+/* ── Atmosphere (landing, login, house screen) ──────────────────── */
+/* Light pools: red from above, a breath of red below. */
+.ambient {
+  background:
+    radial-gradient(
+      60% 50% at 78% 14%,
+      color-mix(in srgb, var(--color-accent-500) 15%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 45% at 8% 92%,
+      color-mix(in srgb, var(--color-ember-500) 8%, transparent),
+      transparent 70%
+    );
+}
+.ambient-center {
+  background: radial-gradient(
+    55% 60% at 50% 50%,
+    color-mix(in srgb, var(--color-accent-500) 13%, transparent),
+    transparent 70%
+  );
+}
+
+/* ── Record: the product's signature object (decorative, CSS only) ─ */
+.disc {
+  --disc-label: var(--color-accent-500);
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  container-type: inline-size;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 50% 50%, var(--color-bg-base) 0 3.2%, transparent 3.6%),
+    radial-gradient(circle at 50% 50%, var(--disc-label) 0 17%, transparent 17.4%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.05) 0 1px,
+      transparent 1px 7px
+    ),
+    conic-gradient(
+      from 205deg,
+      transparent,
+      rgba(255, 255, 255, 0.17) 11%,
+      transparent 27%,
+      rgba(255, 255, 255, 0.09) 54%,
+      transparent 70%,
+      rgba(255, 255, 255, 0.15) 88%,
+      transparent
+    ),
+    var(--color-surface-1);
+  box-shadow:
+    0 0 0 1px var(--color-line-subtle),
+    0 40px 90px -30px rgba(0, 0, 0, 0.9);
+}
+.disc-initials {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11cqw;
+  letter-spacing: var(--tracking-display);
+  color: var(--color-text-on-accent);
+}
+/* Heat arc = wait-time progress (the one place the gradient is allowed). */
+.disc-ring {
+  position: absolute;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from -90deg,
+    var(--color-accent-500),
+    var(--color-amber-500) 34%,
+    var(--color-ember-500) 58%,
+    transparent 58.2%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+}
+
 /* ── Skeleton shimmer (1.4s) ────────────────────────────────────── */
 .skeleton {
   position: relative;
@@ -95,7 +179,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 225, 170, 0.06),
+    rgba(255, 255, 255, 0.06),
     transparent
   );
   animation: shimmer 1.4s infinite;
@@ -116,7 +200,7 @@ body {
   position: absolute;
   inset: -4px;
   border-radius: inherit;
-  border: 1.5px solid var(--color-gold-500);
+  border: 1.5px solid var(--color-accent-500);
   opacity: 0;
   animation: beat-ring var(--beat-period) ease-out infinite;
   pointer-events: none;
@@ -145,7 +229,8 @@ body {
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .material {
+  .material,
+  .material-top {
     background: var(--color-bg-raised);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -153,6 +238,12 @@ body {
 }
 
 @media (prefers-contrast: more) {
+  .material-top {
+    background: var(--color-bg-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: 1px solid var(--color-line-strong);
+  }
   .material {
     background: var(--color-bg-raised);
     -webkit-backdrop-filter: none;
@@ -163,7 +254,7 @@ body {
 
 /* ── Focus (console keyboard support, AA) ───────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--color-gold-500);
+  outline: 2px solid var(--color-accent-500);
   outline-offset: 2px;
 }
 

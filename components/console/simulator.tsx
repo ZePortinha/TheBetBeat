@@ -42,7 +42,7 @@ interface HistoryPoint {
 }
 
 const SERIES: Array<{ tier: Tier; color: string }> = [
-  { tier: "QUEUE", color: "var(--color-gold-500)" },
+  { tier: "QUEUE", color: "var(--color-accent-500)" },
   { tier: "SOON", color: "var(--color-amber-500)" },
   { tier: "NEXT", color: "var(--color-ember-500)" },
 ];
@@ -126,7 +126,7 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-[var(--color-gold-500)]"
+        className="w-full accent-[var(--color-accent-500)]"
       />
     </label>
   );
@@ -253,7 +253,7 @@ export function Simulator({ genres, tierLimits }: SimulatorProps) {
             value={controls.genre}
             onChange={(e) => set("genre", e.target.value)}
             className="rounded-button border border-line-subtle bg-surface-3 px-3 py-2
-              text-sm text-text-primary focus:border-gold-500 focus:outline-none"
+              text-sm text-text-primary focus:border-accent-500 focus:outline-none"
           >
             {genres.map((g) => (
               <option key={g.genre} value={g.genre}>

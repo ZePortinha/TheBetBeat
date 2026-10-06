@@ -45,7 +45,7 @@ export interface SessionFormProps {
 
 const inputCls =
   "w-full rounded-button border border-line-subtle bg-surface-3 px-3 py-2 " +
-  "text-base text-text-primary focus:border-gold-500 focus:outline-none " +
+  "text-base text-text-primary focus:border-accent-500 focus:outline-none " +
   "disabled:opacity-60";
 
 function Field({
@@ -204,14 +204,14 @@ export function SessionForm({
                 key={genre}
                 className="flex items-center gap-2 rounded-button border border-line-subtle
                   bg-surface-2 px-3 py-2 text-sm text-text-primary
-                  has-checked:border-gold-500 has-checked:bg-surface-3"
+                  has-checked:border-accent-500 has-checked:bg-surface-3"
               >
                 <input
                   type="checkbox"
                   name="genres"
                   value={genre}
                   defaultChecked={initial.genres.includes(genre)}
-                  className="accent-[var(--color-gold-500)]"
+                  className="accent-[var(--color-accent-500)]"
                 />
                 {genre}
               </label>
@@ -341,7 +341,7 @@ export function SessionForm({
         <button
           type="submit"
           disabled={pending || Object.keys(liveErrors).length > 0}
-          className="min-h-11 rounded-button bg-gold-500 px-6 text-base font-semibold
+          className="min-h-11 rounded-button bg-accent-500 px-6 text-base font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]
             disabled:opacity-60"
         >

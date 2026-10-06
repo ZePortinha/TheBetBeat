@@ -114,7 +114,7 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
         <input
           className="w-full rounded-button border border-line-subtle bg-surface-3 px-4
             py-3 text-center text-xl tracking-[0.3em] text-text-primary tnum
-            focus:border-gold-500 focus:outline-none"
+            focus:border-accent-500 focus:outline-none"
           inputMode="numeric"
           autoComplete="one-time-code"
           pattern="[0-9]{6}"
@@ -132,9 +132,9 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
       <button
         type="submit"
         disabled={busy || code.length !== 6}
-        className="min-h-11 rounded-button bg-gold-500 px-4 py-3 text-base font-semibold
-          text-text-on-accent transition-transform duration-100 active:scale-[0.97]
-          disabled:opacity-60"
+        className="min-h-12 rounded-full bg-accent-500 px-4 py-3 text-base font-semibold
+          text-text-on-accent transition-[background-color,transform] duration-100
+          hover:bg-accent-400 active:scale-[0.97] active:bg-accent-700 disabled:opacity-60"
       >
         {labels.submit}
       </button>

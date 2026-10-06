@@ -7,21 +7,22 @@ export default function TokensPage() {
   if (process.env.NODE_ENV === "production") notFound();
 
   const colors: Array<[string, string, string?]> = [
-    ["bg-base", "#0A0806"],
-    ["bg-raised", "#110E0B"],
-    ["surface-1", "#18140F", "cartões"],
-    ["surface-2", "#211B15", "elevado, ativo"],
-    ["surface-3", "#2B241C", "inputs"],
-    ["text-primary", "#F6F0E6"],
-    ["text-secondary", "#B9AE9C"],
-    ["text-tertiary", "#948A79"],
-    ["gold-500", "#F2C230", "ação, preços"],
-    ["gold-300", "#F8DA7A", "realce"],
-    ["gold-700", "#B8901A", "premido"],
-    ["ember-500", "#FF5340", "ao vivo, urgência"],
-    ["ember-700", "#C93A2C", "destrutivo premido"],
-    ["amber-500", "#FFA31A", "aviso"],
-    ["green-500", "#3DD68C", "confirmado"],
+    ["bg-base", "#000000"],
+    ["bg-raised", "#101011"],
+    ["surface-1", "#1c1c1e", "cartões"],
+    ["surface-2", "#242426", "elevado, ativo"],
+    ["surface-3", "#2c2c2e", "inputs"],
+    ["text-primary", "#f5f5f7"],
+    ["text-secondary", "#aeaeb2"],
+    ["text-tertiary", "#8e8e93"],
+    ["accent-500", "#e8112d", "ação, preenchimentos"],
+    ["accent-400", "#ff453a", "acento em texto, preços"],
+    ["accent-300", "#ff6961", "realce"],
+    ["accent-700", "#b50e24", "premido"],
+    ["ember-500", "#ff453a", "ao vivo, urgência"],
+    ["ember-700", "#b50e24", "destrutivo"],
+    ["amber-500", "#ff9f0a", "aviso"],
+    ["green-500", "#30d158", "confirmado"],
   ];
 
   const scale = [12, 14, 16, 20, 24, 32, 40, 56, 80];
@@ -55,8 +56,8 @@ export default function TokensPage() {
 
       <h2 className="label mb-4 text-text-secondary">Efeitos</h2>
       <div className="mb-12 flex flex-wrap gap-6">
-        <div className="rounded-card bg-surface-1 px-8 py-6 shadow-glow-gold text-gold-500">
-          glow-gold
+        <div className="rounded-card bg-surface-1 px-8 py-6 shadow-glow-accent text-accent-400">
+          glow-accent
         </div>
         <div className="rounded-card bg-surface-1 px-8 py-6 shadow-glow-ember text-ember-500">
           glow-ember
@@ -94,7 +95,7 @@ export default function TokensPage() {
           className="mt-2 text-text-primary"
           style={{ fontFamily: "var(--font-editorial)", fontSize: "2rem" }}
         >
-          <span className="tnum">24,50 €</span> — editorial (Instrument Serif)
+          <span className="tnum">24,50 €</span> · preço em corpo grande (mesma família, peso leve)
         </p>
       </div>
 
@@ -142,7 +143,7 @@ export default function TokensPage() {
 
       <div className="mt-12 flex items-center gap-4">
         <div
-          className="beat-pulse h-12 w-12 rounded-full bg-gold-500"
+          className="beat-pulse h-12 w-12 rounded-full bg-accent-500"
           style={{ ["--beat-period" as string]: "0.5s" }}
         />
         <p className="text-sm text-text-secondary">

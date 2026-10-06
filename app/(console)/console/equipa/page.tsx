@@ -83,7 +83,7 @@ export default async function TeamPage({
                     </td>
                     <td className="px-4 py-3 text-text-secondary">{member.email}</td>
                     <td className="px-4 py-3">
-                      <Chip tone={member.role === "manager" ? "gold" : "neutral"}>
+                      <Chip tone={member.role === "manager" ? "accent" : "neutral"}>
                         {t(`roles.${member.role}`)}
                       </Chip>
                     </td>

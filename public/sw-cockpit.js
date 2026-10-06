@@ -101,7 +101,7 @@ async function networkFirst(request, cacheName, fallbackUrl) {
     // Minimal offline page: no HTML template dependency, no translation
     // (the real copy lives in the app; this is the last-resort fallback).
     return new Response(
-      '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cockpit</title><body style="margin:0;background:#0A0806;color:#F6F0E6;font:600 20px system-ui;display:grid;place-items:center;height:100vh"><p>Sem ligação. A religar…</p><script>setTimeout(function(){location.reload()},3000)</script></body>',
+      '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cockpit</title><body style="margin:0;background:#000000;color:#f5f5f7;font:600 20px system-ui;display:grid;place-items:center;height:100vh"><p>Sem ligação. A religar…</p><script>setTimeout(function(){location.reload()},3000)</script></body>',
       { status: 503, headers: { "content-type": "text/html; charset=utf-8" } },
     );
   }

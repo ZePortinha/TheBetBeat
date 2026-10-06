@@ -6,8 +6,8 @@ const preview: Preview = {
     backgrounds: {
       default: "bg-base",
       values: [
-        { name: "bg-base", value: "#0A0806" },
-        { name: "surface-1", value: "#18140F" },
+        { name: "bg-base", value: "#000000" },
+        { name: "surface-1", value: "#1c1c1e" },
       ],
     },
     layout: "centered",

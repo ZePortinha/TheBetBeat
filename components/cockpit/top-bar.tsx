@@ -152,7 +152,7 @@ export function TopBar({
           onChange={(event) => onSearch(event.target.value)}
           placeholder={t("topBar.searchPlaceholder")}
           aria-label={t("a11y.search")}
-          className="h-12 w-full rounded-full border border-line-subtle bg-surface-3 pl-10 pr-4 text-base text-text-primary placeholder:text-text-tertiary focus:border-gold-500/50 focus:outline-none"
+          className="h-12 w-full rounded-full border border-line-subtle bg-surface-3 pl-10 pr-4 text-base text-text-primary placeholder:text-text-tertiary focus:border-accent-500/50 focus:outline-none"
         />
       </label>
 

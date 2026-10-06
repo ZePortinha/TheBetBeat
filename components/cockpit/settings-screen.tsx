@@ -183,7 +183,7 @@ function Segmented<T extends string>({
               "flex min-h-12 flex-1 items-center justify-center gap-2 rounded-button px-3 text-base font-semibold",
               "transition-colors duration-100",
               active
-                ? "bg-gold-500 text-text-on-accent"
+                ? "bg-accent-500 text-text-on-accent"
                 : "text-text-secondary data-pressed:bg-surface-3",
             )}
           >
@@ -222,21 +222,21 @@ function Switch({
       className={cx(
         "flex min-h-14 items-center gap-3 rounded-button border px-3",
         checked
-          ? "border-gold-500/40 bg-gold-500/10"
+          ? "border-accent-500/40 bg-accent-500/10"
           : "border-line-subtle bg-surface-2",
       )}
     >
       <span
         className={cx(
           "relative block h-8 w-14 shrink-0 rounded-full transition-colors duration-100",
-          checked ? "bg-gold-500/35" : "bg-surface-3",
+          checked ? "bg-accent-500/35" : "bg-surface-3",
         )}
         aria-hidden
       >
         <motion.span
           className={cx(
             "absolute top-1 block size-6 rounded-full",
-            checked ? "bg-gold-500" : "bg-text-tertiary",
+            checked ? "bg-accent-500" : "bg-text-tertiary",
           )}
           animate={{ x: checked ? 26 : 4 }}
           transition={springDefault}
@@ -295,7 +295,7 @@ function SetSummary({
             key={key}
             className={cx(
               "rounded-card border border-line-subtle bg-surface-1 p-4",
-              key === "djNet" && "border-gold-500/40",
+              key === "djNet" && "border-accent-500/40",
             )}
           >
             <p className="label text-text-tertiary">{t(key)}</p>
@@ -771,7 +771,7 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
                 }}
                 onPointerUp={() => playBlip()}
                 className="h-14 min-w-0 flex-1 cursor-pointer disabled:opacity-40"
-                style={{ accentColor: "var(--color-gold-500)" }}
+                style={{ accentColor: "var(--color-accent-500)" }}
               />
               <span className="tnum w-12 text-right text-base font-semibold text-text-secondary">
                 {Math.round(volume * 100)}%

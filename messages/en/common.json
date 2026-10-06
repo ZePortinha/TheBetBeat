@@ -66,11 +66,72 @@
     }
   },
   "devIndex": {
-    "title": "BetBeat — development",
+    "title": "BetBeat · development",
     "guest": "Guest app",
     "cockpit": "DJ Cockpit",
     "display": "Venue display",
     "console": "Console",
     "hint": "Enter the guest app with the Pista zone QR."
+  },
+  "landing": {
+    "skip": "Skip to content",
+    "nav": {
+      "how": "How it works",
+      "sides": "Who it is for",
+      "guarantee": "Guarantee",
+      "party": "Join the party",
+      "staff": "Staff area"
+    },
+    "hero": {
+      "titleA": "Request your song",
+      "titleB": "from the DJ.",
+      "sub": "Pick the track, choose how long you will wait and pay in seconds. If it does not play, you get everything back.",
+      "cta": "See how it works",
+      "ctaSecondary": "For DJs and venues"
+    },
+    "how": {
+      "title": "From QR to request",
+      "titleAccent": "in under 30 seconds.",
+      "scan": {
+        "title": "Scan the QR on the floor.",
+        "body": "Open it on your phone. Nothing to install, no sign-up and no password."
+      },
+      "choose": {
+        "title": "Pick the song and the wait.",
+        "body": "In the Queue, Coming Up or Up Next. The final price and the estimated time are shown before you pay."
+      },
+      "decide": {
+        "title": "The DJ decides.",
+        "body": "Nothing plays unless it is accepted. If it does not play, the money comes back to you on its own."
+      }
+    },
+    "sides": {
+      "title": "One booth,",
+      "titleAccent": "three sides.",
+      "guest": {
+        "label": "Guests",
+        "figure": "30 s",
+        "title": "or less to shape the sound of the night.",
+        "body": "Nothing to install, no sign-up and a guaranteed refund."
+      },
+      "dj": {
+        "label": "DJs",
+        "title": "You have the last word.",
+        "body": "Extra revenue, live demand and total artistic control."
+      },
+      "venue": {
+        "label": "Venues",
+        "title": "No new hardware.",
+        "body": "More revenue per guest, more engagement and data from the night."
+      }
+    },
+    "guarantee": {
+      "title": "If it does not play,",
+      "titleAccent": "you get it all back.",
+      "body": "Full, automatic refund. If the promised wait is missed, we return the difference."
+    },
+    "footer": {
+      "rights": "© 2026 BetBeat"
+    }
   }
 }

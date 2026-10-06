@@ -27,7 +27,7 @@ const filterSchema = z
 
 const inputCls =
   "rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm " +
-  "text-text-primary focus:border-gold-500 focus:outline-none";
+  "text-text-primary focus:border-accent-500 focus:outline-none";
 
 /** Escape LIKE wildcards so a filter is a literal prefix/substring. */
 function likeEscape(s: string): string {
@@ -171,7 +171,7 @@ export default async function AdminAuditPage({
         </label>
         <button
           type="submit"
-          className="min-h-10 rounded-button bg-gold-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
         >
           {t("filters.apply")}
@@ -226,7 +226,7 @@ export default async function AdminAuditPage({
                       <span className="text-text-tertiary">—</span>
                     ) : (
                       <details>
-                        <summary className="cursor-pointer text-xs text-gold-500">
+                        <summary className="cursor-pointer text-xs text-accent-400">
                           {t("columns.showPayload")}
                         </summary>
                         <pre className="mt-2 max-h-64 max-w-md overflow-auto rounded-card bg-surface-2 p-3 text-xs text-text-secondary">
@@ -245,7 +245,7 @@ export default async function AdminAuditPage({
       {pages > 1 ? (
         <nav aria-label={t("pagination.label")} className="flex items-center justify-between text-sm">
           {page > 1 ? (
-            <Link href={pageHref(page - 1)} className="text-gold-500 hover:text-gold-300">
+            <Link href={pageHref(page - 1)} className="text-accent-400 hover:text-accent-300">
               {t("pagination.prev")}
             </Link>
           ) : (
@@ -253,7 +253,7 @@ export default async function AdminAuditPage({
           )}
           <span className="text-text-secondary tnum">{t("pagination.page", { page, pages })}</span>
           {page < pages ? (
-            <Link href={pageHref(page + 1)} className="text-gold-500 hover:text-gold-300">
+            <Link href={pageHref(page + 1)} className="text-accent-400 hover:text-accent-300">
               {t("pagination.next")}
             </Link>
           ) : (

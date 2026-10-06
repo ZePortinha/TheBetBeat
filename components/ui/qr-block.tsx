@@ -44,7 +44,7 @@ export function QRBlock({
       margin: QR_QUIET_ZONE_MODULES,
       // 2x for crisp rendering on retina displays; CSS scales it down.
       width: size * 2,
-      color: { dark: "#0a0806", light: "#ffffff" },
+      color: { dark: "#0b0b0c", light: "#ffffff" },
     })
       .then((dataUrl) => {
         if (!cancelled) setSrc(dataUrl);

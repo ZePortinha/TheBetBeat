@@ -25,7 +25,7 @@ export interface TierDefaultsValues {
 
 const inputCls =
   "w-full rounded-button border border-line-subtle bg-surface-3 px-3 py-2 " +
-  "text-base text-text-primary tnum focus:border-gold-500 focus:outline-none";
+  "text-base text-text-primary tnum focus:border-accent-500 focus:outline-none";
 
 export function TierDefaultsForm({
   venueId,
@@ -100,7 +100,7 @@ export function TierDefaultsForm({
         <button
           type="submit"
           disabled={pending}
-          className="min-h-10 self-start rounded-button bg-gold-500 px-5 text-sm
+          className="min-h-10 self-start rounded-button bg-accent-500 px-5 text-sm
             font-semibold text-text-on-accent transition-transform duration-100
             active:scale-[0.97] disabled:opacity-60"
         >

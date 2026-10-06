@@ -1,17 +1,23 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signToken } from "@/lib/security/tokens";
+import {
+  DevStrip,
+  Footer,
+  Guarantee,
+  Hero,
+  How,
+  LandingHeader,
+  Sides,
+} from "@/components/landing/landing";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Dev index — not a product surface. Lists entry points into the four
- * surfaces using the seeded data, with correctly signed QR/display tokens.
- */
-export default async function DevIndex() {
-  const t = await getTranslations("common.devIndex");
-
+/** Signed QR/display links from the seeded data — development only. */
+async function devLinks(): Promise<{
+  guestHref: string | null;
+  displayHref: string | null;
+}> {
   let guestHref: string | null = null;
   let displayHref: string | null = null;
   try {
@@ -42,38 +48,33 @@ export default async function DevIndex() {
       )}`;
     }
   } catch {
-    // Database not up yet — show the static links below.
+    // Database not up yet; the static links still render.
   }
+  return { guestHref, displayHref };
+}
 
-  const linkCls =
-    "block rounded-card bg-surface-1 border border-line-subtle px-6 py-5 " +
-    "text-text-primary hover:bg-surface-2 transition-colors";
+export default async function Home() {
+  const t = await getTranslations("common.landing");
+  // The E2E suite reads these links off this page; production never shows them.
+  const dev = process.env.NODE_ENV !== "production" ? await devLinks() : null;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-3 px-4 py-12">
-      <h1
-        className="mb-1 text-2xl font-bold text-gold-500"
-        style={{ fontFamily: "var(--font-display)" }}
+    <div className="relative">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-button focus:bg-accent-500 focus:px-4 focus:py-2 focus:text-text-on-accent"
       >
-        {t("title")}
-      </h1>
-      <p className="mb-5 text-sm text-text-secondary">{t("hint")}</p>
-      {guestHref ? (
-        <Link className={linkCls} href={guestHref}>
-          {t("guest")}
-        </Link>
-      ) : null}
-      <Link className={linkCls} href="/cockpit">
-        {t("cockpit")}
-      </Link>
-      {displayHref ? (
-        <Link className={linkCls} href={displayHref}>
-          {t("display")}
-        </Link>
-      ) : null}
-      <Link className={linkCls} href="/console">
-        {t("console")}
-      </Link>
-    </main>
+        {t("skip")}
+      </a>
+      <LandingHeader />
+      <main id="main">
+        <Hero />
+        <How />
+        <Sides />
+        <Guarantee />
+      </main>
+      <Footer />
+      {dev ? <DevStrip {...dev} /> : null}
+    </div>
   );
 }

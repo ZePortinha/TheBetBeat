@@ -66,11 +66,72 @@
     }
   },
   "devIndex": {
-    "title": "BetBeat — desenvolvimento",
+    "title": "BetBeat · desenvolvimento",
     "guest": "App do Convidado",
     "cockpit": "Cockpit do DJ",
     "display": "Ecrã da Casa",
     "console": "Consola",
     "hint": "Entra pela app do convidado com o QR da zona Pista."
+  },
+  "landing": {
+    "skip": "Saltar para o conteúdo",
+    "nav": {
+      "how": "Como funciona",
+      "sides": "Para quem",
+      "guarantee": "Garantia",
+      "party": "Entrar na festa",
+      "staff": "Área da equipa"
+    },
+    "hero": {
+      "titleA": "Pede a tua música",
+      "titleB": "ao DJ.",
+      "sub": "Escolhe o tema, decide quanto esperas e paga em segundos. Se não tocar, devolvemos tudo.",
+      "cta": "Ver como funciona",
+      "ctaSecondary": "Para DJs e casas"
+    },
+    "how": {
+      "title": "Do QR ao pedido",
+      "titleAccent": "em menos de 30 segundos.",
+      "scan": {
+        "title": "Lê o QR da pista.",
+        "body": "Abre no telemóvel. Sem instalar nada, sem registo e sem palavra-passe."
+      },
+      "choose": {
+        "title": "Escolhe a música e a espera.",
+        "body": "Na Fila, Em Breve ou A Seguir. O preço final e o tempo estimado ficam à vista antes de pagares."
+      },
+      "decide": {
+        "title": "O DJ decide.",
+        "body": "Nada toca sem ser aceite. Se não tocar, o dinheiro volta para ti sozinho."
+      }
+    },
+    "sides": {
+      "title": "Uma cabine,",
+      "titleAccent": "três lados.",
+      "guest": {
+        "label": "Convidados",
+        "figure": "30 s",
+        "title": "ou menos para mexer na música da noite.",
+        "body": "Sem instalar nada, sem registo e com reembolso garantido."
+      },
+      "dj": {
+        "label": "DJs",
+        "title": "A última palavra é tua.",
+        "body": "Receita extra, procura em tempo real e controlo artístico total."
+      },
+      "venue": {
+        "label": "Casas",
+        "title": "Sem hardware novo.",
+        "body": "Mais receita por convidado, mais envolvimento e dados da noite."
+      }
+    },
+    "guarantee": {
+      "title": "Se não tocar,",
+      "titleAccent": "devolvemos tudo.",
+      "body": "Reembolso total e automático. Se a espera prometida falhar, devolvemos a diferença."
+    },
+    "footer": {
+      "rights": "© 2026 BetBeat"
+    }
   }
 }

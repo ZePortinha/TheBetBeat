@@ -49,7 +49,7 @@ const SIZE_STYLES: Record<PriceTagSize, CSSProperties> = {
     fontWeight: 600,
   },
   display: {
-    // 56px ≥ EDITORIAL_MIN_PX → editorial serif (Instrument Serif, 400).
+    // 56px: display price, same Swiss family at light weight.
     fontSize: "var(--text-56)",
     letterSpacing: "var(--tracking-display)",
     fontWeight: 400,
@@ -117,15 +117,15 @@ export interface PriceTagProps {
   /** Money is ALWAYS integer cents. */
   cents: number;
   size?: PriceTagSize;
-  /** Gold marks money (B10.2); "inherit" defers to the surrounding text. */
-  tone?: "gold" | "inherit";
+  /** Accent red marks money; "inherit" defers to the surrounding text. */
+  tone?: "accent" | "inherit";
   className?: string;
 }
 
 export function PriceTag({
   cents,
   size = "md",
-  tone = "gold",
+  tone = "accent",
   className,
 }: PriceTagProps) {
   const reducedMotion = useReducedMotion() ?? false;
@@ -140,7 +140,7 @@ export function PriceTag({
   const style: CSSProperties = {
     ...SIZE_STYLES[size],
     lineHeight: 1,
-    ...(tone === "gold" ? { color: "var(--color-gold-500)" } : {}),
+    ...(tone === "accent" ? { color: "var(--color-accent-400)" } : {}),
   };
 
   const rootClass = ["tnum relative inline-flex", className]

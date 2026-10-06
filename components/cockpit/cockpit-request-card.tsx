@@ -19,8 +19,8 @@ import { formatEurosDisplay } from "./format";
 
 export const NEW_GLOW_CSS = `
 @keyframes bb-glow-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 194, 48, 0); }
-  50% { box-shadow: 0 0 0 1px rgba(242,194,48,.45), 0 8px 32px rgba(242,194,48,.22); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 17, 45, 0); }
+  50% { box-shadow: 0 0 0 1px rgba(232, 17, 45,.45), 0 8px 32px rgba(232, 17, 45,.22); }
 }
 .bb-new-request { animation: bb-glow-pulse 1.1s ease-in-out 2; }
 @media (prefers-reduced-motion: reduce) {

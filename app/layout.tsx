@@ -1,31 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Unbounded, Instrument_Serif } from "next/font/google";
+import { Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const unbounded = Unbounded({
+/** Fallback for SF Pro off Apple devices; the opsz axis gives it optical sizes. */
+const sans = Inter({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-display",
+  axes: ["opsz"],
+  variable: "--font-sans",
   display: "swap",
 });
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-editorial",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: { default: "BetBeat", template: "%s · BetBeat" },
   description: "Pede a tua música ao DJ.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A0806",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -40,7 +33,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${unbounded.variable} ${instrumentSerif.variable}`}
+      className={sans.variable}
       // Browser extensions (analytics blockers, translators) inject
       // attributes on <html> before React hydrates; that is not a mismatch
       // we can fix, so keep the dev overlay quiet for this element only.

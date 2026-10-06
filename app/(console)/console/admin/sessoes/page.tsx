@@ -130,7 +130,7 @@ export default async function AdminLiveSessionsPage() {
                 <Td align="right" numeric>
                   {Number(s.played)}
                 </Td>
-                <Td align="right" numeric className="text-gold-500">
+                <Td align="right" numeric className="text-accent-400">
                   {formatEuros(Number(s.gmv))}
                 </Td>
               </Tr>
