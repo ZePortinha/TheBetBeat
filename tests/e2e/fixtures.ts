@@ -104,7 +104,9 @@ export async function getGuestUrl(page: Page): Promise<string> {
 /** Same as getGuestUrl but through the API context (no browser page). */
 export async function getGuestPath(request: APIRequestContext): Promise<string> {
   const html = await (await request.get("/")).text();
-  const href = /href="(\/s\/[^"]+)" data-testid="dev-guest-link"/.exec(html)?.[1];
+  // Attribute order is the renderer's business: find the tag, then its href.
+  const tag = /<a[^>]*data-testid="dev-guest-link"[^>]*>/.exec(html)?.[0] ?? "";
+  const href = /href="(\/s\/[^"]+)"/.exec(tag)?.[1];
   if (!href) throw new Error("Dev index has no guest link — is the DB seeded?");
   return href;
 }

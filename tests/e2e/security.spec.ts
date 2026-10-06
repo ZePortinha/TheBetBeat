@@ -11,7 +11,10 @@ test.describe("security headers", () => {
     expect(h["x-content-type-options"]).toBe("nosniff");
     expect(h["x-frame-options"]).toBe("DENY");
     expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
-    expect(h["permissions-policy"]).toContain("camera=()");
+    // Camera only for this origin (the guests' QR reader); microphone and location stay off.
+    expect(h["permissions-policy"]).toContain("camera=(self)");
+    expect(h["permissions-policy"]).toContain("microphone=()");
+    expect(h["permissions-policy"]).toContain("geolocation=()");
     expect(h["strict-transport-security"]).toContain("max-age=");
     const csp = h["content-security-policy"] ?? "";
     expect(csp).toContain("default-src 'self'");
