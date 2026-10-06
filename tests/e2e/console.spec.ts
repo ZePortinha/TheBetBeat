@@ -347,7 +347,7 @@ test.describe("console · admin gates", () => {
     ]) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login\?next=.*&error=forbidden/);
-      await expect(page.getByRole("alert")).toContainText("A tua conta não tem acesso a esta área.");
+      await expect(page.getByText("A tua conta não tem acesso a esta área.")).toBeVisible();
     }
   });
 

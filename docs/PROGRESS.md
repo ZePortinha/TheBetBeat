@@ -35,6 +35,20 @@ that does not need a database was finished and verified:
   login), `guest.spec.ts`, `cockpit.spec.ts`, `console.spec.ts`.
 - Phase 9 docs.
 
+## Local verification log (2026-10-02)
+
+- Steps 1–2 done: `pnpm db:audit` green (pasted into SECURITY.md); `SUPABASE_TEST=1 pnpm test`
+  128/128 integration green. Fixed a test-pollution bug: the RLS suite seeded an immutable
+  `psp_clearing` ledger row that made the reconciliation test report a 100c mismatch on a fresh DB.
+- Step 3 done: `pnpm test:e2e` 57 passed (108 skipped by project gating); the gated
+  `E2E_END_SET=1` tests (cockpit "manter premido", console Phase 7 flow) pass, each on a fresh DB.
+  The run exposed 9 product bugs, all fixed (see DECISIONS, "E2E run"). Confirmed payment →
+  cockpit card measured < 2 s in dev.
+- Operational: restart `pnpm worker` after every `pnpm db:reset` (the pg-boss schema is wiped), and
+  `supabase stop && supabase start` after editing `supabase/config.toml` (MFA TOTP is now enabled).
+- Steps 4–8 still pending: `pnpm simulate` strict < 1 s latency, screenshots + B10.6 checklist,
+  QR decode, subagent reviews.
+
 ## To verify locally (needs `supabase start` + `pnpm db:reset` + `pnpm dev` + `pnpm worker`)
 
 In this order; fix selectors/labels as needed, then record results here:

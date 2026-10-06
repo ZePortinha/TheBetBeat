@@ -58,16 +58,16 @@ test.describe("cockpit", () => {
   });
 
   test("um pagamento confirmado aparece em Decidir ao vivo", async ({ page, request }) => {
-    const t0 = Date.now();
     const paid = await createPaidRequest(request);
+    // B1.5: < 1 s from the confirmed payment (the helper returns once the
+    // webhook is accepted) to the card on the cockpit. Measured in the dev
+    // server, so the budget is 2 s; `pnpm simulate` reports the strict p95.
+    const t0 = Date.now();
     const arrived = card(page, paid.requestId);
     await expect(arrived).toBeVisible({ timeout: 10_000 });
     const latencyMs = Date.now() - t0;
-    // B1.5: < 1 s from confirmed payment to the cockpit alert (measured
-    // here end-to-end INCLUDING the guest's quote + request calls, so this
-    // assertion is loose; `pnpm simulate` reports the strict figure).
-    expect(latencyMs).toBeLessThan(5000);
-    test.info().annotations.push({ type: "latency", description: `${latencyMs} ms (quote+request+confirm → card)` });
+    expect(latencyMs).toBeLessThan(2000);
+    test.info().annotations.push({ type: "latency", description: `${latencyMs} ms (confirmed payment → card)` });
 
     await expect(arrived.getByText(paid.trackTitle)).toBeVisible();
     await expect(arrived.getByRole("button", { name: "Aceitar" })).toBeVisible();
@@ -87,7 +87,7 @@ test.describe("cockpit", () => {
 
     await c.getByRole("button", { name: "Fixar como próxima" }).click();
     await expect(c.getByRole("button", { name: "Soltar" })).toBeVisible({ timeout: 10_000 });
-    await expect(c.getByText("Próxima")).toBeVisible();
+    await expect(c.getByText("Próxima", { exact: true }).first()).toBeVisible();
 
     // The big primary acts on the pinned request.
     await page.getByRole("button", { name: "Marcar a tocar" }).first().click();
@@ -163,8 +163,13 @@ test.describe("cockpit", () => {
 
     await toggle.click();
     await expect(page.getByText("Pedidos abertos").first()).toBeVisible();
-    const state = await page.request.get("/api/cockpit/state");
-    expect(((await state.json()) as { session: { requestsOpen: boolean } }).session.requestsOpen).toBe(true);
+    // The switch is optimistic: poll until the server has the new state.
+    await expect
+      .poll(async () => {
+        const state = await page.request.get("/api/cockpit/state");
+        return ((await state.json()) as { session: { requestsOpen: boolean } }).session.requestsOpen;
+      })
+      .toBe(true);
   });
 
   test("offline: a ação fica guardada e sincroniza ao reconectar", async ({ page, request, context }) => {

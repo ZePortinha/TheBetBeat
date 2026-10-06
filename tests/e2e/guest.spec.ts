@@ -194,7 +194,7 @@ test.describe("guest app", () => {
     await expect(confirm).toBeEnabled();
 
     await sheet.getByRole("button", { name: /fatura com nif|invoice with/i }).click();
-    await sheet.locator("#nif").fill("123456789");
+    await sheet.locator("#nif").fill("123456788"); // wrong check digit (123456789 is valid)
     await expect(sheet.getByText(/nif não parece válido|doesn.t look valid/i)).toBeVisible();
     await expect(confirm).toBeDisabled();
     await sheet.locator("#nif").fill("501442600"); // valid check digit, fictional

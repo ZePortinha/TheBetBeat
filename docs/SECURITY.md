@@ -71,11 +71,9 @@ stored phones/emails/payout data) and rewrite history.
 
 `pnpm db:audit` runs in CI and at the end of Phases 1, 3, 7, 8 and 9.
 
-**Last recorded result:** passed at the end of Phase 3 (local Supabase, RLS on
-all tables, 0 generic policies, privileges within the expected matrix). The
-Phase 7 and Phase 9 runs are still pending: this cloud session had no database,
-so the audit must be re-run locally (`supabase start && pnpm db:reset && pnpm db:audit`)
-and the output pasted here before delivery.
+**Last recorded result (2026-10-02, local Supabase after `pnpm db:reset`):**
+`✓ db:audit passed — 19 tables with RLS, 19 policies, no generic-true, privileges within matrix.`
+Re-run at the end of Phase 8 and before delivery.
 
 ## Verification map
 

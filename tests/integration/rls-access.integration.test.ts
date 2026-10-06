@@ -95,8 +95,10 @@ describe("RLS access matrix (B12.2)", () => {
     if (!ledger || ledger.length === 0) {
       const group = crypto.randomUUID();
       await service.from("ledger_entries").insert([
-        { group_id: group, account: "psp_clearing", amount_cents: 100, memo: "rls-test" },
-        { group_id: group, account: "guest_escrow", amount_cents: -100, memo: "rls-test" },
+        // Accounts the daily reconciliation does not sum: the ledger is immutable,
+        // so this row outlives the test and must not fake a capture mismatch.
+        { group_id: group, account: "psp_fees", amount_cents: 100, memo: "rls-test" },
+        { group_id: group, account: "betbeat_revenue", amount_cents: -100, memo: "rls-test" },
       ]);
     }
   });

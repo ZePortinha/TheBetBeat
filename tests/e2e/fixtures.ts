@@ -326,15 +326,25 @@ export async function loginStaff(
   const account = SEED.staff[who];
   if (account.mfa) await resetMfaFactors(page.request, account.userId);
 
+  // The login limiter is per IP (10 / 10 min); every test is a fresh "visitor".
+  const ip = Array.from({ length: 4 }, () => Math.floor(Math.random() * 254) + 1).join(".");
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": ip });
+
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByRole("textbox").first().fill(account.email);
   await page.locator('input[type="password"]').fill(account.password);
   await page.getByRole("button", { name: /entrar|sign in/i }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/login") || url.pathname.startsWith("/login/mfa"), {
-    timeout: 15_000,
-  });
+  // Managers/admins always end on /login/mfa; waiting for "anything but /login"
+  // would resolve mid-redirect (/console → /login/mfa) and skip the MFA step.
+  await page.waitForURL(
+    (url) =>
+      account.mfa
+        ? url.pathname.startsWith("/login/mfa")
+        : !url.pathname.startsWith("/login"),
+    { timeout: 15_000 },
+  );
 
-  if (page.url().includes("/login/mfa")) {
+  if (account.mfa) {
     // Enrolment shows the base32 secret under the QR; verify mode does not.
     const secretEl = page.locator("p.break-all");
     await page.locator('input[inputmode="numeric"]').waitFor({ timeout: 15_000 });

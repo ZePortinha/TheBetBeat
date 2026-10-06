@@ -32,6 +32,8 @@ export async function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  // Lets server layouts redirect to login/MFA with the real deep link.
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
   let response = NextResponse.next({ request: { headers: requestHeaders } });
 

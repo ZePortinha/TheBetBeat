@@ -1,4 +1,5 @@
 import "server-only";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/domain/types";
@@ -28,8 +29,12 @@ export async function requireStaff(
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Layouts pass a fixed fallback; the middleware knows the real deep link.
+  const pathname = (await headers()).get("x-pathname");
+  const nextPath = pathname && /^\/(?!\/)[\w\-/.]*$/.test(pathname) ? pathname : opts.nextPath;
+
   if (!user || user.is_anonymous) {
-    redirect(`/login?next=${encodeURIComponent(opts.nextPath)}`);
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
 
   const { data: rows } = await supabase
@@ -46,7 +51,7 @@ export async function requireStaff(
 
   const match = memberships.filter((m) => allowed.includes(m.role));
   if (match.length === 0) {
-    redirect(`/login?next=${encodeURIComponent(opts.nextPath)}&error=forbidden`);
+    redirect(`/login?next=${encodeURIComponent(nextPath)}&error=forbidden`);
   }
 
   // MFA is mandatory for managers and admins (B12.3).
@@ -54,7 +59,7 @@ export async function requireStaff(
   if (needsMfa) {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aal?.currentLevel !== "aal2") {
-      redirect(`/login/mfa?next=${encodeURIComponent(opts.nextPath)}`);
+      redirect(`/login/mfa?next=${encodeURIComponent(nextPath)}`);
     }
   }
 

@@ -256,7 +256,19 @@ export class MockPaymentProvider implements PaymentProvider {
     const memo = this.memoized.get(idempotencyKey);
     if (memo) return memo;
 
-    const intent = this.requireIntent(providerRef);
+    const intent = this.intents.get(providerRef);
+    if (!intent) {
+      // Refunds run in the worker process, which never saw the intent that the
+      // Next process created (this mock is in-memory). A real PSP is a shared
+      // remote service; the payments table already caps the refundable amount.
+      assertCents(amountCents, "amountCents");
+      const result: PaymentIntentResult = {
+        providerRef: `mock_rf_${randomUUID()}`,
+        status: "captured",
+      };
+      this.memoized.set(idempotencyKey, result);
+      return result;
+    }
     assertCents(amountCents, "amountCents");
     if (intent.capturedCents === 0) {
       throw new Error("mock: nothing captured to refund");

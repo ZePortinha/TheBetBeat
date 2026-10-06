@@ -102,10 +102,16 @@ export function useRealtimeChannel(
       if (disposed) return;
       teardownChannel();
 
-      // Make sure the socket carries a fresh access token before joining
-      // a private (RLS-authorized) channel.
-      void supabase.realtime.setAuth();
+      // The socket must carry the user's access token BEFORE joining a private
+      // (RLS-authorized) channel; joining first fails and waits for a retry.
+      void supabase.realtime
+        .setAuth()
+        .catch(() => undefined)
+        .then(join);
+    };
 
+    const join = () => {
+      if (disposed) return;
       channel = supabase
         .channel(topic, { config: { private: isPrivate } })
         .on("broadcast", { event: "*" }, (message) => {

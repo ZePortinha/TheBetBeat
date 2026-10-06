@@ -301,6 +301,7 @@ export function useCockpit(initialSessionId: string | null): UseCockpitResult {
           });
           scheduleRefetch();
           break;
+        case "request.rejected": // dj_reject → refunded: same feed line
         case "request.refunded":
           upsertRequest(r);
           pushFeed({
