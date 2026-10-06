@@ -409,9 +409,35 @@ body:has(.guest-type) {
 .boot-intro {
   animation: boot-intro-out 0.35s ease-out 2.4s forwards;
 }
+html[data-intro="seen"] .boot-intro {
+  display: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .boot-intro {
     animation-duration: 0.2s;
     animation-delay: 1s;
+  }
+}
+
+/* Above-the-fold entrance on the landing hero: pure CSS so the headline
+   paints with the HTML instead of waiting for hydration (LCP). */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+.rise-in {
+  animation: rise-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes rise-in-reduced {
+    from {
+      opacity: 0;
+    }
+  }
+  .rise-in {
+    animation-name: rise-in-reduced;
+    animation-duration: 0.2s;
   }
 }

@@ -9,6 +9,7 @@
  * page, so the beat pattern plays at once when that already happened and
  * otherwise on the first tap during the intro. iOS has no vibration API.
  * Reduced motion: a short fade, no scale or rings.
+ * Plays once per tab: later loads skip it before first paint.
  */
 
 import * as React from "react";
@@ -39,6 +40,16 @@ export function BootIntro() {
   }, []);
 
   React.useEffect(() => {
+    // Already played in this tab (flag read before paint in app/layout.tsx).
+    if (document.documentElement.dataset.intro === "seen") {
+      setShow(false);
+      return;
+    }
+    try {
+      sessionStorage.setItem("bb-intro", "1");
+    } catch {
+      // Storage blocked (private mode): the intro simply plays again.
+    }
     const done = setTimeout(() => setShow(false), reduced ? 900 : TOTAL_MS);
     const haptic = setTimeout(() => {
       if (canVibrate()) buzz();

@@ -113,7 +113,7 @@ export default async function SessionsPage() {
                           <button
                             type="submit"
                             data-testid="session-end-button"
-                            className="rounded-button bg-ember-500 px-3 py-1.5
+                            className="rounded-button bg-ember-700 px-3 py-1.5
                               font-semibold text-text-on-accent transition-transform
                               duration-100 active:scale-[0.97]"
                           >

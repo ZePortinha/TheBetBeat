@@ -218,7 +218,7 @@ function ToastCard({
               item.action?.onAction();
               onDismiss();
             }}
-            className="min-h-9 shrink-0 rounded-chip bg-surface-3 px-3 py-1.5 text-sm font-semibold text-accent-400 data-pressed:bg-surface-2"
+            className="min-h-9 shrink-0 rounded-chip bg-surface-3 px-3 py-1.5 text-sm font-semibold text-accent-300 data-pressed:bg-surface-2"
           >
             {item.action.label}
           </Pressable>

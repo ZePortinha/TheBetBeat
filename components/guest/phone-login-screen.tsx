@@ -12,6 +12,7 @@
  */
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Check, MessageSquareText, SearchX, Smartphone, type LucideIcon } from "lucide-react";
@@ -199,7 +200,16 @@ export function PhoneLoginScreen({ token }: { token?: string }) {
             {t("sendCode")}
           </Button>
           <p className="text-center text-sm text-text-tertiary">
-            {partyMode ? t("partyQrNote") : t("optionalNote")}
+            {partyMode ? (
+              <>
+                {t("partyQrNote")}{" "}
+                <Link href="/" className="font-semibold text-accent-400 underline-offset-2 hover:underline">
+                  {t("partyQrLink")}
+                </Link>
+              </>
+            ) : (
+              t("optionalNote")
+            )}
           </p>
         </section>
       ) : null}

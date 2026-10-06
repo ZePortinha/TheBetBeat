@@ -42,7 +42,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     "border border-line-subtle bg-surface-2 text-text-primary data-pressed:bg-surface-3",
   ghost: "bg-transparent text-text-primary data-pressed:bg-surface-2",
   destructive:
-    "bg-ember-500 text-text-on-accent data-pressed:brightness-90",
+    "bg-ember-700 text-text-on-accent data-pressed:brightness-90",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -325,7 +325,7 @@ export function HoldButton({
       {/* Ember fill tracks the hold 1:1 — transform-only (B10.6 #8). */}
       <motion.span
         aria-hidden
-        className="absolute inset-0 -z-10 origin-left bg-ember-500"
+        className="absolute inset-0 -z-10 origin-left bg-ember-700"
         style={{ scaleX: progress }}
       />
       <motion.span className="relative text-ember-500" style={{ opacity: baseOpacity }}>

@@ -140,7 +140,7 @@ export default async function AnalyticsPage({
                   aria-current={p === period ? "page" : undefined}
                   className={`rounded-chip px-3 py-1.5 text-sm ${
                     p === period
-                      ? "bg-surface-3 font-semibold text-accent-400"
+                      ? "bg-surface-3 font-semibold text-accent-300"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >

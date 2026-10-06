@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-export const metadata = { title: "Tokens" };
+export const metadata = { title: "Tokens", robots: { index: false, follow: false } };
 
 /** Dev-only design token reference (Phase 1 review artifact). */
 export default function TokensPage() {

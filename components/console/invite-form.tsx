@@ -74,7 +74,7 @@ export function InviteForm({ venueId }: { venueId: string }) {
             </p>
             <p className="text-xs text-text-tertiary">{t("tempPasswordHint")}</p>
           </div>
-          <code className="rounded-chip bg-surface-3 px-3 py-1.5 text-base font-semibold text-accent-400 tnum">
+          <code className="rounded-chip bg-surface-3 px-3 py-1.5 text-base font-semibold text-accent-300 tnum">
             {state.tempPassword}
           </code>
           <CopyButton

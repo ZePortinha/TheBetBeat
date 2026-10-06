@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ChevronRight, Disc3 } from "lucide-react";
@@ -9,6 +10,8 @@ import { DevStrip } from "@/components/landing/landing";
 import { QrScanner } from "@/components/landing/qr-scanner";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 /** Signed QR/display links from the seeded data — development only. */
 async function devLinks(): Promise<{

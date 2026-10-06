@@ -67,7 +67,7 @@ export async function LandingHeader() {
             {t("nav.staff")}
           </Link>
           {/* Visible capsule is small; the link itself keeps a 44px target. */}
-          <Link href="/entrar" className="group inline-flex min-h-11 items-center">
+          <Link href="/" className="group inline-flex min-h-11 items-center">
             <span className="rounded-full bg-accent-500 px-3.5 py-1 text-xs font-medium text-text-on-accent transition-[background-color,transform] duration-100 group-hover:bg-accent-400 group-active:scale-[0.97] group-active:bg-accent-700">
               {t("nav.party")}
             </span>
@@ -89,22 +89,22 @@ export async function Hero() {
       <div aria-hidden className="ambient-center absolute inset-x-0 bottom-0 -z-10 h-3/4" />
 
       <div className={wrap}>
-        <Reveal>
+        <div className="rise-in">
           <p className="text-xl font-semibold tracking-[var(--tracking-heading)] text-accent-400 md:text-2xl">
             {tc("appName")}
           </p>
-        </Reveal>
-        <Reveal delay={0.04}>
+        </div>
+        <div className="rise-in" style={{ animationDelay: "40ms" }}>
           <h1 className={`${headline} mx-auto mt-3 max-w-[16ch] text-[clamp(2.75rem,7.5vw,5.5rem)]`}>
             {t("titleA")} <span className={subhead}>{t("titleB")}</span>
           </h1>
-        </Reveal>
-        <Reveal delay={0.08}>
+        </div>
+        <div className="rise-in" style={{ animationDelay: "80ms" }}>
           <p className="mx-auto mt-6 max-w-[38ch] text-lg leading-[1.45] text-text-secondary md:text-[1.3125rem]">
             {t("sub")}
           </p>
-        </Reveal>
-        <Reveal delay={0.12}>
+        </div>
+        <div className="rise-in" style={{ animationDelay: "120ms" }}>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
             <a href="#como" className={capsule}>
               {t("cta")}
@@ -114,11 +114,11 @@ export async function Hero() {
               <ChevronRight size={18} strokeWidth={2} aria-hidden />
             </a>
           </div>
-        </Reveal>
+        </div>
       </div>
 
       {/* Product shot: cropped by the section edge, fading into black. */}
-      <Reveal delay={0.16} className="relative mx-auto mt-16 w-[min(86vw,38rem)] md:mt-20">
+      <div className="rise-in relative mx-auto mt-16 w-[min(86vw,38rem)] md:mt-20" style={{ animationDelay: "160ms" }}>
         <div aria-hidden className="relative aspect-square translate-y-[22%]">
           <svg
             viewBox="0 0 100 100"
@@ -133,7 +133,7 @@ export async function Hero() {
           <span className="disc-ring inset-[3%] -rotate-12" />
           <Disc className="absolute inset-[6%] -rotate-12" />
         </div>
-      </Reveal>
+      </div>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-bg-base to-transparent"
@@ -280,7 +280,7 @@ export async function Footer() {
           <p className="text-base font-semibold text-text-primary">{tc("appName")}</p>
           <p className="mt-1">{tc("tagline")}</p>
         </div>
-        <nav className="flex flex-wrap gap-x-6" aria-label={tc("appName")}>
+        <nav className="flex flex-wrap gap-x-6" aria-label={t("footer.nav")}>
           <a className={link} href="#como">
             {t("nav.how")}
           </a>
@@ -290,7 +290,7 @@ export async function Footer() {
           <a className={link} href="#garantia">
             {t("nav.guarantee")}
           </a>
-          <Link className={link} href="/entrar">
+          <Link className={link} href="/">
             {t("nav.party")}
           </Link>
           <Link className={link} href="/login">

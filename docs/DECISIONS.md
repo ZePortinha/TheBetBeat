@@ -518,3 +518,17 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
 - Instagram: the winner screen shares a 1080x1920 story image through the phone's share sheet (where Instagram lives). There is no Instagram web intent, so on desktop the image is saved instead.
+
+## 2026-10-07 - Quality pass: performance, accessibility, SEO, polish
+
+Measured in a cloud session without Docker: Postgres 16 with stubbed `auth`/`realtime` schemas plus a tiny local stand-in for Supabase Auth/PostgREST, production build, Lighthouse 12 (mobile) and axe on 33 screens at their B10 viewports.
+
+- Contrast (axe): destructive fills use `ember-700` (white text was 3.4:1 on `ember-500`); red text on `surface-3` chips uses `accent-300`. The cockpit content area is a `<main>`; the landing footer nav has its own label; the empty revenue header cell is a `<td>`.
+- Boot intro plays once per tab: a nonce'd inline script reads a `sessionStorage` flag before first paint, so reloads and the "/" → party hand-off no longer replay the 2 s splash. A fresh tab still gets it (the E2E intro test opens a fresh context).
+- /casas hero: entrance is a CSS animation instead of `whileInView` opacity, so the headline paints with the HTML instead of waiting for hydration. Below-the-fold blocks keep `Reveal`.
+- SEO: localized metadata (`common.meta`), `metadataBase`, Open Graph + Twitter card with a generated 1200x630 share image (Inter subsets in `assets/fonts`, OFL), canonical URLs, `robots.txt`, `sitemap.xml`. Only `/` and `/casas` are indexable; party pages (`/s/…`, signed tokens), `/entrar`, display, cockpit, console and login are `noindex`. Lighthouse SEO on those pages reads lower on purpose.
+- Icons: `favicon.ico`, `icon.svg`, a full-bleed `apple-icon.png`, and a maskable 512 icon in both manifests (`id`, `scope`, `lang` added).
+- 404 page and a root error boundary; the "QR já não é válido" screen and the /entrar "not on the list" note now link to "/" (camera + live events). The /casas "Entrar na festa" links to "/" too: since 2026-10-06 that is the guests' entry, and /entrar only works for guest lists.
+- Venue display: the "Próximo leilão" heading is hidden when nothing is open or scheduled (it was a heading over an empty row on the TV).
+- Guest layout preconnects to Supabase (anonymous sign-in and realtime start there).
+- `htmlLimitedBots: /.*/` in next.config: Next 15 streamed the page metadata into `<body>` for every client; it now goes in `<head>` (link previews and audits that do not run JS were missing the description).

@@ -10,6 +10,7 @@ import { CockpitShell } from "@/components/cockpit/cockpit-shell";
 export const metadata: Metadata = {
   title: "Cockpit",
   manifest: "/manifest-cockpit.webmanifest",
+  robots: { index: false, follow: false },
 };
 
 export default async function CockpitLayout({

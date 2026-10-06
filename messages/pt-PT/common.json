@@ -42,7 +42,9 @@
     "generic": "Algo correu mal. Tenta novamente.",
     "withCode": "Algo correu mal (ref. {code}). Tenta novamente.",
     "network": "Sem ligação. Verifica a internet e tenta novamente.",
-    "rateLimited": "Muitos pedidos seguidos. Aguarda {seconds} s."
+    "rateLimited": "Muitos pedidos seguidos. Aguarda {seconds} s.",
+    "pageTitle": "Algo correu mal",
+    "pageHint": "Tenta novamente. Se continuar, volta ao início."
   },
   "auth": {
     "title": "Entrar",
@@ -131,7 +133,23 @@
       "body": "Reembolso total e automático. Se a espera prometida falhar, devolvemos a diferença."
     },
     "footer": {
-      "rights": "© 2026 BetBeat"
+      "rights": "© 2026 BetBeat",
+      "nav": "Ligações do rodapé"
     }
+  },
+  "meta": {
+    "description": "Pede a tua música ao DJ da festa. Escolhe a faixa, vê o preço final antes de pagar e, se não tocar, devolvemos tudo.",
+    "ogAlt": "BetBeat: pede a tua música ao DJ",
+    "venuesTitle": "Para DJs e casas",
+    "venuesDescription": "BetBeat para casas noturnas e DJs: os convidados pedem músicas a pagar, o DJ decide sempre o que toca e o que não toca é devolvido automaticamente.",
+    "staffLogin": "Entrar",
+    "mfa": "Verificação em dois passos",
+    "partyLogin": "Entrar na festa",
+    "notFoundTitle": "Página não encontrada"
+  },
+  "notFound": {
+    "title": "Esta página não existe",
+    "hint": "O link pode estar errado ou já ter expirado. Para pedir uma música, lê o QR do evento.",
+    "cta": "Ir para o início"
   }
 }

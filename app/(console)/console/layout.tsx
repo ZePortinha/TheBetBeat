@@ -8,7 +8,7 @@ import { requireConsole } from "./_lib/context";
 
 export async function generateMetadata() {
   const t = await getTranslations("console.shell");
-  return { title: t("metaTitle") };
+  return { title: t("metaTitle"), robots: { index: false, follow: false } };
 }
 
 /**

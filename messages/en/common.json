@@ -42,7 +42,9 @@
     "generic": "Something went wrong. Please try again.",
     "withCode": "Something went wrong (ref. {code}). Please try again.",
     "network": "You're offline. Check your connection and try again.",
-    "rateLimited": "Too many requests. Wait {seconds}s."
+    "rateLimited": "Too many requests. Wait {seconds}s.",
+    "pageTitle": "Something went wrong",
+    "pageHint": "Try again. If it keeps happening, go back to the start."
   },
   "auth": {
     "title": "Sign in",
@@ -131,7 +133,23 @@
       "body": "Full, automatic refund. If the promised wait is missed, we return the difference."
     },
     "footer": {
-      "rights": "© 2026 BetBeat"
+      "rights": "© 2026 BetBeat",
+      "nav": "Footer links"
     }
+  },
+  "meta": {
+    "description": "Request your song from the party DJ. Pick the track, see the final price before you pay and, if it does not play, you get everything back.",
+    "ogAlt": "BetBeat: request your song from the DJ",
+    "venuesTitle": "For DJs and venues",
+    "venuesDescription": "BetBeat for clubs and DJs: guests pay to request songs, the DJ always decides what plays and anything that does not play is refunded automatically.",
+    "staffLogin": "Sign in",
+    "mfa": "Two-step verification",
+    "partyLogin": "Join the party",
+    "notFoundTitle": "Page not found"
+  },
+  "notFound": {
+    "title": "This page does not exist",
+    "hint": "The link may be wrong or may have expired. To request a song, scan the event QR.",
+    "cta": "Go to the start"
   }
 }

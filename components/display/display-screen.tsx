@@ -223,8 +223,9 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
           </div>
         )}
 
-        {/* Leilão aberto: the countdown is the show (ember in the last minute) */}
-        {session.live && auction ? (
+        {/* Leilão aberto: the countdown is the show (ember in the last minute).
+            Nothing open and nothing scheduled: no empty heading on the TV. */}
+        {session.live && auction && (open || auction.next) ? (
           <Crossfade contentKey={open ? `open-${open.id}` : "no-auction"}>
             <div className="min-w-0 border-t border-line-subtle pt-[2.5vmin]">
               <p className="label text-accent-400" style={{ fontSize: "clamp(0.875rem, 2vmin, 1.25rem)" }}>
@@ -347,7 +348,7 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
             alt={t("qrCaption")}
             caption={
               <span
-                className="block text-text-primary"
+                className="block whitespace-nowrap text-text-primary"
                 style={{
                   fontSize: "clamp(1.25rem, 3vmin, var(--text-32))",
                   fontWeight: 700,

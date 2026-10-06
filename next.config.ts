@@ -6,6 +6,10 @@ const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Metadata is cheap (translations only): put it in <head> for every
+  // client instead of streaming it into <body>, so link previews, readers
+  // and audits that do not run JS all see the title, description and card.
+  htmlLimitedBots: /.*/,
   // Dev only: testing on a phone through a temporary cloudflared tunnel.
   allowedDevOrigins: ["*.trycloudflare.com"],
   // Security headers that do not depend on a per-request nonce.
