@@ -422,5 +422,18 @@
     "shareTitle": "Auction winner",
     "shareSaved": "Image saved. Open Instagram and post it to your Stories.",
     "shareError": "We couldn't open sharing. Try again."
+  },
+  "entry": {
+    "title": "Join the party",
+    "hint": "Point your camera at the event's QR.",
+    "scan": "Scan the event QR",
+    "denied": "No camera access. Allow the camera in your browser settings, or pick the event from the list.",
+    "unsupported": "This browser cannot open the camera. Pick the event from the list below.",
+    "retry": "Try again",
+    "notOurs": "This QR is not a BetBeat event.",
+    "liveTitle": "Live events",
+    "liveEmpty": "No live events right now. Check back later.",
+    "auctionLive": "Auction live",
+    "forVenues": "For venues"
   }
 }

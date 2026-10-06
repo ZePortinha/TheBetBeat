@@ -46,6 +46,8 @@ const paymentsService = await import("@/lib/payments/service");
 const { getPaymentProvider } = await import("@/lib/payments");
 const phoneHandles = await import("@/lib/guests/phone-handle");
 const { hashPhone } = await import("@/lib/security/crypto");
+const { signToken } = await import("@/lib/security/tokens");
+const { resolveGuestContext } = await import("@/app/api/guest/_lib/context");
 import type { MockPaymentProvider } from "@/lib/payments/mock";
 
 const VENUE_ID = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -224,6 +226,25 @@ describe("bidding on the server clock", () => {
     expect(await balance(a)).toBe(1000);
     expect(await balance(c)).toBe(500);
   }, 60_000);
+});
+
+describe("event QR", () => {
+  it("opens that event only, never another night at the same venue", async () => {
+    const own = await resolveGuestContext(signToken({ kind: "session", venueId: VENUE_ID, slug: SESSION_ID }));
+    expect(own.ok && own.ctx.sessionId).toBe(SESSION_ID);
+    const ended = await db.query<{ id: string }>(
+      `insert into public.sessions (venue_id, name, status, starts_at, ends_at, ended_at)
+       values ($1, $2, 'ended', now() - interval '5 hours', now() - interval '1 hour', now() - interval '1 hour') returning id`,
+      [VENUE_ID, `IT ended ${RUN}`],
+    );
+    expect(await resolveGuestContext(signToken({ kind: "session", venueId: VENUE_ID, slug: ended.rows[0]!.id }))).toEqual({
+      ok: false,
+      error: "no_live_session",
+    });
+    expect((await resolveGuestContext(signToken({ kind: "session", venueId: VENUE_ID, slug: "not-a-uuid" }))).ok).toBe(false);
+    // The display token never opens the guest app.
+    expect((await resolveGuestContext(signToken({ kind: "display", venueId: VENUE_ID, slug: "x" }))).ok).toBe(false);
+  });
 });
 
 describe("transitions and the full catalog", () => {

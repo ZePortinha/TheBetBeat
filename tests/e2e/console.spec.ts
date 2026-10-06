@@ -172,6 +172,10 @@ test.describe("console · painel da casa", () => {
     await expect(page.getByText("Ao vivo", { exact: true })).toBeVisible();
     await expect(page.getByTestId("session-end-button")).toBeVisible();
     await expect(page.getByTestId("session-display-link")).toHaveText(/\/display\//);
+    // "Gerar QR code": the event's own QR, ready to download or share.
+    await page.getByTestId("event-qr-generate").click();
+    await expect(page.getByTestId("event-qr").getByRole("img")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("event-qr").getByRole("button", { name: "Descarregar PNG" })).toBeVisible();
 
     /* 4. Close the NEW session (same domain call as the console button) and
           read its statement. */

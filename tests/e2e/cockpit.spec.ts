@@ -50,6 +50,12 @@ test.describe("cockpit · leilões", () => {
     await expect(page.getByRole("heading", { name: "Leilões", exact: true })).toBeVisible({ timeout: 60_000 });
   });
 
+  test("Sessão: o DJ gera o QR do evento para partilhar", async ({ page }) => {
+    await page.goto("/cockpit/session");
+    await page.getByTestId("event-qr-generate").click();
+    await expect(page.getByTestId("event-qr").getByRole("img")).toBeVisible({ timeout: 15_000 });
+  });
+
   test("o quadro mostra o leilão aberto e “Abrir leilão agora” abre outro", async ({ page }) => {
     await expect(page.getByText(/Sem licitações\. Mínimo/).first()).toBeVisible({ timeout: 15_000 });
     const before = await page.getByText(/Sem licitações\. Mínimo/).count();

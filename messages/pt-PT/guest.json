@@ -422,5 +422,18 @@
     "shareTitle": "Vencedor do leilão",
     "shareSaved": "Imagem guardada. Abre o Instagram e publica nas Stories.",
     "shareError": "Não conseguimos abrir a partilha. Tenta outra vez."
+  },
+  "entry": {
+    "title": "Entra na festa",
+    "hint": "Aponta a câmara ao QR do evento.",
+    "scan": "Ler QR do evento",
+    "denied": "Sem acesso à câmara. Permite a câmara nas definições do browser, ou escolhe o evento na lista.",
+    "unsupported": "Este browser não abre a câmara. Escolhe o evento na lista abaixo.",
+    "retry": "Tentar outra vez",
+    "notOurs": "Este QR não é de um evento BetBeat.",
+    "liveTitle": "Eventos em direto",
+    "liveEmpty": "Nenhum evento em direto agora. Volta mais logo.",
+    "auctionLive": "Leilão aberto",
+    "forVenues": "Para casas"
   }
 }

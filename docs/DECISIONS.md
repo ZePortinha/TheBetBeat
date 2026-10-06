@@ -509,3 +509,12 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - There is no lookup by number from the client: knowing someone's number never reveals their @. The bid form prefills the guest's own @ from `GET /api/guest/profile`.
 - MB WAY in development: the mock provider sends nothing to the phone. The waiting screen now says so and shows the simulator buttons. Real requests need the ifthenpay keys (docs/INTEGRATIONS.md).
 - Integration tests now hide their "AU …/IT …" tracks from the dev club's library after each run (they were showing up in search and on the home).
+
+## 2026-10-06 - Guests' front door: QR camera + live events; per-event QR
+
+- "/" is now the guests' entry. First comes the camera reading the event's QR: native BarcodeDetector where available, jsQR elsewhere (iPhone). Below it is the list of events live on BetBeat right now. The venue landing moved to /casas.
+- The scanner only follows a BetBeat guest path (/s/<token>) and always stays on this site: a QR pointing elsewhere is refused. `Permissions-Policy` now allows the camera for this origin.
+- New signed token kind `session`: an event QR opens that event only (through the venue's first zone), never another night at the same venue. The zone QR still opens whatever is live there.
+- "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
+- Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
+- Instagram: the winner screen shares a 1080x1920 story image through the phone's share sheet (where Instagram lives). There is no Instagram web intent, so on desktop the image is saved instead.

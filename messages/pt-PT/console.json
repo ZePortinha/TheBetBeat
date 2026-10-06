@@ -106,6 +106,16 @@
       "tierStepMax": "O máximo não deixa espaço para os 5 € entre níveis. Sobe o máximo.",
       "baseOutsideQueue": "O preço base tem de ficar entre o mínimo e o máximo de Na Fila.",
       "notEditable": "Esta sessão já terminou e não pode ser alterada."
+    },
+    "qr": {
+      "title": "QR do evento",
+      "hint": "Os convidados leem este QR para entrar neste evento. Imprime-o, publica-o ou envia-o. Abre o evento enquanto estiver em direto.",
+      "generate": "Gerar QR code",
+      "download": "Descarregar PNG",
+      "share": "Partilhar",
+      "copy": "Copiar link",
+      "copied": "Copiado",
+      "alt": "QR code do evento"
     }
   },
   "zones": {

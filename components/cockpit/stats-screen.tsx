@@ -73,7 +73,7 @@ function Card({
   );
 }
 
-export function StatsScreen({ sessionId }: { sessionId: string | null }) {
+export function StatsScreen({ sessionId, footer }: { sessionId: string | null; footer?: React.ReactNode }) {
   const t = useTranslations("cockpit.stats");
   const tSession = useTranslations("cockpit.session");
   const [stats, setStats] = React.useState<CockpitStats | null>(null);
@@ -303,6 +303,7 @@ export function StatsScreen({ sessionId }: { sessionId: string | null }) {
           </ul>
         )}
       </Card>
+      {footer}
     </div>
   );
 }

@@ -95,10 +95,8 @@ function supabaseEnv(): { url: string; anonKey: string; serviceKey: string | nul
 /** Sign a dev QR token by asking the dev index page for its guest link. */
 export async function getGuestUrl(page: Page): Promise<string> {
   await page.goto("/");
-  const href = await page
-    .locator('a[href^="/s/"]')
-    .first()
-    .getAttribute("href", { timeout: 10_000 });
+  // The dev link to the seeded zone (the live-events list links elsewhere).
+  const href = await page.getByTestId("dev-guest-link").getAttribute("href", { timeout: 10_000 });
   if (!href) throw new Error("Dev index has no guest link — is the DB seeded?");
   return href;
 }
@@ -106,7 +104,7 @@ export async function getGuestUrl(page: Page): Promise<string> {
 /** Same as getGuestUrl but through the API context (no browser page). */
 export async function getGuestPath(request: APIRequestContext): Promise<string> {
   const html = await (await request.get("/")).text();
-  const href = /href="(\/s\/[^"]+)"/.exec(html)?.[1];
+  const href = /href="(\/s\/[^"]+)" data-testid="dev-guest-link"/.exec(html)?.[1];
   if (!href) throw new Error("Dev index has no guest link — is the DB seeded?");
   return href;
 }

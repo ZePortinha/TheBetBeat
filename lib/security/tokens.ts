@@ -7,9 +7,10 @@ import { env } from "@/lib/security/env";
  * HMAC-SHA256 — unforgeable without QR_TOKEN_SECRET. URL-safe base64.
  */
 export interface QrTokenPayload {
-  kind: "zone" | "display";
+  /** zone = any night at the venue; session = this event only; display = the venue screen. */
+  kind: "zone" | "display" | "session";
   venueId: string;
-  /** zone qr_slug or session display_slug */
+  /** zone qr_slug, session display_slug, or the session id (kind "session") */
   slug: string;
 }
 
@@ -41,7 +42,7 @@ export function verifyToken(token: string): QrTokenPayload | null {
   try {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (
-      (payload.kind === "zone" || payload.kind === "display") &&
+      (payload.kind === "zone" || payload.kind === "display" || payload.kind === "session") &&
       typeof payload.venueId === "string" &&
       typeof payload.slug === "string"
     ) {

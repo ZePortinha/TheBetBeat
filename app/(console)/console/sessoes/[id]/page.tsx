@@ -9,6 +9,7 @@ import { signToken } from "@/lib/security/tokens";
 import { parseSessionConfig } from "@/lib/domain/config";
 import { Chip } from "@/components/ui/fit-chip";
 import { CopyButton } from "@/components/console/copy-button";
+import { EventQr } from "@/components/console/event-qr";
 import { GuestListForm } from "@/components/console/guest-list-form";
 import { PageHeader } from "@/components/console/page-header";
 import { SessionForm, type SessionFormValues } from "@/components/console/session-form";
@@ -81,6 +82,9 @@ export default async function SessionDetailPage({
     venueId: venue.id,
     slug: session.display_slug,
   })}`;
+
+  // The event's own QR: opens this event only (not the next night at the venue).
+  const eventUrl = `${env.NEXT_PUBLIC_APP_URL}/s/${signToken({ kind: "session", venueId: venue.id, slug: session.id })}`;
 
   const initial: SessionFormValues = {
     sessionId: session.id,
@@ -164,6 +168,8 @@ export default async function SessionDetailPage({
           </Link>
         )}
       </section>
+
+      {session.status !== "ended" ? <EventQr url={eventUrl} fileName={`qr-${session.name}`} /> : null}
 
       <section
         data-testid="guest-list"

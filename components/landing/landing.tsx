@@ -324,7 +324,7 @@ export async function DevStrip({
       <div className={`${wrap} flex flex-wrap items-center gap-3`}>
         <p className="label mr-2 text-text-tertiary">{t("title")}</p>
         {guestHref ? (
-          <Link className={chip} href={guestHref}>
+          <Link className={chip} href={guestHref} data-testid="dev-guest-link">
             {t("guest")}
           </Link>
         ) : null}

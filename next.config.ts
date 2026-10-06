@@ -24,7 +24,8 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              "camera=(), microphone=(), geolocation=(), payment=(self), usb=()",
+              // camera: the guests' front door reads the event QR.
+              "camera=(self), microphone=(), geolocation=(), payment=(self), usb=()",
           },
           {
             key: "Strict-Transport-Security",

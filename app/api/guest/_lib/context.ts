@@ -36,7 +36,9 @@ export type ResolveResult =
 
 export async function resolveGuestContext(qrToken: string): Promise<ResolveResult> {
   const payload = verifyToken(qrToken);
-  if (!payload || payload.kind !== "zone") return { ok: false, error: "invalid_token" };
+  if (!payload || (payload.kind !== "zone" && payload.kind !== "session")) return { ok: false, error: "invalid_token" };
+  // An event QR (kind "session") opens that event only, through the venue's first zone.
+  const eventQr = payload.kind === "session";
 
   const pool = getPool();
   const zoneRes = await pool.query<{
@@ -48,8 +50,10 @@ export async function resolveGuestContext(qrToken: string): Promise<ResolveResul
     `select z.id as zone_id, z.name as zone_name, v.id as venue_id, v.name as venue_name
        from public.zones z
        join public.venues v on v.id = z.venue_id
-      where z.qr_slug = $1 and z.venue_id = $2`,
-    [payload.slug, payload.venueId],
+      where z.venue_id = $2 and ($3 or z.qr_slug = $1)
+      order by z.created_at
+      limit 1`,
+    [payload.slug, payload.venueId, eventQr],
   );
   const zone = zoneRes.rows[0];
   if (!zone) return { ok: false, error: "invalid_token" };
@@ -70,10 +74,10 @@ export async function resolveGuestContext(qrToken: string): Promise<ResolveResul
        from public.sessions s
        left join public.staff st on st.id = s.dj_staff_id
        left join public.session_settings ss on ss.session_id = s.id
-      where s.venue_id = $1 and s.status in ('live', 'paused')
+      where s.venue_id = $1 and s.status in ('live', 'paused') and ($2::uuid is null or s.id = $2::uuid)
       order by s.starts_at desc
       limit 1`,
-    [zone.venue_id],
+    [zone.venue_id, eventQr && /^[0-9a-f-]{36}$/i.test(payload.slug) ? payload.slug : eventQr ? "00000000-0000-0000-0000-000000000000" : null],
   );
   const session = sessionRes.rows[0];
   if (!session) return { ok: false, error: "no_live_session" };

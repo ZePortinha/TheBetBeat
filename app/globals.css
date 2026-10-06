@@ -116,6 +116,18 @@ body:has(.guest-type) {
   }
 }
 
+/* QR viewfinder: the line sweeps while the camera reads. */
+@media (prefers-reduced-motion: no-preference) {
+  .scan-line {
+    animation: scan-line 2.2s ease-in-out infinite alternate;
+  }
+}
+@keyframes scan-line {
+  to {
+    top: calc(100% - 2px);
+  }
+}
+
 /* Prices, times, BPM: tabular figures (B10.3). */
 .tnum {
   font-variant-numeric: tabular-nums;

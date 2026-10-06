@@ -25,6 +25,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.544.0",
     "motion": "^12.23.0",
     "mpg123-decoder": "^1.0.3",
