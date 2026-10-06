@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { isCrossSiteApiWrite } from "@/lib/security/csrf";
+import { isApiBodyTooLarge } from "@/lib/security/body-limit";
 
 /**
  * Security middleware (B12.4): per-request CSP nonce + strict headers,
@@ -10,6 +11,9 @@ import { isCrossSiteApiWrite } from "@/lib/security/csrf";
 export async function middleware(request: NextRequest) {
   if (isCrossSiteApiWrite(request.method, request.nextUrl.pathname, request.headers)) {
     return NextResponse.json({ error: { code: "forbidden_origin", id: "csrf" } }, { status: 403 });
+  }
+  if (isApiBodyTooLarge(request.nextUrl.pathname, request.headers)) {
+    return NextResponse.json({ error: { code: "payload_too_large", id: "size" } }, { status: 413 });
   }
 
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString(
