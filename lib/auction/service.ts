@@ -31,6 +31,7 @@ import { getPaymentProvider } from "@/lib/payments";
 import type { PaymentMethod } from "@/lib/domain/types";
 import { guestChannel, publicChannel, staffChannel } from "@/lib/realtime/events";
 import { publishBroadcasts, type OutgoingBroadcast } from "@/lib/realtime/publish";
+import { pushesFromBroadcasts, sendGuestPushes } from "@/lib/notifications/push";
 import { closeOutcome, decideBid, minNextBid } from "./bidding";
 import { parseAuctionConfig, type AuctionConfig } from "./config";
 import { displayLabel, recognitionFor, type DisplayChoice } from "./recognition";
@@ -179,6 +180,9 @@ async function runAndPublish<T>(
 ): Promise<T> {
   const { value, publishes } = await withTransaction(fn);
   await publishBroadcasts(publishes, now);
+  // ponytail: not awaited so a bid never waits on push services; fine on a
+  // long-lived server/worker, move to the job queue if deployed serverless.
+  void sendGuestPushes(pushesFromBroadcasts(publishes));
   return value;
 }
 

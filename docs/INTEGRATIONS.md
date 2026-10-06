@@ -52,3 +52,13 @@ sent as real SMS.
 
 Each SMS is paid (see Twilio's price list for Portugal). The sign-in route is
 rate limited and protected by Turnstile.
+
+## Web push (outbid / winner notices)
+
+No account needed: the browser's own push service (Google FCM, Apple, Mozilla, Windows) delivers it.
+
+1. Generate a key pair once: `pnpm exec web-push generate-vapid-keys`.
+2. Put `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (a `mailto:` contact) in the server env. Never commit them. Changing the pair invalidates every saved subscription.
+3. Guests see "Ativar avisos" after their first bid. On iPhone, push works only once the app is added to the home screen (iOS 16.4+); the prompt hides itself elsewhere.
+
+Leaving the keys empty turns push off: nothing is asked and nothing is sent.

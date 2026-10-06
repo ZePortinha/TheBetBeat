@@ -37,6 +37,11 @@ const serverEnvSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_FROM: z.string().optional(),
+  // Web push (outbid / winner notices). Off while unset; generate with
+  // `pnpm exec web-push generate-vapid-keys`.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
   EMAIL_PROVIDER: z.enum(["mock"]).default("mock"),
   INVOICING_PROVIDER: z.enum(["mock"]).default("mock"),
   // "deezer" = the real full catalog (public API, no key).
@@ -54,6 +59,7 @@ const serverEnvSchema = z.object({
   };
   need(v.PAYMENT_PROVIDER === "ifthenpay", ["IFTHENPAY_MBWAY_KEY", "IFTHENPAY_BACKOFFICE_KEY", "IFTHENPAY_ANTI_PHISHING_KEY"]);
   need(v.SMS_PROVIDER === "twilio", ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM"]);
+  need(Boolean(v.VAPID_PUBLIC_KEY || v.VAPID_PRIVATE_KEY), ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"]);
   if (v.IFTHENPAY_ANTI_PHISHING_KEY !== undefined && v.IFTHENPAY_ANTI_PHISHING_KEY.length > 0 && v.IFTHENPAY_ANTI_PHISHING_KEY.length < 16) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["IFTHENPAY_ANTI_PHISHING_KEY"], message: "use at least 16 random characters" });
   }

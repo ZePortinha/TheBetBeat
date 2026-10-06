@@ -408,6 +408,15 @@
       "doneHint": "You can bid instantly now.",
       "close": "Close",
       "failed": "The payment didn't go through. Try again or pick another method."
+    },
+    "push": {
+      "outbidTitle": "Someone outbid you",
+      "outbidBody": "Someone bid more for the slot. Bid again before it closes.",
+      "wonTitle": "You're the Winner",
+      "wonBody": "The auction closed and your track goes to the DJ.",
+      "prompt": "We'll let you know if someone outbids you, even with the app closed.",
+      "enable": "Turn on alerts",
+      "later": "Not now"
     }
   }
 }

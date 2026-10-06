@@ -24,6 +24,7 @@ import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { apiFetch } from "./api";
 import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
+import { PushPrompt } from "./push-prompt";
 import { TopUpForm } from "./wallet-topup";
 import { WinCelebration } from "./win-celebration";
 import { clockTime, countdown, inFinalStretch, useAuction, type AuctionState } from "./use-auction";
@@ -331,6 +332,7 @@ export function AuctionLive({
         methods={state.paymentMethods}
         onChange={() => void refetch()}
       />
+      <PushPrompt token={token} show={(state.me?.bids.length ?? 0) > 0} />
 
       {state.open.length > 0 ? (
         state.open.map((slot) => (

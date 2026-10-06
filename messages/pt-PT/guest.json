@@ -408,6 +408,15 @@
       "doneHint": "Já podes licitar na hora.",
       "close": "Fechar",
       "failed": "O pagamento não passou. Tenta outra vez ou escolhe outro meio."
+    },
+    "push": {
+      "outbidTitle": "Passaram-te à frente",
+      "outbidBody": "Alguém licitou mais pelo slot. Licita outra vez antes de fechar.",
+      "wonTitle": "És o Vencedor",
+      "wonBody": "O leilão fechou e a tua faixa segue para o DJ.",
+      "prompt": "Avisamos-te se alguém passar à frente, mesmo com a app fechada.",
+      "enable": "Ativar avisos",
+      "later": "Agora não"
     }
   }
 }
