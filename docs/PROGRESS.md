@@ -35,8 +35,11 @@ X-Forwarded-For (`TRUSTED_PROXY_HOPS`), Origin check on API writes, MFA (AAL2)
 on the cockpit API for managers, safe post-login/MFA redirects, preview SSRF
 allowlist, reserved @handles, durable SMS caps, per-IP caps + 1 s cache on
 public reads, coalesced realtime hints, forced change of temporary staff
-passwords, cockpit caches cleared at sign-in. Green: typecheck, lint,
-`pnpm test` (475), db:audit and the RLS/domain/auction/worker/journal
+passwords, cockpit caches cleared at sign-in, Turnstile on staff sign-in
+(and Supabase Auth CAPTCHA ready behind `NEXT_PUBLIC_SUPABASE_CAPTCHA`),
+/api body caps, race-free SMS code attempts, sign-in limits in Postgres
+(migration 0015). Green: typecheck, lint,
+`pnpm test` (479), db:audit and the RLS/domain/auction/worker/journal
 integration suites on a plain Postgres 16 with a Supabase stub.
 Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
 `pnpm test:e2e`; restart Supabase (config.toml: min password 12).
