@@ -71,10 +71,12 @@ export async function GET(request: Request) {
     created_at: Date;
     track_title: string;
   }>(
+    // Auction top-ups have no request: they show as a wallet top-up.
     `select p.id, p.request_id, p.provider_ref, p.method, p.status,
-            p.amount_cents, p.expires_at, p.created_at, r.track_title
+            p.amount_cents, p.expires_at, p.created_at,
+            coalesce(r.track_title, 'Saldo para licitação') as track_title
        from public.payments p
-       join public.requests r on r.id = p.request_id
+       left join public.requests r on r.id = p.request_id
       where p.guest_id = $1
       order by p.created_at desc
       limit 10`,

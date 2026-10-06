@@ -129,3 +129,324 @@ Each entry: date, context, decision, rejected alternative.
 
 - **Decision:** `README.md` and `docs/SECURITY.md` in English (engineering);
   `docs/OPERATIONS.md` in pt-PT because its readers are venue staff and DJs.
+
+## 2026-10-02 - Editorial redesign (design-taste-frontend + apple-design)
+
+- **Context:** the product surfaces were correct but flat (boxed cards, a dev
+  index as `/`). Reference: Floria (dark editorial) via the taste-skill repo.
+- **Decision:** `/` is now the public landing (hero, how it works, three
+  sides, guarantee, footer); signed dev links render only outside production
+  in a footer strip (E2E reads them from `/`). Sign-in/MFA use `AuthShell`.
+  Guest session and House Screen get ambient light and the `Disc` record
+  (CSS only, no stock imagery); NowPlaying drops its border for one surface.
+  Shared atmosphere lives in `app/globals.css` (`.grain`, `.ambient`,
+  `.disc`, `.material-top`), all token-driven, no raw hex in components.
+- **B10 over the skill:** kept warm black, gold as the single accent (ember
+  only for live), Unbounded display, system UI font. Instrument Serif stays
+  only where B10.3 allows it (money >= 28px, highlight phrases in the guest
+  app and House Screen); the skill bans it as a default and mixed-family
+  emphasis, so marketing and sign-in emphasise with Unbounded 300 instead.
+- **Taste-skill pre-flight (plugin v1.0.0) applied to `/` and `/login`:** zero
+  em-dashes in UI copy (also fixed in guest/display), hero headline on one
+  line at lg, no uppercase eyebrows or numbered steps (icons instead), bento
+  cells with distinct surfaces (glow, record, grooves), meta separators
+  rationed. Open item: real photography; none is available here, so the
+  hero art is the CSS record (a single geometric mark) until photos exist.
+- **Inner guest screens:** the guest layout carries the shared grain and
+  ambient light; search rows and TrackHero use `Disc` (tilted per title) in
+  place of initials tiles, tier prices are 32px, back-header titles wrap to
+  two lines instead of truncating.
+- **Out of scope:** Cockpit and Console dashboards (skill section 13); they
+  inherit tokens only, plus the new NowPlaying look in the live screen.
+  Left as they were on purpose: dense, glove-sized and already on-brand.
+- **Rejected:** stock photography (picsum) and a div-built fake phone mockup
+  (both skill "AI tells"); a floating pill nav (kept a slim blur bar, 64px).
+
+## 2026-10-02 — E2E run: fixes found by the first real run
+
+Context: first `pnpm test:e2e` against local Supabase (57 passed, 108 skipped by project gating).
+Product bugs it exposed, all fixed at the root:
+
+- `supabase/config.toml` had TOTP MFA disabled (`enroll_enabled/verify_enabled = false`), so
+  managers/admins could never enrol (B12.3). Now enabled; needs `supabase stop && supabase start`.
+- `requireStaff` always redirected to `/login/mfa?next=/console` (layout fallback), losing the
+  deep link. The middleware now sets `x-pathname` and `requireStaff` prefers it.
+- Payment sheet: the 1.2 s hand-off timer was restarted by the parent's 1 s quote-countdown
+  re-render (inline callbacks in deps), so the guest never reached tracking. Callbacks now in a ref.
+- Declined MB WAY showed "expired" (request expires on decline; poll checked `expired` first).
+- Share card `story` format crashed Satori (`flex: undefined`).
+- Cockpit ignored `request.rejected` (DJ reject), so rejections never reached the activity feed.
+- `useRealtimeChannel` joined the private channel before `setAuth()` resolved; now awaited.
+- `MockPaymentProvider.refund` throws on refs created in another process (worker vs Next); it
+  now accepts unknown refs (the payments table already caps the refundable amount). Alternative
+  rejected: a shared store for the mock — more machinery than a dev mock deserves.
+- Progressbar in `NowPlaying` had no accessible name (axe serious) — labelled by the track title.
+- Tests: login limiter is per IP, so fixtures send a random `x-forwarded-for`; the RLS suite
+  seeded an immutable `psp_clearing` ledger row that faked a reconciliation mismatch.
+
+## 2026-10-03 - Swiss palette and typeface (Helvetica specimen) replace B10.2/B10.3
+
+- **Context:** the product owner asked for the colour palette and typeface of
+  the Helvetica specimen (red, black, off-white; one grotesque) as inspiration.
+  This supersedes the warm black + gold + Unbounded + Instrument Serif of B10.
+  `BETBEAT_BRIEF.md` is untouched and now outdated on those two points; it
+  needs aligning with the team.
+- **Decision:** tokens in `styles/tokens.css`: neutral black `#0b0b0c` with
+  four surfaces, off-white text `#f2f2f0`, one accent red `#e8112d`
+  (`accent-500`: fills, primary action; `accent-400` `#ff4d5a`: accent as text
+  and icons; `accent-300` hover; `accent-700` pressed). `gold-*` was renamed to
+  `accent-*` across the code (`glow-gold` to `glow-accent`, chip/price tone
+  `gold` to `accent`). `ember` shares the red family. Heat gradient is now
+  amber to red. Amber and green stay as warning and success.
+- **Type:** one family, Inter Tight (variable, via `next/font`), as the free
+  stand-in for Helvetica (commercial, Linotype). Hierarchy by weight and size
+  (display 800, emphasis 300). Instrument Serif and Unbounded are removed; the
+  `font-editorial` token now aliases the same family. If Helvetica Now is
+  licensed, change only `--font-sans` in `app/layout.tsx`.
+- **Contrast deviation from B10.2 (AAA for prices and CTAs):** white on
+  `accent-500` is 4.6:1 (AA). Prices are 20px or larger (large-text AAA with
+  `accent-400` at 5.4:1+); small money text and body stay on neutrals.
+- **Colour-block moment:** the landing's guarantee section is a full-bleed
+  red block (the specimen's poster move); the interface stays dark-only.
+
+## 2026-10-05 - Apple design language on top of the red palette
+
+- **Context:** the product owner asked for the design to follow the
+  `apple-design` skill. Motion and press feedback already did; this changes
+  the visual language. Supersedes the neutrals and type of 2026-10-03; the
+  red `accent-500` stays.
+- **Palette:** Apple dark system neutrals: `#000000` base, surfaces
+  `#1c1c1e` / `#242426` / `#2c2c2e`, text `#f5f5f7` / `#aeaeb2` / `#8e8e93`
+  (tertiary still AA on base, surface-1 and surface-2). States use the iOS
+  dark system colours: `accent-400`/`ember-500` `#ff453a`, `accent-300`
+  `#ff6961`, amber `#ff9f0a`, green `#30d158`.
+- **Type:** system font first (`-apple-system`, so SF Pro with its optical
+  sizes on Apple devices), Inter with the `opsz` axis elsewhere (replaces
+  Inter Tight). Headlines semibold, not extrabold. Tracking per size from
+  Inter's dynamic metrics (display -0.022em, heading -0.019em, body
+  -0.011em); body carries its tracking globally. `.label` is now a
+  sentence-case section header (13px semibold), not uppercase.
+- **Shape and surfaces:** buttons are capsules (`Button`, `HoldButton`,
+  login/MFA submits); cards 18px, sheets/tiles 28px; inputs keep 12px. Film
+  grain and the groove pattern are removed. The nav material is
+  `rgba(22,22,23,.8)` + blur/saturate, with reduced-transparency and
+  more-contrast fallbacks.
+- **Layouts:** the landing is an Apple product page (centred hero, the
+  record as the product shot, highlight tiles with bold lead-ins, a bento,
+  the guarantee as a red tile, small-print footer). Login/MFA is a centred
+  Apple ID-style column. The guest session links are an iOS inset grouped
+  list with red icon tiles; the back control is an accent chevron.
+- `BETBEAT_BRIEF.md` B10 stays outdated on palette, type and radii; align
+  with the team.
+
+## 2026-10-05 - Optional guest sign-in with phone number + SMS code
+
+- **Context:** the product owner asked for guest sign-in by phone number
+  with an SMS code, keeping the number so MB WAY is pre-filled.
+- **Decision:** optional, never a gate. B1/B4 #3 ("QR → payment in under
+  30 s, no registration or password") stays true: an account button on the
+  session screen opens `/s/[qrToken]/account`; requesting and paying work
+  exactly as before without it.
+- **How:** own OTP flow on the existing pieces, not Supabase phone auth
+  (that would keep the number in clear in `auth.users`, against B12.5, and
+  needs a real SMS gateway before Phase 8). `POST /api/guest/phone` sends a
+  6-digit code through the SMS provider interface (mock) and verifies it;
+  codes live in `guest_phone_codes` as HMACs bound to guest + number, 5 min
+  TTL, 5 attempts, consumed exactly once; sending is rate-limited per
+  guest, per number and per IP and needs Turnstile. On success the number
+  goes to `guests.phone_encrypted` (AES-GCM) with `phone_verified_at`; an
+  audit row is written. `DELETE` forgets it (the salted `phone_hash` stays
+  for the night limits, B4.7).
+- **MB WAY pre-fill:** the payment sheet reads the saved number (verified
+  or from the last MB WAY payment). Paying with a different number replaces
+  it and clears `phone_verified_at`.
+- **Identity stays per device** (anonymous auth uid). Signing in on a
+  second phone saves the number there too; history is not merged across
+  devices.
+- **Dev only:** with the mock SMS provider and outside production the API
+  returns the code and the screen shows it, so development and E2E can sign
+  in without a phone.
+
+## 2026-10-05 - Party guest list: phone login lands in the party
+
+- **Context:** the product owner asked for a party login by phone number,
+  the number being already associated with the party, so the guest lands
+  in it automatically. Association source chosen: a guest list kept by
+  staff (not derived from use).
+- **Console:** the session page has a "Lista da festa" section. Managers
+  paste PT mobile numbers (lines or commas; `lib/domain/phone.ts`
+  normalizes `912 345 678`, `+351…`, `00351…`), up to 500 per add, and can
+  remove entries. Numbers are stored in `session_guest_list` encrypted plus
+  the salted `phone_hash` (B12.5), shown masked, server-only table; every
+  add/remove is audited. Ended sessions are read-only.
+- **Guest:** `/entrar` (landing pill "Entrar na festa"; staff login moved to
+  "Área da equipa") reuses the SMS sign-in. After the code proves the
+  number, `partyHref` is the live/paused party whose list holds it (a signed
+  zone token of that venue) and the guest is sent there; a guest already
+  signed in on that device goes straight in. Not on any live list: a clear
+  "we could not find your party" screen with the QR as the fallback.
+- **Privacy:** which party a number belongs to is only revealed after the
+  SMS code, never from the number alone.
+- QR entry is unchanged and still needs no list or sign-in (B1/B4 #3).
+
+## 2026-10-05 - Guest app layout from the mockup (Apple palette and type kept)
+
+- **Context:** the product owner shared a mockup of three guest screens
+  ("Pedir faixa", "Fila ao vivo", "Rankings da noite") and asked for its
+  layout of functions and buttons only. A first pass also copied its look
+  (warm black, gold, Unbounded, serif titles); the owner preferred the
+  previous palette and type, so that theme was removed again. The guest
+  app keeps the Apple palette + red and SF Pro / Inter like the rest.
+- **Chrome:** `app/(guest)/s/[qrToken]/layout.tsx` mounts `PartyChrome`
+  once per party: "BETBEAT × venue" top bar (home, top, account), and a
+  material tab bar (Pedir faixa → search, Fila ao vivo, Rankings) that
+  persists across tabs; hidden on one-request and account screens. Main
+  CTAs float above it (`DockCta`, a fade, never a second translucent bar).
+- **Screens:** request screen with demand + fit card, selected track card,
+  three compact tier cards side by side with the selected promise under
+  them, extra value, saved MB WAY number; live queue with the next track
+  highlighted; rankings with a top-3 podium and the most requested tracks.
+- **Deviations from the mockup, on purpose (kept):** no public amounts per guest
+  or per request (B6.7/B6.8, counts instead) and no auction words
+  ("licitação", "lance", "oferta"): prices are the tier prices of B4.1.
+  No crowd size, ticker or event logo: there is no data for them yet.
+  (The NEXT battle below later introduced "oferta" for NEXT offers only.)
+
+## 2026-10-05 - NEXT battle ("Batalha pelo A Seguir")
+
+- **Context:** the product owner asked for a built-in "bet battle" where
+  guests compete for the next song, to drive outbidding and revenue.
+- **Rule (lib/domain/battle.ts, pure + tested):** until the DJ accepts it,
+  the NEXT slot belongs to the highest offer. A new offer must beat the
+  holder by `nextBattleIncrementCents` (default 5 €, never above the NEXT
+  max). The displaced holder gets the new state-machine event `outbid`:
+  demoted to QUEUE with the difference to its quote's QUEUE price refunded
+  at once (same money rule as an SLA miss, B4.1), the decision window
+  restarts on the QUEUE length, and it can answer by upgrading back to
+  NEXT (paying the difference). The DJ's acceptance locks the slot; the
+  DJ keeps the final say (B1). Session config `nextBattleEnabled`
+  (default on) turns it off: then the first paid NEXT keeps it as before.
+- **Not gambling (B1/B4 #7):** no chance anywhere. The highest offer at
+  confirmation time decides, losers never pay more than a QUEUE request
+  and get everything back if it does not play. UI name is "Batalha"; the
+  words "aposta", "apostar", "ganhar" and "odds" are not used, and the
+  feature is not called "bet" anywhere a guest can see it.
+- **Where it is settled:** when an offer's money lands (MB WAY webhook,
+  card hold, upgrade payment), under a per-session transaction advisory
+  lock (`pg_advisory_xact_lock`). Not `sessions … FOR UPDATE`: by then the
+  webhook has posted ledger rows whose FK holds a KEY SHARE lock on the
+  session, and two confirmations upgrading to FOR UPDATE deadlocked in the
+  integration test. Reservations only read the holder; settlement is the
+  authoritative check, so an offer overtaken while its MB WAY push was out
+  simply loses (outbid at confirmation).
+- **Schema (migration 0005):** `requests.outbid_at`; the unique index
+  `requests_one_active_next_idx` now guards the LOCKED slot (accepted or
+  playing). Offers may be pending/paid side by side only inside the
+  settlement; at most one paid NEXT exists after every commit (integration
+  test: two simultaneous offers → exactly one holder).
+- **Exactly-once money:** outbid refunds use the key `outbid:<now>` (a
+  request can be outbid more than once); upgrade payments answering the
+  Nth outbid use `pay:<id>:upgrade:NEXT:rN`; a lost answer is refunded
+  with `upgrade_unavailable:<paymentId>`.
+- **Guest UI:** contested NEXT shows a "Batalha" tag, the price to beat
+  and the battle rules before paying (B1/B4 #4); the tracking screen shows
+  "leading" or "outbid" with the refund and an "answer" button (NEXT
+  listed first); queue and home show a battle call-out with the number of
+  offers (never amounts, B6.8) and a "join" button.
+- **Not done yet:** Console switch for `nextBattleEnabled` and the
+  increment (config JSON only for now), a battle badge in the Cockpit, the
+  House Screen call-out.
+- **Superseded the same day** by slot auctions (next entry): the battle is
+  removed once the auction flow replaces the tiers.
+
+## 2026-10-05 - Slot auctions replace the tiers (product owner brief "leilões")
+
+Product owner answers to the plan:
+- Auctions REPLACE QUEUE/SOON/NEXT and the dynamic tier pricing. The
+  ranking shows who SPENT the most, not who played the most tracks.
+- The NEXT battle is removed (auctions replace it).
+- Amounts are PUBLIC in auctions and rankings (pride is the point).
+  Supersedes B6.7/B6.8 "amounts never public" for this model.
+- UI word for the top bidder after the close: "Vencedor" ("ganhar" stays
+  forbidden).
+- No night spend limit at 150 €: 150 € is the mic-announcement tier, and
+  bidding is meant to go past it. Only a configurable safety cap per bid
+  (2 000 € by default) against typos/fraud.
+- Outbid money stays in the app as balance: usable for the next bids,
+  returned at the end of the night or kept for another night (open
+  questions on charging model and legal, see phase 2).
+- Re-bidding pays only the difference.
+- Timing: a slot is its CLOSE time; auction opens 4 min before (specials
+  30 min), the DJ plays within 10 min of the close, refund at 15 min; the
+  "last song" closes 15 min before the night ends.
+- No groups needed: anyone may put money behind any bid ("a favor de").
+  Rule: every action (new bid, raising your own, backing someone else's)
+  must leave that bid at ≥ top + max(1 €, 5%), so it becomes the top.
+- Each bidder's track is fixed per slot.
+- Guests appear by their @ handle, a table, or anonymous (default); no
+  real names exist in the app.
+
+Phase 1 (done): `lib/auction/` — pure rules, all club-configurable:
+`config.ts` (defaults + strict parsing + problems for the Console),
+`time.ts` (Lisbon wall clock, midnight and DST; phase times read forward
+from the night's local noon so late openings keep the order),
+`schedule.ts` (phases, evenly spread slots, specials replacing clashing
+regular slots, ~15% of songs cap), `bidding.ts` (increment, quick-bid
+totals, server-clock window, soft close +30 s up to +3 min, minimum
+price), `recognition.ts` (labels, 50/150/300 € tiers, mic limit per
+rolling hour, anonymous never announced). Defaults where the brief gave a
+range: ramp 2/h, peak 4/h, close 2/h, specials 10 €, 18 songs/hour.
+
+Phases 2-5 (done, owner said "faz todas as fases, aprovo o que achares
+melhor"; choices below are mine and listed as open questions for review):
+- Money model: every bid is charged when placed (card/wallet captured at
+  once, MB WAY push). Outbid money goes to a per-guest, per-club wallet
+  (`wallet_entries`), usable immediately for the next bid; whatever is
+  left is refunded to the original payment method at the end of the night
+  (`finishNightAuctions`, called first by `endSession`) or on demand
+  ("Devolver"). "Keep for another night" is OFF until a legal check
+  (stored balance may count as e-money / Banco de Portugal rules).
+- Engine `lib/auction/service.ts` (migration 0006): slot rows locked FOR
+  UPDATE, per-wallet advisory locks, publish after commit; worker tick
+  (1 s) plans, opens, closes, refunds unplayed winners after 15 min and
+  expires MB WAY top-ups. DJ reject = refund the winner and reopen a fresh
+  4-minute auction at the same price.
+- Ranking = money behind winners that actually played, per guest.
+- Guest app: auction card on the home screen (server-clock countdown, red
+  last minute, "Subir" / "Apoiar" in a sheet, outbid toast + vibration,
+  "Vencedor" celebration), bid screen from search (quick totals, @/table/
+  anonymous, wallet vs charge breakdown), "As minhas licitações" with the
+  wallet, live screen with "A seguir" and winners, ranking by spend.
+- DJ cockpit: winner "A seguir" with the 10-minute target, accept / play /
+  played / reject-and-reopen, mic alert (name + track, "Anunciado"),
+  special moment; open auctions, schedule with pause/resume/cancel and
+  "Abrir leilão agora". Venue screen: open auction, "A seguir", ranking
+  (amounts per `showAmountOnScreen`).
+- Console "Leilões": every rule above per club (`venues.settings.auction`,
+  snapshotted onto each night when planned) with a cap preview, plus
+  metrics per night and per slot from `auction_slot_metrics`.
+- NEXT battle removed (code, UI, messages, tests); the original B4.3 NEXT
+  exclusivity test is back. Migration 0005 (`requests.outbid_at` + index)
+  stays applied and unused, harmless.
+- The tier request API (quotes/requests) still exists for in-flight
+  requests and the cockpit queue; the guest app no longer reaches it.
+
+Owner review of the open questions (same day): charge at bid time (kept),
+ranking = money behind played winners (kept), DJ reject = reopen (kept).
+Balance at the end of the night: **the guest chooses** "Devolver" or
+"Guardar para outra noite" (migration 0007 `wallet_preferences`). Only
+honoured when the club switches on `keepBalanceAllowed` in Console >
+Leilões, which stays OFF by default until the legal check on stored
+balances; no expiry for kept balances yet (to be set by that check).
+
+Owner follow-up (same day):
+- Kept balances expire after **30 days without movement** (club setting
+  `keepBalanceDays`, 1-365): a daily worker job (`wallet-expiry`, 05:30
+  UTC, `WORKER_WALLET_EXPIRY_CRON`) refunds them to the payment method.
+  Any movement (a new bid, money coming back) restarts the count. It also
+  sweeps any other balance left unused that long.
+- The night's **first auction opens at the start of the night** (club
+  setting `firstAuctionFromStart`, on by default), so it is the longest
+  one: with the defaults it runs 23:00 → 01:00 at the ramp price. Later
+  auctions keep the 4-minute window (specials 30 min). Applies to nights
+  planned from now on (a planned night keeps its snapshot).

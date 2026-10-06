@@ -3,7 +3,8 @@
  *
  * pg-boss cron is minute-level, but tier promises ("toca até 20 min"),
  * DJ decision windows and MB WAY expiries are second-precision, so the
- * worker runs a fast setInterval loop (default every 5 s) PLUS a pg-boss
+ * worker runs a fast setInterval loop (default every 1 s, for the slot
+ * auctions' server-clock closes — lib/auction) PLUS a pg-boss
  * singleton cron job as a watchdog: if the loop ever dies, deadlines are
  * still enforced at minute precision until the process restarts.
  *
@@ -28,6 +29,7 @@ import {
   markTrackFinished,
 } from "@/lib/domain/service";
 import { parsePaymentPurpose } from "@/lib/payments/service";
+import { tickAuctions } from "@/lib/auction/service";
 
 export const DEADLINE_WATCHDOG_QUEUE = "deadline-watchdog";
 
@@ -44,6 +46,8 @@ export interface DeadlineScanResult {
   paymentsExpired: number;
   tracksFinished: number;
   sessionsClosed: number;
+  /** Slot auctions opened, closed, refunded or played this pass. */
+  auctionMoves: number;
   /** Unexpected throws (logged); lost races are NOT errors. */
   errors: number;
 }
@@ -55,6 +59,7 @@ function emptyResult(): DeadlineScanResult {
     paymentsExpired: 0,
     tracksFinished: 0,
     sessionsClosed: 0,
+    auctionMoves: 0,
     errors: 0,
   };
 }
@@ -67,6 +72,7 @@ export function scanDidWork(result: DeadlineScanResult): boolean {
       result.paymentsExpired +
       result.tracksFinished +
       result.sessionsClosed +
+      result.auctionMoves +
       result.errors >
     0
   );
@@ -267,6 +273,13 @@ export async function scanDeadlines(
   await scanExpiredPayments(now, config, result);
   await scanTracksFinished(now, config, result);
   await scanSessionsToClose(now, config, result);
+  try {
+    const a = await tickAuctions(now);
+    result.auctionMoves = a.opened + a.closed + a.refunded + a.played + a.expiredTopUps;
+  } catch (error) {
+    result.errors += 1;
+    logScanError("auctions", "tick", error);
+  }
   return result;
 }
 
@@ -301,7 +314,7 @@ export function startDeadlineLoop(
         console.log(
           `[worker:deadlines] decision=${result.decisionTimeouts} sla=${result.slaMissed} ` +
             `payments=${result.paymentsExpired} played=${result.tracksFinished} ` +
-            `sessions=${result.sessionsClosed} errors=${result.errors}`,
+            `sessions=${result.sessionsClosed} auctions=${result.auctionMoves} errors=${result.errors}`,
         );
         onResult?.(result);
       }

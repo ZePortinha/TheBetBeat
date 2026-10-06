@@ -244,5 +244,41 @@
     "volume": "Volume dos alertas",
     "catalogMode": "Modo de catálogo",
     "genreToggle": "Bloquear ou desbloquear {genre}"
+  },
+  "auction": {
+    "upNextTitle": "A seguir",
+    "upNextEmpty": "Nenhum vencedor à espera. Quando um leilão fecha com licitações, aparece aqui.",
+    "nowPlayingWinner": "A tocar agora",
+    "playIn": "Tocar dentro de {time}",
+    "late": "Passou o prazo de 10 minutos. Se não tocar, devolvemos aos 15.",
+    "accept": "Aceitar",
+    "playing": "Pôr a tocar",
+    "played": "Tocou",
+    "reject": "Recusar e reabrir o leilão",
+    "micTitle": "Anunciar ao microfone",
+    "micBody": "{label} pagou {amount} por {track}",
+    "announced": "Anunciado",
+    "special": "Momento especial: dá-lhe destaque na pista",
+    "anonymous": "Anónimo",
+    "openTitle": "Leilões",
+    "openNow": "Abrir leilão agora",
+    "noneOpen": "Nenhum leilão aberto",
+    "nextAt": "O próximo abre às {time}.",
+    "closesAt": "Fecha às {time}",
+    "bids": "{count, plural, one {# licitação} other {# licitações}}",
+    "noBids": "Sem licitações. Mínimo {amount}.",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "cancel": "Cancelar",
+    "paused": "Em pausa",
+    "winners": "Vencedores da noite",
+    "schedule": "Próximos leilões",
+    "scheduleEmpty": "Sem mais leilões planeados esta noite.",
+    "minPrice": "mínimo {amount}",
+    "kinds": {
+      "first_peak": "Pico da noite",
+      "last_song": "Última música"
+    },
+    "error": "Não foi possível. Atualiza e tenta outra vez."
   }
 }

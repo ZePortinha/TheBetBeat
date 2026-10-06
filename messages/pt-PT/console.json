@@ -21,7 +21,8 @@
     "adminFailures": "Falhas",
     "adminReconciliation": "Reconciliação",
     "adminFlags": "Feature flags",
-    "adminAudit": "Auditoria"
+    "adminAudit": "Auditoria",
+    "auctions": "Leilões"
   },
   "sessions": {
     "crumbRoot": "Painel da Casa",
@@ -50,6 +51,23 @@
     "copied": "Copiado",
     "viewStatement": "Ver extrato da sessão",
     "endedReadOnly": "Esta sessão terminou. Os dados ficam só de leitura.",
+    "guestList": {
+      "title": "Lista da festa",
+      "hint": "Quem estiver nesta lista entra com o número de telemóvel e um código por SMS e vai direto para esta festa, enquanto estiver a decorrer.",
+      "phonesLabel": "Números de telemóvel",
+      "phonesHint": "Um por linha ou separados por vírgulas. Só números móveis portugueses (9XX XXX XXX).",
+      "add": "Adicionar à lista",
+      "adding": "A adicionar…",
+      "added": "{count, plural, =0 {Nenhum número novo: já estavam na lista.} one {# número adicionado.} other {# números adicionados.}}",
+      "invalid": "Não são números móveis portugueses: {list}",
+      "count": "{count, plural, =0 {Ainda sem números} one {# número na lista} other {# números na lista}}",
+      "removeLabel": "Remover {phone} da lista",
+      "errors": {
+        "invalid": "Escreve pelo menos um número válido.",
+        "ended": "Esta sessão terminou. A lista já não pode mudar.",
+        "tooMany": "No máximo 500 números de cada vez."
+      }
+    },
     "form": {
       "general": "Geral",
       "name": "Nome da sessão",
@@ -556,6 +574,127 @@
         "prev": "Anterior",
         "page": "Página {page} de {pages}",
         "next": "Seguinte"
+      }
+    }
+  },
+  "auction": {
+    "crumbRoot": "Painel da Casa",
+    "title": "Leilões",
+    "saved": "Regras guardadas. Aplicam-se às próximas noites; uma noite já planeada mantém as suas.",
+    "save": "Guardar regras",
+    "saveHint": "Cada noite fica com uma cópia das regras no momento em que é planeada.",
+    "errors": {
+      "invalid": "Há um valor inválido. Confirma os campos e tenta outra vez.",
+      "firstPhaseStartsAtOpening": "A primeira fase tem de começar na abertura.",
+      "onlyFirstPhaseWithoutStart": "Só a primeira fase pode não ter hora de início.",
+      "duplicatePhase": "Há fases repetidas."
+    },
+    "phases": {
+      "title": "Fases da noite",
+      "hint": "Leilões por hora e preço mínimo em cada fase. 0 leilões desliga a fase.",
+      "phase": "Fase",
+      "start": "Início",
+      "perHour": "Por hora",
+      "minEur": "Mínimo €",
+      "opening": "Abertura",
+      "names": {
+        "warmup": "Aquecimento",
+        "ramp": "Subida",
+        "peak": "Pico",
+        "close": "Fecho"
+      }
+    },
+    "specials": {
+      "title": "Leilões especiais",
+      "hint": "Abrem mais cedo e começam num preço mais alto.",
+      "firstPeak": "Primeira música do pico",
+      "at": "Fecha às",
+      "lastSong": "Última música da noite",
+      "beforeEnd": "Minutos antes do fim",
+      "minEur": "Mínimo €",
+      "openMin": "Abre minutos antes",
+      "kinds": {
+        "first_peak": "Pico",
+        "last_song": "Última música"
+      }
+    },
+    "bidding": {
+      "title": "Licitação",
+      "durationMin": "Duração do leilão (min)",
+      "incEur": "Subida mínima €",
+      "incPct": "Subida mínima %",
+      "quick": "Botão rápido {n} (+€)",
+      "maxBidEur": "Máximo por licitação €",
+      "softWindowSec": "Prolongar se licitarem nos últimos (s)",
+      "softExtendSec": "Prolongar por (s)",
+      "softMaxMin": "Prolongamento máximo (min)",
+      "warnSec": "Aviso de último minuto (s)",
+      "firstFromStart": "O primeiro leilão abre logo no início da noite"
+    },
+    "recognition": {
+      "title": "Reconhecimento",
+      "hint": "Valor total da licitação vencedora para cada nível.",
+      "nameEur": "Nome no ecrã a partir de €",
+      "micEur": "Anúncio ao microfone a partir de €",
+      "specialEur": "Momento especial a partir de €",
+      "micPerHour": "Máximo de anúncios por hora",
+      "showAmount": "Mostrar o valor no ecrã da casa"
+    },
+    "dj": {
+      "title": "DJ e saldo",
+      "hint": "Depois de o leilão fechar.",
+      "playTargetMin": "O DJ toca até (min)",
+      "refundAfterMin": "Devolver se não tocar (min)",
+      "keepBalance": "O cliente pode guardar o saldo para outra noite",
+      "keepBalanceHint": "Desligado por defeito. Guardar dinheiro na app pode contar como moeda eletrónica: liga só depois da confirmação legal.",
+      "keepBalanceDays": "Devolver o saldo sem uso ao fim de (dias)"
+    },
+    "cap": {
+      "title": "Limite de leilões",
+      "hint": "Os leilões nunca passam esta parte das músicas da noite.",
+      "songsPerHour": "Músicas por hora",
+      "sharePct": "Máximo de leilões (% das músicas)",
+      "minGapMin": "Intervalo mínimo entre leilões (min)",
+      "preview": "Numa noite das 23:00 às 06:00: {slots} leilões (máximo {max} de {songs} músicas)."
+    },
+    "metrics": {
+      "title": "Métricas",
+      "empty": "Ainda não há leilões fechados nesta casa.",
+      "night": "Noite",
+      "slots": "Leilões",
+      "won": "Com vencedor",
+      "played": "Tocaram",
+      "refunded": "Devolvidos",
+      "extended": "Prolongados",
+      "avgFinal": "Preço final médio",
+      "revenue": "Receita",
+      "wonRate": "Taxa de vencedor",
+      "noWinner": "{count, plural, one {# sem vencedor} other {# sem vencedor}}",
+      "avgBidders": "Licitadores por leilão",
+      "avgBids": "{n} licitações por leilão",
+      "perSlot": "Por leilão",
+      "closes": "Fecho",
+      "phase": "Fase",
+      "minPrice": "Mínimo",
+      "final": "Final",
+      "bids": "Licitações",
+      "bidders": "Licitadores",
+      "extensions": "Prolong.",
+      "closeToPlay": "Fecho → tocar",
+      "result": "Resultado",
+      "results": {
+        "scheduled": "Agendado",
+        "open": "Aberto",
+        "paused": "Em pausa",
+        "cancelled": "Cancelado",
+        "closed": "Fechado",
+        "won": "Vencedor",
+        "no_winner": "Sem vencedor",
+        "locked": "À espera do DJ",
+        "accepted": "Aceite",
+        "playing": "A tocar",
+        "played": "Tocou",
+        "refunded": "Devolvido"
       }
     }
   }

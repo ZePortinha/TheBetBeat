@@ -60,6 +60,18 @@ const KNOWN_ERROR_CODES = new Set([
   "invalid_token",
   "not_found",
   "unauthorized",
+  "code_invalid",
+  "code_expired",
+  "code_attempts",
+  "sms_failed",
+  "slot_not_found",
+  "not_open",
+  "closed",
+  "below_minimum",
+  "above_maximum",
+  "track_fixed",
+  "bid_not_found",
+  "insufficient_funds",
 ]);
 
 /**

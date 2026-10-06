@@ -17,7 +17,8 @@ const cron = z
 
 const workerEnvSchema = z.object({
   /** Fast deadline loop period — second-precision promises (B4.1/B4.2). */
-  WORKER_DEADLINE_INTERVAL_MS: z.coerce.number().int().min(250).max(60_000).default(5_000),
+  // 1 s: slot auctions close on the server clock (soft close is 30 s).
+  WORKER_DEADLINE_INTERVAL_MS: z.coerce.number().int().min(250).max(60_000).default(1_000),
   /** Max rows claimed per scan query. */
   WORKER_SCAN_BATCH: z.coerce.number().int().min(1).max(500).default(100),
   /** Auto-close grace after sessions.ends_at, minutes (B4.2 — default 30). */
@@ -44,6 +45,8 @@ const workerEnvSchema = z.object({
 
   /** Sweep cron that enqueues pending payouts of ended sessions (B4.5). */
   WORKER_PAYOUT_SCAN_CRON: cron.default("*/2 * * * *"),
+  /** Daily: wallet balances unused for the club's keepBalanceDays go back. */
+  WORKER_WALLET_EXPIRY_CRON: cron.default("30 5 * * *"),
 
   /** Timezone for the pg-boss schedules. Storage stays UTC (B11). */
   WORKER_CRON_TZ: z.string().min(1).default("UTC"),

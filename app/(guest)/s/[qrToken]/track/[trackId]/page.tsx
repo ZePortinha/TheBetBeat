@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { getPool } from "@/lib/db";
 import { isUuid, resolveGuestPage } from "@/app/(guest)/_lib/guest-page";
-import { TierScreen } from "@/components/guest/tier-screen";
+import { BidScreen } from "@/components/guest/auction-screens";
+import { BackHeader } from "@/components/guest/back-header";
 import { TokenError } from "@/components/guest/token-error";
 
 export const dynamic = "force-dynamic";
 
-/** /s/[qrToken]/track/[trackId] — tier choice + payment sheet (B6 screens 3–4). */
+/** /s/[qrToken]/track/[trackId] — bid with this track on the open auction (slot auctions). */
 export default async function GuestTrackPage({
   params,
 }: {
@@ -15,8 +18,21 @@ export default async function GuestTrackPage({
   if (!resolved.ok) return <TokenError kind={resolved.error} />;
 
   const { trackId } = await params;
+  const searchHref = `/s/${encodeURIComponent(token)}/search`;
   // A malformed id can only come from a hand-edited URL: back to search.
-  if (!isUuid(trackId)) redirect(`/s/${encodeURIComponent(token)}/search`);
+  if (!isUuid(trackId)) redirect(searchHref);
+  const res = await getPool().query<{ id: string; title: string; artist: string }>(
+    `select id, title, artist from public.library_tracks where id = $1 and venue_id = $2 and not blocked`,
+    [trackId, resolved.ctx.venueId],
+  );
+  const track = res.rows[0];
+  if (!track) redirect(searchHref);
 
-  return <TierScreen token={token} trackId={trackId} />;
+  const t = await getTranslations("guest.auction");
+  return (
+    <main className="flex min-h-dvh flex-col gap-5 px-4 pb-[calc(var(--dock-h)+1.5rem)] pt-6">
+      <BackHeader title={t("bidTitle")} backHref={searchHref} />
+      <BidScreen token={token} sessionId={resolved.ctx.sessionId} track={track} />
+    </main>
+  );
 }

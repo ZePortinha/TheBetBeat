@@ -10,14 +10,13 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { SearchX } from "lucide-react";
+import { Search, SearchX } from "lucide-react";
 import { TrackRow } from "@/components/ui/track-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
-import { BackHeader } from "./back-header";
+import { PartyHeading, PartyTopBar } from "./party-chrome";
 import type { SearchResponseDto, SearchTrackDto } from "./types";
 
 const DEBOUNCE_MS = 200;
@@ -72,21 +71,30 @@ export function SearchScreen({ token }: { token: string }) {
     !loading && query.trim().length > 0 && sections.every((s) => s.tracks.length === 0);
 
   return (
-    <main className="flex min-h-dvh flex-col gap-4 px-4 pb-10 pt-6">
-      <BackHeader title={t("title")} backHref={`/s/${token}`} />
+    <main className="flex min-h-dvh flex-col gap-4 px-4 pb-[calc(var(--dock-h)+1.5rem)] pt-4">
+      <PartyTopBar />
+      <PartyHeading title={t("title")} />
 
-      <input
-        // 16px font minimum: prevents iOS zoom-on-focus (B10.3).
-        autoFocus
-        type="search"
-        inputMode="search"
-        enterKeyHint="search"
-        value={query}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={t("placeholder")}
-        aria-label={t("placeholder")}
-        className="w-full rounded-button border border-line-subtle bg-surface-3 px-4 py-3 text-base text-text-primary placeholder:text-text-tertiary focus:border-gold-500 focus:outline-none"
-      />
+      <label className="relative block">
+        <Search
+          size={20}
+          strokeWidth={1.75}
+          aria-hidden
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary"
+        />
+        <input
+          // 16px font minimum: prevents iOS zoom-on-focus (B10.3).
+          autoFocus
+          type="search"
+          inputMode="search"
+          enterKeyHint="search"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={t("placeholder")}
+          aria-label={t("placeholder")}
+          className="min-h-14 w-full rounded-card border border-line-strong bg-surface-2 py-3 pl-12 pr-4 text-base text-text-primary placeholder:text-text-tertiary focus:border-accent-500 focus:outline-none"
+        />
+      </label>
 
       {loading ? (
         <div className="flex flex-col gap-2 pt-2">
@@ -107,7 +115,7 @@ export function SearchScreen({ token }: { token: string }) {
                 key={`${section.key}:${track.id}`}
                 track={track}
                 fitText={tFit(track.fitLabel)}
-                fromText={t("from", { price: formatEurosDisplay(track.fromPriceCents) })}
+                fromText={t("bid")}
                 unavailableText={
                   track.reason ? t(`unavailable.${track.reason}`) : undefined
                 }
@@ -143,7 +151,7 @@ function SearchRow({
       available={track.available}
       {...(unavailableText ? { unavailableReason: unavailableText } : {})}
       priceSlot={
-        <span className="tnum text-sm font-semibold text-gold-500">{fromText}</span>
+        <span className="tnum text-sm font-semibold text-accent-400">{fromText}</span>
       }
       {...(track.available ? { onSelect } : {})}
     />

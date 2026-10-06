@@ -19,11 +19,14 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
+import { Disc } from "@/components/ui/disc";
 import { LiveBadge } from "@/components/ui/live-badge";
 import { QRBlock } from "@/components/ui/qr-block";
 import { publicChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
 import type { DisplayStateDto } from "@/app/api/display/_lib/state";
+import { countdown } from "@/components/guest/use-auction";
+import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { Crossfade } from "./crossfade";
 
 const POLL_MS = 10_000;
@@ -40,18 +43,17 @@ export interface DisplayScreenProps {
 
 const displayFont: CSSProperties = { fontFamily: "var(--font-display)" };
 
-function initials(title: string): string {
-  return title
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join("");
-}
-
 export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps) {
   const t = useTranslations("display");
   const [state, setState] = useState<DisplayStateDto>(initial);
+  // Auction countdowns run on the server clock (offset), ticking each second.
+  const [offsetMs, setOffsetMs] = useState(0);
+  const [clockNow, setClockNow] = useState(() => Date.parse(initial.serverNow));
+  useEffect(() => {
+    const id = setInterval(() => setClockNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const serverNow = clockNow + offsetMs;
   const lastFetchRef = useRef(Date.now());
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -64,6 +66,7 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
       if (!res.ok) return;
       const dto = (await res.json()) as DisplayStateDto;
       lastFetchRef.current = Date.now();
+      setOffsetMs(Date.parse(dto.serverNow) - Date.now());
       setState(dto);
     } catch {
       // Keep showing the last good state; the poll loop retries.
@@ -101,8 +104,15 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
     return () => clearInterval(id);
   }, [connection, refetch]);
 
-  // Top-of-night page rotation (crossfaded panels).
-  const topPages = Math.max(1, Math.ceil(state.top.length / TOP_PAGE_SIZE));
+  const auction = state.auction;
+  const ranking = auction?.ranking ?? [];
+  const showAmounts = auction?.rules.showAmountOnScreen ?? false;
+  const money = (cents: number) => (showAmounts ? formatEurosDisplay(cents) : null);
+  const open = auction?.open[0] ?? null;
+  const upNext = auction?.upNext ?? null;
+
+  // Ranking page rotation (crossfaded panels).
+  const topPages = Math.max(1, Math.ceil(ranking.length / TOP_PAGE_SIZE));
   const [topPage, setTopPage] = useState(0);
   useEffect(() => {
     if (topPages <= 1) {
@@ -115,24 +125,24 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
     );
     return () => clearInterval(id);
   }, [topPages]);
-  const topSlice = state.top.slice(
+  const topSlice = ranking.slice(
     (topPage % topPages) * TOP_PAGE_SIZE,
     (topPage % topPages) * TOP_PAGE_SIZE + TOP_PAGE_SIZE,
   );
 
-  const { now, next, session } = state;
-  const beatPeriod =
-    now?.bpm && now.bpm > 0 ? `${(60 / now.bpm).toFixed(3)}s` : undefined;
+  const { now, session } = state;
 
   return (
     <main
       className={[
-        "fixed inset-0 grid overflow-hidden bg-bg-base text-text-primary",
+        "fixed inset-0 isolate grid overflow-hidden bg-bg-base text-text-primary",
         "gap-[4vmin] p-[5vmin]",
         "landscape:grid-cols-[minmax(0,1fr)_auto] landscape:items-center",
         "portrait:grid-rows-[minmax(0,1fr)_auto] portrait:justify-items-stretch",
       ].join(" ")}
     >
+      <div aria-hidden className="ambient absolute inset-0 -z-10" />
+
       {/* ── Content column (the only region that ever crossfades) ──── */}
       <section className="flex min-w-0 flex-col justify-center gap-[4.5vmin]">
         <header className="flex items-center gap-[2vmin]">
@@ -152,31 +162,10 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
         {session.live ? (
           <Crossfade contentKey={now ? `${now.title}—${now.artist}` : "idle"}>
             <div className="flex items-center gap-[3vmin]">
-              {now ? (
-                <span
-                  className={["grid shrink-0 place-items-center rounded-full", beatPeriod ? "beat-pulse" : ""].join(" ")}
-                  style={
-                    {
-                      width: "12vmin",
-                      height: "12vmin",
-                      background:
-                        "linear-gradient(135deg, var(--color-surface-3), var(--color-surface-1))",
-                      ...(beatPeriod ? { "--beat-period": beatPeriod } : {}),
-                    } as CSSProperties
-                  }
-                  aria-hidden="true"
-                >
-                  <span
-                    className="text-text-secondary"
-                    style={{ ...displayFont, fontSize: "4vmin", fontWeight: 700 }}
-                  >
-                    {initials(now.title)}
-                  </span>
-                </span>
-              ) : null}
+              {now ? <Disc bpm={now.bpm} className="size-[15vmin] shrink-0" /> : null}
               <div className="min-w-0">
                 <p
-                  className="label text-gold-500"
+                  className="label text-accent-400"
                   style={{ fontSize: "clamp(0.875rem, 2vmin, 1.25rem)" }}
                 >
                   {t("nowPlaying")}
@@ -205,7 +194,7 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
                   >
                     {now.artist}
                     {now.handle ? (
-                      <span className="text-gold-500"> · @{now.handle}</span>
+                      <span className="text-accent-400"> · {now.handle}</span>
                     ) : null}
                   </p>
                 ) : null}
@@ -233,9 +222,53 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
           </div>
         )}
 
-        {/* A seguir */}
+        {/* Leilão aberto: the countdown is the show (ember in the last minute) */}
+        {session.live && auction ? (
+          <Crossfade contentKey={open ? `open-${open.id}` : "no-auction"}>
+            <div className="min-w-0 border-t border-line-subtle pt-[2.5vmin]">
+              <p className="label text-accent-400" style={{ fontSize: "clamp(0.875rem, 2vmin, 1.25rem)" }}>
+                {open ? t("auction.open") : t("auction.nextTitle")}
+              </p>
+              {open ? (
+                <div className="flex items-baseline gap-[3vmin]">
+                  <span
+                    className={
+                      Date.parse(open.closesAt) - serverNow <= auction.rules.lastMinuteWarningSec * 1000
+                        ? "tnum shrink-0 text-ember-500"
+                        : "tnum shrink-0 text-text-primary"
+                    }
+                    style={{ ...displayFont, fontSize: "clamp(2.5rem, 9vmin, var(--text-80))", fontWeight: 800 }}
+                  >
+                    {countdown(open.closesAt, serverNow)}
+                  </span>
+                  <p className="min-w-0 truncate" style={{ fontSize: "clamp(1.25rem, 3.4vmin, var(--text-40))", fontWeight: 700 }}>
+                    {open.top ? (
+                      <>
+                        {open.top.trackTitle}
+                        {open.top.label ? <span className="text-accent-400"> · {open.top.label}</span> : null}
+                        {money(open.top.totalCents) ? (
+                          <span className="tnum text-accent-400"> · {money(open.top.totalCents)}</span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span className="text-text-secondary">
+                        {t("auction.noBids", { amount: formatEurosDisplay(open.minPriceCents) })}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              ) : auction.next ? (
+                <p className="tnum" style={{ ...displayFont, fontSize: "clamp(2rem, 7vmin, var(--text-80))", fontWeight: 800 }}>
+                  {countdown(auction.next.opensAt, serverNow)}
+                </p>
+              ) : null}
+            </div>
+          </Crossfade>
+        ) : null}
+
+        {/* A seguir: the winner waiting for the DJ */}
         {session.live ? (
-          <Crossfade contentKey={next ? `${next.title}—${next.artist}` : "none"}>
+          <Crossfade contentKey={upNext ? upNext.slotId : "none"}>
             <div className="min-w-0 border-t border-line-subtle pt-[2.5vmin]">
               <p
                 className="label text-text-secondary"
@@ -250,12 +283,13 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
                   fontWeight: 700,
                 }}
               >
-                {next ? (
+                {upNext ? (
                   <>
-                    {next.title}
-                    <span className="text-text-secondary"> — {next.artist}</span>
-                    {next.handle ? (
-                      <span className="text-gold-500"> · @{next.handle}</span>
+                    {upNext.trackTitle}
+                    <span className="text-text-secondary"> - {upNext.trackArtist}</span>
+                    {upNext.label ? <span className="text-accent-400"> · {upNext.label}</span> : null}
+                    {money(upNext.totalCents) ? (
+                      <span className="tnum text-accent-400"> · {money(upNext.totalCents)}</span>
                     ) : null}
                   </>
                 ) : (
@@ -266,8 +300,8 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
           </Crossfade>
         ) : null}
 
-        {/* Top da noite — handles only, no amounts (B8) */}
-        {state.top.length > 0 ? (
+        {/* Quem mais gastou: @ or table, amounts per the club setting */}
+        {ranking.length > 0 ? (
           <div className="min-w-0 border-t border-line-subtle pt-[2.5vmin]">
             <p
               className="label text-text-secondary"
@@ -279,20 +313,20 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
               <ol className="mt-[1vmin] flex flex-col gap-[1vmin]">
                 {topSlice.map((entry, i) => (
                   <li
-                    key={entry.handle}
+                    key={`${entry.label ?? "anon"}-${i}`}
                     className="flex items-baseline gap-[1.6vmin]"
                     style={{ fontSize: "clamp(1.25rem, 3vmin, var(--text-32))" }}
                   >
                     <span
-                      className="tnum text-gold-500"
+                      className="tnum text-accent-400"
                       style={{ ...displayFont, fontWeight: 700 }}
                     >
                       {(topPage % topPages) * TOP_PAGE_SIZE + i + 1}
                     </span>
-                    <span className="truncate font-semibold">@{entry.handle}</span>
-                    <span className="tnum ml-auto shrink-0 text-text-secondary">
-                      {t("top.requests", { count: entry.requests })}
-                    </span>
+                    <span className="truncate font-semibold">{entry.label ?? t("auction.anonymous")}</span>
+                    {money(entry.spentCents) ? (
+                      <span className="tnum ml-auto shrink-0 text-text-secondary">{money(entry.spentCents)}</span>
+                    ) : null}
                   </li>
                 ))}
               </ol>

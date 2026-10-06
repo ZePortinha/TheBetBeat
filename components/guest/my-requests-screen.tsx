@@ -21,6 +21,7 @@ import { useRealtimeChannel } from "@/lib/realtime/client";
 import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
 import { BackHeader } from "./back-header";
+import { MyBids } from "./auction-screens";
 import { ACTIVE_REQUEST_STATUSES, type GuestRequestListItem } from "./types";
 
 const POLL_MS = 15_000;
@@ -105,8 +106,9 @@ export function MyRequestsScreen({
   );
 
   return (
-    <main className="flex min-h-dvh flex-col gap-5 px-4 pb-10 pt-6">
+    <main className="flex min-h-dvh flex-col gap-5 px-4 pb-[calc(var(--dock-h)+1.5rem)] pt-6">
       <BackHeader title={t("title")} backHref={`/s/${token}`} />
+      <MyBids token={token} sessionId={sessionId} />
 
       {requests === null ? (
         <div className="flex flex-col gap-2">

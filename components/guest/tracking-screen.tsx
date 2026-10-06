@@ -371,7 +371,7 @@ function UpgradeSheet({
                       <p className="text-base font-bold text-text-primary">{tierName(o.tier)}</p>
                       <p className="tnum text-sm text-text-secondary">~{o.etaDisplayMin} min</p>
                     </div>
-                    <span className="tnum text-lg font-bold text-gold-500">
+                    <span className="tnum text-lg font-bold text-accent-400">
                       {o.diffCents > 0
                         ? t("upgradeDiff", { diff: formatEurosDisplay(o.diffCents) })
                         : t("upgradeIncluded")}

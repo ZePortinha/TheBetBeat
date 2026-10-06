@@ -593,7 +593,8 @@ export async function applyPaymentOutcomeInTx(
   now: number,
 ): Promise<TransitionTxResult> {
   const purpose = parsePaymentPurpose(payment.idempotency_key);
-  if (purpose.kind === "unknown") return rejected("unknown_payment_purpose");
+  // Auction top-ups are settled by lib/auction (recordWebhook routes them).
+  if (purpose.kind === "unknown" || purpose.kind === "topup") return rejected("unknown_payment_purpose");
 
   if (purpose.kind === "primary") {
     const event: RequestEvent =
@@ -920,11 +921,12 @@ export async function createRequestAndStartPayment(
   const { row, validated } = reservation;
 
   // Store the salted phone hash for cross-device night limits (B4.7,
-  // B12.5) — never the number in clear.
+  // B12.5) — never the number in clear. A different number than the one
+  // signed in by SMS drops the verified mark (it no longer applies).
   if (params.phone) {
     await getPool().query(
       `update public.guests
-          set phone_encrypted = $2, phone_hash = $3
+          set phone_encrypted = $2, phone_hash = $3, phone_verified_at = null
         where id = $1 and phone_hash is distinct from $3`,
       [params.guestId, encrypt(params.phone), hashPhone(params.phone)],
     );
@@ -1364,6 +1366,12 @@ export async function endSession(
   actor: string,
   now: number,
 ): Promise<EndSessionResult | { ok: false; error: "session_not_found" }> {
+  // Slot auctions first: unplayed winners and open bids go back to the
+  // wallets, wallets are refunded, playing winners count — all before the
+  // statement below is computed from the ledger.
+  const { finishNightAuctions } = await import("@/lib/auction/service");
+  await finishNightAuctions(sessionId, now);
+
   const header = await withTransaction(async (client) => {
     const res = await client.query<{
       id: string;

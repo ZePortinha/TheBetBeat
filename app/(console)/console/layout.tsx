@@ -26,6 +26,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
       items: [
         { href: "/console/sessoes", label: t("nav.sessions") },
         { href: "/console/zonas", label: t("nav.zones") },
+        { href: "/console/leiloes", label: t("nav.auctions") },
         { href: "/console/precos", label: t("nav.pricing") },
         { href: "/console/equipa", label: t("nav.team") },
         { href: "/console/receita", label: t("nav.revenue") },

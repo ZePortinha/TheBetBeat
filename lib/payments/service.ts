@@ -57,14 +57,19 @@ async function resolveProvider(deps?: PaymentServiceDeps): Promise<PaymentProvid
 export type PaymentPurpose =
   | { kind: "primary"; requestId: string }
   | { kind: "upgrade"; requestId: string; toTier: Tier }
+  | { kind: "topup"; intentId: string }
   | { kind: "unknown" };
 
 /**
  * Payment idempotency keys encode their purpose:
  *   'pay:<requestId>'                   — the request's main payment
  *   'pay:<requestId>:upgrade:<TIER>'    — a tier-upgrade difference
+ *   'topup:<intentId>'                  — slot auction: wallet top-up
+ *                                         for a bid (lib/auction)
  */
 export function parsePaymentPurpose(idempotencyKey: string): PaymentPurpose {
+  const topup = /^topup:([0-9a-f-]{36})$/.exec(idempotencyKey);
+  if (topup) return { kind: "topup", intentId: topup[1] as string };
   const upgrade = /^pay:([0-9a-f-]{36}):upgrade:([A-Z]+)$/.exec(idempotencyKey);
   if (upgrade) {
     const tier = upgrade[2] as Tier;
@@ -406,10 +411,12 @@ export async function recordWebhook(
   }
 
   const outcome = await withTransaction(async (client) => {
+    // Auction top-ups have no request: they carry session/venue themselves.
     const paymentRes = await client.query<PaymentJoinRow>(
-      `select p.*, r.session_id, r.venue_id
+      `select p.*, coalesce(r.session_id, p.session_id) as session_id,
+              coalesce(r.venue_id, p.venue_id) as venue_id
          from public.payments p
-         join public.requests r on r.id = p.request_id
+         left join public.requests r on r.id = p.request_id
         where p.provider_ref = $1
         for update of p`,
       [event.providerRef],
@@ -449,6 +456,7 @@ export async function recordWebhook(
     }
 
     // 1. Payment row + ledger.
+    const topup = parsePaymentPurpose(payment.idempotency_key).kind === "topup";
     if (action === "confirm_mbway") {
       const amount = event.amountCents ?? payment.amount_cents;
       await client.query(
@@ -457,7 +465,12 @@ export async function recordWebhook(
       );
       await postLedgerGroup(
         client,
-        captureGroup(amount, { ...toLedgerMeta(meta), memo: "capture:mbway" }),
+        captureGroup(
+          amount,
+          topup
+            ? { venueId: meta.venueId, sessionId: meta.sessionId, memo: "capture:topup" }
+            : { ...toLedgerMeta(meta), memo: "capture:mbway" },
+        ),
       );
     } else if (action === "confirm_authorization") {
       await client.query(
@@ -474,11 +487,23 @@ export async function recordWebhook(
       ]);
     }
 
-    // 2. Request transition (dynamic import breaks the module cycle:
-    //    lib/domain/service statically imports this module).
-    const { applyPaymentOutcomeInTx } = await import("@/lib/domain/service");
+    // 2. Request transition — or, for an auction top-up, credit the wallet
+    //    and place the waiting bid (dynamic imports break module cycles).
     const kind =
       action === "fail" ? "failed" : action === "expire" ? "expired" : "confirmed";
+    if (topup) {
+      const { settleTopUpInTx } = await import("@/lib/auction/service");
+      // A card hold confirmed by webhook is captured by the bid route itself.
+      const settled =
+        action === "confirm_authorization" ? { publishes: [] } : await settleTopUpInTx(client, payment.id, kind, now);
+      await auditWebhook(client, event, payment.id, action);
+      return {
+        result: { handled: true, action, duplicate: false } as WebhookRecordResult,
+        publishes: settled.publishes,
+        afterCommit: [],
+      };
+    }
+    const { applyPaymentOutcomeInTx } = await import("@/lib/domain/service");
     const transition = await applyPaymentOutcomeInTx(client, payment, kind, now);
 
     await auditWebhook(client, event, payment.id, action);

@@ -3,7 +3,8 @@
  *
  * Wires pg-boss (schema 'pgboss' on env.DATABASE_URL) to the jobs:
  *
- *   deadline loop        setInterval every 5 s — second-precision deadlines
+ *   deadline loop        setInterval every 1 s — second-precision deadlines
+ *                        and slot auction open/close (lib/auction)
  *   deadline-watchdog    singleton cron backing the loop up (minute level)
  *   refund-retry-scan    singleton cron sweeping stuck refunds
  *   refund-retry         per-refund retry with exponential backoff
@@ -11,6 +12,8 @@
  *   genre-weekly         singleton cron — M_g recommendations (B5.4)
  *   payout-scan          singleton cron sweeping pending payouts
  *   payout-execute       per-payout SEPA execution (mock until Phase 8)
+ *   wallet-expiry        singleton cron — refunds balances kept past the
+ *                        club's limit (30 days by default, lib/auction)
  *
  * Multiple worker processes are safe: crons are pg-boss singletons, work
  * queues dedupe on singletonKey, and every scan claims rows with
@@ -42,6 +45,7 @@ import {
 } from "./jobs/refund-retry";
 import { RECONCILIATION_QUEUE, runDailyReconciliation } from "./jobs/reconciliation";
 import { GENRE_WEEKLY_QUEUE, runGenreWeekly } from "./jobs/genre-weekly";
+import { expireKeptBalances } from "@/lib/auction/service";
 import {
   PAYOUT_EXECUTE_QUEUE,
   PAYOUT_SCAN_QUEUE,
@@ -53,6 +57,8 @@ import {
 /* ------------------------------------------------------------------ */
 /* Registration plan                                                   */
 /* ------------------------------------------------------------------ */
+
+const WALLET_EXPIRY_QUEUE = "wallet-expiry";
 
 interface QueuePlan {
   name: string;
@@ -103,6 +109,12 @@ function buildPlan(cfg: WorkerEnv): QueuePlan[] {
       name: PAYOUT_EXECUTE_QUEUE,
       policy: "standard",
       duty: "execute one payout: processing → mock SEPA → paid + ledger",
+    },
+    {
+      name: WALLET_EXPIRY_QUEUE,
+      policy: "singleton",
+      cron: cfg.WORKER_WALLET_EXPIRY_CRON,
+      duty: "refund wallet balances unused past the club's keepBalanceDays",
     },
   ];
 }
@@ -212,6 +224,13 @@ export async function runWorker(): Promise<void> {
   await boss.work<PayoutJobData>(
     PAYOUT_EXECUTE_QUEUE,
     perJob(async (data, now) => executePayoutJob(data, now)),
+  );
+  await boss.work(
+    WALLET_EXPIRY_QUEUE,
+    perJob(async (_data, now) => {
+      const { refunded } = await expireKeptBalances(now);
+      console.log(`[worker:wallet-expiry] refunded=${refunded}`);
+    }),
   );
 
   /* Schedules (upserts — a changed env cron takes effect on restart). */

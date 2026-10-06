@@ -28,13 +28,23 @@ const SERVER_ONLY_WRITE = new Set([
   "staff",
   "session_settings",
   "library_tracks",
+  "guest_phone_codes",
+  "session_guest_list",
+  "auction_slots",
+  "auction_bids",
+  "auction_contributions",
+  "auction_intents",
+  "wallet_entries",
+  "wallet_preferences",
 ]);
 
 /** Tables anon (no session at all) may never touch. */
 const NO_ANON = new Set([
   "venues", "zones", "staff", "library_tracks", "tracks", "guests",
   "genre_multipliers", "session_settings", "payments", "refunds",
-  "ledger_entries", "payouts", "invoices", "audit_log",
+  "ledger_entries", "payouts", "invoices", "audit_log", "guest_phone_codes",
+  "session_guest_list", "auction_slots", "auction_bids", "auction_contributions",
+  "auction_intents", "wallet_entries", "auction_slot_metrics", "wallet_preferences",
 ]);
 
 async function main() {
