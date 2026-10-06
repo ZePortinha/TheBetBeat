@@ -224,7 +224,9 @@ describe("RLS access matrix (B12.2)", () => {
       expect(z === null || z.length === 0).toBe(true);
     });
     it("manager can update own venue and zones, cannot touch staff rows", async () => {
-      const { data } = await manager.from("venues").update({ name: "Club Meridiano" })
+      // Rewrite the current name: proves the privilege without changing the data.
+      const { data: current } = await manager.from("venues").select("name").eq("id", VENUE).single();
+      const { data } = await manager.from("venues").update({ name: current?.name ?? "" })
         .eq("id", VENUE).select("id");
       expect(data?.length).toBe(1);
       const { error } = await manager.from("staff")
