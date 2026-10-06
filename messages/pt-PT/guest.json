@@ -394,6 +394,20 @@
       },
       "startingPrice": "Preço de partida: {amount}.",
       "why": "Transições difíceis custam mais: dão mais trabalho ao DJ."
+    },
+    "topup": {
+      "title": "Carregar saldo",
+      "hint": "Carrega uma vez e licita na hora, sem esperar pelo MB WAY.",
+      "emptyLine": "Carrega saldo e licita sem esperas.",
+      "load": "Carregar",
+      "amount": "Valor a carregar",
+      "cta": "Carregar {amount}",
+      "leftover": "O que não usares volta para ti no fim da noite.",
+      "waitingHint": "Confirma o pedido na app MB WAY. O saldo aparece assim que aceitares.",
+      "doneTitle": "Saldo carregado",
+      "doneHint": "Já podes licitar na hora.",
+      "close": "Fechar",
+      "failed": "O pagamento não passou. Tenta outra vez ou escolhe outro meio."
     }
   }
 }

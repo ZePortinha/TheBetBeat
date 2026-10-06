@@ -480,3 +480,10 @@ the current track is, and harder transitions start at a higher price.
   backing an existing bid is not re-priced.
 - New nights open the full catalog by default; the DJ can still choose
   "Só biblioteca". Library imports now skip songs already in the library.
+
+## 2026-10-06 - "Carregar saldo": load the balance before bidding
+
+- Why: an MB WAY push takes 30-60 s; in the last seconds of an auction that wait loses the slot. Loading once makes every bid instant.
+- How: same path as a bid's top-up (intent -> payment -> wallet entry), with no slot and no target. The intent ends `credited` (migration 0010). Card is captured at once; MB WAY credits on confirmation, late confirmations included.
+- Amounts 10 / 20 / 50 / 100 € in the UI, 5-200 € accepted by the API. Rate-limited and bot-checked like every money route.
+- What is not spent goes back at the end of the night (or is kept, where the club allows it), exactly like any other balance.

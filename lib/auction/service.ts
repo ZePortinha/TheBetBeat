@@ -603,7 +603,7 @@ export interface TopUpInput extends BidRequest {
 export interface TopUpStarted {
   intentId: string;
   /** 'placed' (card, at once), 'pending' (MB WAY push out) or 'failed'. */
-  state: "placed" | "pending" | "superseded" | "failed";
+  state: "placed" | "pending" | "superseded" | "failed" | "credited";
   expiresAt: string | null;
   bid?: PlaceResult;
 }
@@ -642,13 +642,50 @@ export async function startTopUpBid(input: TopUpInput, now: number): Promise<Top
     ],
   );
   const intentId = (intentRes.rows[0] as { id: string }).id;
+  return chargeIntent(intentId, { sessionId: slot.session_id, venueId: slot.venue_id }, input, input.needCents, now);
+}
+
+export interface WalletTopUpInput {
+  guestId: string;
+  sessionId: string;
+  venueId: string;
+  amountCents: number;
+  method: PaymentMethod;
+  phone?: string;
+  email?: string;
+}
+
+/**
+ * "Carregar saldo": money into the guest's wallet with no bid attached,
+ * so the next bids are instant. Same payment path as a bid's top-up; the
+ * intent ends 'credited' (and the balance is refunded at the end of the
+ * night like any other, unless kept where the club allows it).
+ */
+export async function startWalletTopUp(input: WalletTopUpInput, now: number): Promise<TopUpStarted> {
+  const intentRes = await getPool().query<{ id: string }>(
+    `insert into public.auction_intents (slot_id, guest_id, target_total_cents) values (null, $1, null) returning id`,
+    [input.guestId],
+  );
+  const intentId = (intentRes.rows[0] as { id: string }).id;
+  return chargeIntent(intentId, { sessionId: input.sessionId, venueId: input.venueId }, input, input.amountCents, now);
+}
+
+/** Charges an intent's money: MB WAY push (pending) or card captured at once (settled now). */
+async function chargeIntent(
+  intentId: string,
+  where: { sessionId: string; venueId: string },
+  input: { guestId: string; method: PaymentMethod; phone?: string; email?: string },
+  amountCents: number,
+  now: number,
+): Promise<TopUpStarted> {
+  const slot = { session_id: where.sessionId, venue_id: where.venueId };
   const idempotencyKey = `topup:${intentId}`;
   const provider = await getPaymentProvider();
   const payIn = {
     idempotencyKey,
     requestId: intentId,
     method: input.method,
-    amountCents: input.needCents,
+    amountCents,
     currency: "EUR" as const,
     ...(input.phone ? { phone: input.phone } : {}),
     ...(input.email ? { email: input.email } : {}),
@@ -662,7 +699,7 @@ export async function startTopUpBid(input: TopUpInput, now: number): Promise<Top
      on conflict (idempotency_key) do update set updated_at = now()
      returning id`,
     [slot.session_id, slot.venue_id, intentId, input.guestId, provider.name, input.method, intent.status,
-      input.needCents, intent.providerRef, idempotencyKey, intent.expiresAt ?? null],
+      amountCents, intent.providerRef, idempotencyKey, intent.expiresAt ?? null],
   );
   const paymentId = (paymentRes.rows[0] as { id: string }).id;
 
@@ -672,15 +709,15 @@ export async function startTopUpBid(input: TopUpInput, now: number): Promise<Top
   }
   if (intent.status === "authorized") {
     // Card/wallet: charge now — the money must exist to sit in the wallet.
-    await provider.capture(intent.providerRef, input.needCents, `capture:${paymentId}`);
+    await provider.capture(intent.providerRef, amountCents, `capture:${paymentId}`);
     const settled = await runAndPublish(async (client) => {
       await client.query(
         `update public.payments set status = 'captured', captured_cents = $2 where id = $1`,
-        [paymentId, input.needCents],
+        [paymentId, amountCents],
       );
       await postLedgerGroup(
         client,
-        captureGroup(input.needCents, { venueId: slot.venue_id, sessionId: slot.session_id, memo: "capture:topup" }),
+        captureGroup(amountCents, { venueId: slot.venue_id, sessionId: slot.session_id, memo: "capture:topup" }),
       );
       return settleTopUpInTx(client, paymentId, "confirmed", now);
     }, now);
@@ -711,12 +748,12 @@ export async function settleTopUpInTx(
   if (!pay) return { value: { state: "failed" }, publishes: [] };
   const intentRes = await client.query<{
     id: string;
-    slot_id: string;
+    slot_id: string | null;
     status: string;
     library_track_id: string | null;
     catalog_track_id: string | null;
     backed_bid_id: string | null;
-    target_total_cents: number;
+    target_total_cents: number | null;
     display_mode: DisplayChoice["mode"];
     display_label: string | null;
   }>(`select * from public.auction_intents where id = $1 for update`, [pay.intent_id]);
@@ -744,6 +781,11 @@ export async function settleTopUpInTx(
       [pay.venue_id, pay.guest_id, pay.session_id, pay.captured_cents, paymentId],
     );
   }
+  // A balance top-up ends here: the money is in the wallet.
+  if (intent.slot_id === null) {
+    await client.query(`update public.auction_intents set status = 'credited', settled_at = now() where id = $1`, [intent.id]);
+    return { value: { state: "credited" }, publishes: toGuests([pay.guest_id], "wallet.changed", {}) };
+  }
   // Late money (the intent already expired): it stays in the wallet.
   if (intent.status !== "pending") {
     return { value: { state: "superseded" }, publishes: toGuests([pay.guest_id], "wallet.changed", {}) };
@@ -760,7 +802,7 @@ export async function settleTopUpInTx(
     {
       slotId: intent.slot_id,
       guestId: pay.guest_id,
-      totalCents: intent.target_total_cents,
+      totalCents: intent.target_total_cents ?? 0, // set whenever slot_id is (DB check)
       target: intent.backed_bid_id
         ? { kind: "back", bidId: intent.backed_bid_id }
         : { kind: "own", libraryTrackId: intent.library_track_id ?? intent.catalog_track_id ?? "" },

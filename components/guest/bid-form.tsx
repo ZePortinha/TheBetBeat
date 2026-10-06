@@ -38,6 +38,70 @@ export function quickTotals(slot: PublicSlot, steps: readonly number[], trackFlo
   return [...new Set(totals)];
 }
 
+/** Payment method radios + the MB WAY number (shared by bids and "Carregar saldo"). */
+export function MethodPicker({
+  methods,
+  method,
+  onMethod,
+  phoneDigits,
+  onPhoneDigits,
+}: {
+  methods: PaymentMethod[];
+  method: PaymentMethod;
+  onMethod: (m: PaymentMethod) => void;
+  phoneDigits: string;
+  onPhoneDigits: (digits: string) => void;
+}) {
+  const tPay = useTranslations("guest.payment");
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={tPay("title")}>
+        {methods.map((m) => (
+          <Pressable
+            key={m}
+            role="radio"
+            aria-checked={method === m}
+            onPress={() => onMethod(m)}
+            className={cx(
+              "flex min-h-12 items-center gap-2 rounded-button border px-3 text-sm font-semibold",
+              method === m ? "border-accent-500 bg-surface-2 text-text-primary" : "border-line-subtle bg-surface-1 text-text-secondary",
+            )}
+          >
+            {m === "mbway" ? <Smartphone size={18} aria-hidden /> : m === "card" ? <CreditCard size={18} aria-hidden /> : <Wallet size={18} aria-hidden />}
+            {tPay(`methods.${m}`)}
+          </Pressable>
+        ))}
+      </div>
+      {method === "mbway" ? (
+        <div className="flex min-h-12 items-center gap-2 rounded-button border border-line-subtle bg-surface-3 px-4 focus-within:border-accent-500">
+          <span className="tnum text-base text-text-secondary">+351</span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            maxLength={9}
+            aria-label={tPay("phoneLabel")}
+            value={phoneDigits}
+            onChange={(e) => onPhoneDigits(e.target.value.replace(/\D/g, "").slice(0, 9))}
+            className="tnum w-full bg-transparent text-base text-text-primary outline-none"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The guest's saved MB WAY number (phone sign-in or last payment), digits after +351. */
+export function useSavedPhoneDigits(): [string, (d: string) => void] {
+  const [digits, setDigits] = React.useState("");
+  React.useEffect(() => {
+    void apiFetch<{ phone: string | null }>("/api/guest/phone").then((res) => {
+      if (res.ok && res.data.phone?.startsWith("+351")) setDigits((d) => d || res.data.phone!.slice(4));
+    });
+  }, []);
+  return [digits, setDigits];
+}
+
 export function BidForm({
   token,
   slot,
@@ -77,17 +141,11 @@ export function BidForm({
   const effectiveTotal = Math.max(total, slot.minNextCents, trackFloorCents);
   const [display, setDisplay] = React.useState<Display>({ mode: "anonymous" });
   const [method, setMethod] = React.useState<PaymentMethod>(methods[0] ?? "mbway");
-  const [phoneDigits, setPhoneDigits] = React.useState("");
+  const [phoneDigits, setPhoneDigits] = useSavedPhoneDigits();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [waiting, setWaiting] = React.useState<{ intentId: string; expiresAt: number | null } | null>(null);
   const [result, setResult] = React.useState<"placed" | "superseded" | null>(null);
-
-  React.useEffect(() => {
-    void apiFetch<{ phone: string | null }>("/api/guest/phone").then((res) => {
-      if (res.ok && res.data.phone?.startsWith("+351")) setPhoneDigits((d) => d || res.data.phone!.slice(4));
-    });
-  }, []);
 
   const add = Math.max(0, effectiveTotal - currentBidTotal);
   const fromWallet = Math.min(walletCents, add);
@@ -287,40 +345,13 @@ export function BidForm({
       </div>
 
       {toPay > 0 ? (
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={tPay("title")}>
-            {methods.map((m) => (
-              <Pressable
-                key={m}
-                role="radio"
-                aria-checked={method === m}
-                onPress={() => setMethod(m)}
-                className={cx(
-                  "flex min-h-12 items-center gap-2 rounded-button border px-3 text-sm font-semibold",
-                  method === m ? "border-accent-500 bg-surface-2 text-text-primary" : "border-line-subtle bg-surface-1 text-text-secondary",
-                )}
-              >
-                {m === "mbway" ? <Smartphone size={18} aria-hidden /> : m === "card" ? <CreditCard size={18} aria-hidden /> : <Wallet size={18} aria-hidden />}
-                {tPay(`methods.${m}`)}
-              </Pressable>
-            ))}
-          </div>
-          {method === "mbway" ? (
-            <div className="flex min-h-12 items-center gap-2 rounded-button border border-line-subtle bg-surface-3 px-4 focus-within:border-accent-500">
-              <span className="tnum text-base text-text-secondary">+351</span>
-              <input
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel-national"
-                maxLength={9}
-                aria-label={tPay("phoneLabel")}
-                value={phoneDigits}
-                onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                className="tnum w-full bg-transparent text-base text-text-primary outline-none"
-              />
-            </div>
-          ) : null}
-        </div>
+        <MethodPicker
+          methods={methods}
+          method={method}
+          onMethod={setMethod}
+          phoneDigits={phoneDigits}
+          onPhoneDigits={setPhoneDigits}
+        />
       ) : null}
 
       {error ? (

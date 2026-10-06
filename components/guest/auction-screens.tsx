@@ -24,6 +24,7 @@ import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { apiFetch } from "./api";
 import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
+import { TopUpForm } from "./wallet-topup";
 import { WinCelebration } from "./win-celebration";
 import { clockTime, countdown, inFinalStretch, useAuction, type AuctionState } from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
@@ -185,6 +186,7 @@ function WalletChip({
   keep,
   keepAllowed,
   keepDays,
+  methods,
   onChange,
 }: {
   token: string;
@@ -192,11 +194,26 @@ function WalletChip({
   keep: boolean;
   keepAllowed: boolean;
   keepDays: number;
+  methods: AuctionState["paymentMethods"];
   onChange: () => void;
 }) {
   const t = useTranslations("guest.auction");
   const [busy, setBusy] = React.useState(false);
-  if (cents <= 0) return null;
+  const [loading, setLoading] = React.useState(false);
+  const sheet = (
+    <BottomSheet open={loading} onOpenChange={setLoading} title={t("topup.title")} description={t("topup.hint")}>
+      {loading ? (
+        <TopUpForm
+          token={token}
+          methods={methods}
+          onDone={() => {
+            setLoading(false);
+            onChange();
+          }}
+        />
+      ) : null}
+    </BottomSheet>
+  );
   async function refund() {
     setBusy(true);
     await apiFetch("/api/guest/wallet/refund", { method: "POST", body: JSON.stringify({ token }) });
@@ -208,14 +225,31 @@ function WalletChip({
     onChange();
   }
   const kept = keepAllowed && keep;
-  return (
-    <section className="rounded-card border border-line-subtle bg-surface-1 px-4 py-3" aria-label={t("wallet")}>
+  // The sheet stays at one place in the tree: the first top-up flips the
+  // card from empty to loaded and must not remount the form mid-flow.
+  const body =
+    cents <= 0 ? (
+      // Nothing loaded yet: invite to load once and bid without waiting.
+      <section className="flex items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3" aria-label={t("wallet")}>
+        <Wallet size={20} className="shrink-0 text-accent-400" aria-hidden />
+        <p className="flex-1 text-sm text-text-secondary">{t("topup.emptyLine")}</p>
+        <Button size="md" variant="secondary" onPress={() => setLoading(true)}>
+          {t("topup.load")}
+        </Button>
+      </section>
+    ) : (
+      <section className="rounded-card border border-line-subtle bg-surface-1 px-4 py-3" aria-label={t("wallet")}>
       <div className="flex items-center gap-3">
         <Wallet size={20} className="shrink-0 text-accent-400" aria-hidden />
         <p className="flex-1 text-base text-text-primary">
           {t("wallet")} <span className="tnum font-bold">{formatEurosDisplay(cents)}</span>
         </p>
-        <Button size="md" variant="secondary" loading={busy} onPress={() => void refund()}>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button size="md" variant="secondary" onPress={() => setLoading(true)}>
+          {t("topup.load")}
+        </Button>
+        <Button size="md" variant="ghost" loading={busy} onPress={() => void refund()}>
           {t("walletRefund")}
         </Button>
       </div>
@@ -244,7 +278,13 @@ function WalletChip({
         </div>
       ) : null}
       <p className="mt-2 text-xs text-text-tertiary">{kept ? t("walletKeptHint", { days: keepDays }) : t("walletHint")}</p>
-    </section>
+      </section>
+    );
+  return (
+    <>
+      {body}
+      {sheet}
+    </>
   );
 }
 
@@ -288,6 +328,7 @@ export function AuctionLive({
         keep={state.me?.keepBalance ?? false}
         keepAllowed={state.rules.keepBalanceAllowed}
         keepDays={state.rules.keepBalanceDays}
+        methods={state.paymentMethods}
         onChange={() => void refetch()}
       />
 
@@ -408,6 +449,7 @@ export function MyBids({
         keep={me.keepBalance}
         keepAllowed={state.rules.keepBalanceAllowed}
         keepDays={state.rules.keepBalanceDays}
+        methods={state.paymentMethods}
         onChange={() => void refetch()}
       />
       {me.bids.length > 0 ? (

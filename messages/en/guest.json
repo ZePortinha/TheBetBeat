@@ -394,6 +394,20 @@
       },
       "startingPrice": "Starting price: {amount}.",
       "why": "Hard transitions cost more: they take the DJ more work."
+    },
+    "topup": {
+      "title": "Load balance",
+      "hint": "Load once and bid instantly, no MB WAY wait.",
+      "emptyLine": "Load your balance and bid with no wait.",
+      "load": "Load",
+      "amount": "Amount to load",
+      "cta": "Load {amount}",
+      "leftover": "Whatever you don't use comes back to you at the end of the night.",
+      "waitingHint": "Confirm the request in the MB WAY app. Your balance shows up as soon as you accept.",
+      "doneTitle": "Balance loaded",
+      "doneHint": "You can bid instantly now.",
+      "close": "Close",
+      "failed": "The payment didn't go through. Try again or pick another method."
     }
   }
 }
