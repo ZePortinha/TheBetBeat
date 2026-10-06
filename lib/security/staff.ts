@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/domain/types";
+import { mustChangePassword } from "@/lib/security/password";
 
 export interface StaffContext {
   userId: string;
@@ -35,6 +36,11 @@ export async function requireStaff(
 
   if (!user || user.is_anonymous) {
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
+
+  // An invited account still on its temporary password replaces it first.
+  if (mustChangePassword(user)) {
+    redirect(`/login/password?next=${encodeURIComponent(nextPath)}`);
   }
 
   const { data: rows } = await supabase

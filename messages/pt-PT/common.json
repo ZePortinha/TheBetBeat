@@ -63,6 +63,17 @@
       "submit": "Verificar",
       "error": "Código inválido. Tenta novamente.",
       "loading": "A preparar…"
+    },
+    "newPassword": {
+      "title": "Nova palavra-passe",
+      "intro": "Esta conta foi criada com uma palavra-passe temporária. Escolhe a tua (pelo menos {min} caracteres) para continuar.",
+      "password": "Nova palavra-passe",
+      "confirm": "Repetir a palavra-passe",
+      "submit": "Guardar e continuar",
+      "errorShort": "Usa pelo menos {min} caracteres.",
+      "errorMismatch": "As duas palavras-passe não coincidem.",
+      "errorSame": "Escolhe uma palavra-passe diferente da temporária.",
+      "errorFailed": "Não foi possível guardar. Tenta novamente."
     }
   },
   "devIndex": {

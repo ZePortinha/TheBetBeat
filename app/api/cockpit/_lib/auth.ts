@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPool } from "@/lib/db";
 import type { Role } from "@/lib/domain/types";
+import { mustChangePassword } from "@/lib/security/password";
 
 export interface StaffApiContext {
   userId: string;
@@ -60,6 +61,9 @@ export async function requireStaffApi(): Promise<StaffApiResult> {
   } = await supabase.auth.getUser();
   if (!user || user.is_anonymous) {
     return { ok: false, response: apiError(401, "unauthorized") };
+  }
+  if (mustChangePassword(user)) {
+    return { ok: false, response: apiError(403, "password_change_required") };
   }
 
   const { data: rows } = await supabase
