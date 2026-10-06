@@ -487,3 +487,16 @@ the current track is, and harder transitions start at a higher price.
 - How: same path as a bid's top-up (intent -> payment -> wallet entry), with no slot and no target. The intent ends `credited` (migration 0010). Card is captured at once; MB WAY credits on confirmation, late confirmations included.
 - Amounts 10 / 20 / 50 / 100 € in the UI, 5-200 € accepted by the API. Rate-limited and bot-checked like every money route.
 - What is not spent goes back at the end of the night (or is kept, where the club allows it), exactly like any other balance.
+
+## 2026-10-06 - Guest layout: auction-first, centre gavel tab
+
+Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab bar.
+
+- Tab bar "Agora · Leilão · Ranking". The auction is the raised red gavel in the middle, with a live dot while one is open.
+- Leilão tab: pick the auction first (several open = a picker), then its options: bid with a track, raise, back the leader. The next auctions are listed below. Search and the bid screen show which auction the track is for.
+- Home "Agora": the playing track is the hero, with the album art as the background and "Escolhida por @x" (or the DJ's pick) under the title. Below it: the live auction (one tap to bid), "A seguir" and only the last 3 winners. The "Fila ao vivo" screen is gone.
+- The @ shown under the playing track is the label the winner chose when bidding. Anonymous stays anonymous. The 50 € threshold still governs the venue screen.
+- "Carregar saldo" was removed (reverses the entry above): money is asked at bid time. The balance shows only when there is one, as a small pill top right. Tapping it gives "Devolver" and the end-of-night choice.
+- Ranking: the top 3 on a podium (1st in the middle, tallest, crown); everyone else below, smaller and muted. Up to 50.
+- "O meu @" is the default way to appear. Anonymous and table come second. The last @ is remembered on the phone.
+- One shared auction state per party layout (AuctionProvider): one poll, no reload when switching tabs. The last-30-s flash and the winner celebration show on every tab.

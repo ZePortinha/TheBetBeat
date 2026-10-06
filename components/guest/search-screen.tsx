@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
+import { AuctionContextBar } from "./auction-screens";
 import { PartyHeading, PartyTopBar } from "./party-chrome";
 import type { SearchResponseDto, SearchTrackDto } from "./types";
 
@@ -107,6 +108,8 @@ export function SearchScreen({ token }: { token: string }) {
   return (
     <main className="flex min-h-dvh flex-col gap-4 px-4 pb-[calc(var(--dock-h)+1.5rem)] pt-4">
       <PartyTopBar />
+      {/* Which auction this track is for: tap to go back and pick another. */}
+      <AuctionContextBar token={token} />
       <PartyHeading title={t("title")} />
 
       <label className="relative block">

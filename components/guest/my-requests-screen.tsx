@@ -108,15 +108,13 @@ export function MyRequestsScreen({
     <main className="flex min-h-dvh flex-col gap-5 px-4 pb-[calc(var(--dock-h)+1.5rem)] pt-6">
       <BackHeader title={t("title")} backHref={`/s/${token}`} />
       <MyBids
-        token={token}
-        sessionId={sessionId}
         empty={
           requests?.length === 0 ? (
             <EmptyState
               icon={ReceiptText}
               title={t("empty")}
               hint={t("emptyHint")}
-              action={<Button onPress={() => router.push(`/s/${token}/search`)}>{ta("dockCta")}</Button>}
+              action={<Button onPress={() => router.push(`/s/${token}/auction`)}>{ta("dockCta")}</Button>}
             />
           ) : null
         }

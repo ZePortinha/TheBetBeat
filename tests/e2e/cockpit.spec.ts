@@ -27,6 +27,17 @@ async function winnerWaiting(request: Parameters<typeof openAuction>[0], totalCe
   return { slotId, ...bid };
 }
 
+/** Winners left waiting by earlier runs (or someone testing by hand) would take the card first. */
+async function clearWaitingWinners(page: import("@playwright/test").Page, request: Parameters<typeof openAuction>[0]) {
+  for (let i = 0; i < 10; i += 1) {
+    const upNext = (await auctionState(request)).upNext;
+    if (!upNext) return;
+    for (const action of ["accept", "playing", "played"]) {
+      await page.request.post(`/api/cockpit/auction/${upNext.slotId}`, { data: { action } });
+    }
+  }
+}
+
 test.describe("cockpit · leilões", () => {
   test.beforeEach(async ({ page, request }) => {
     test.skip(test.info().project.name !== "ipad", IPAD_ONLY);
@@ -34,6 +45,7 @@ test.describe("cockpit · leilões", () => {
     test.setTimeout(120_000);
     await openAuction(request, 600);
     await loginStaff(page, "dj", "/cockpit");
+    await clearWaitingWinners(page, request);
     await page.goto("/cockpit");
     await expect(page.getByRole("heading", { name: "Leilões", exact: true })).toBeVisible({ timeout: 60_000 });
   });

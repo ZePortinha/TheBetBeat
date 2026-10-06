@@ -5,6 +5,10 @@
  * refetches on every public or own-channel event, counts down on the
  * SERVER clock (offset from `serverNow`), and turns "auction.outbid" into
  * a toast + vibration and "auction.won" into the celebration.
+ *
+ * One AuctionProvider per party layout: every tab reads the same state
+ * (one poll, no reload when switching tabs), and the auction the guest
+ * picked on the Leilão tab travels with them through search to the bid.
  */
 
 import * as React from "react";
@@ -29,7 +33,7 @@ export function inFinalStretch(closesAtIso: string, serverNow: number): boolean 
   return left > 0 && left <= FINAL_STRETCH_MS;
 }
 
-export function useAuction(token: string, sessionId: string) {
+function useAuctionSource(token: string, sessionId: string) {
   const t = useTranslations("guest.auction");
   const { guestId, ready } = useGuest();
   const [state, setState] = React.useState<AuctionState | null>(null);
@@ -78,13 +82,39 @@ export function useAuction(token: string, sessionId: string) {
     void refetch();
   });
 
+  // The auction picked on the Leilão tab (null = the first open one).
+  const [chosenSlotId, chooseSlot] = React.useState<string | null>(null);
+
   return {
     state,
     refetch,
     serverNow: now + offsetMs,
     celebrate,
     dismissCelebration: () => setCelebrate(null),
+    chosenSlotId,
+    chooseSlot,
   };
+}
+
+const AuctionContext = React.createContext<ReturnType<typeof useAuctionSource> | null>(null);
+
+export function AuctionProvider({
+  token,
+  sessionId,
+  children,
+}: {
+  token: string;
+  sessionId: string;
+  children: React.ReactNode;
+}) {
+  const value = useAuctionSource(token, sessionId);
+  return React.createElement(AuctionContext.Provider, { value }, children);
+}
+
+export function useAuction() {
+  const value = React.useContext(AuctionContext);
+  if (!value) throw new Error("useAuction outside AuctionProvider");
+  return value;
 }
 
 /** mm:ss (or h:mm:ss) until `atIso`, never negative. */

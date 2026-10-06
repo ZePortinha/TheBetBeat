@@ -51,12 +51,14 @@ test.describe("guest app · leilões", () => {
       await locator.click();
     };
 
-    // 1. "Ser o primeiro a licitar" on the open auction card.
-    await tap(page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }));
+    // 1. "Licitar com uma faixa" on the live auction (home).
+    await tap(page.getByRole("button", { name: /^licitar com uma faixa$|^bid with a track$/i }));
     await expect(page).toHaveURL(/\/search$/);
     // 2. A track.
     await tap(page.getByRole("button").filter({ hasText: /^.*licitar$|bid$/i }).first());
     await expect(page).toHaveURL(/\/track\//);
+    // "O meu @" is preselected: the first time the guest types it (not a tap).
+    await page.getByRole("textbox", { name: /o meu @|my @/i }).fill("e2e-guest");
     // 3. Card, 4. "Licitar 2 €" (the minimum is preselected).
     await tap(page.getByRole("radio", { name: /cartão|card/i }));
     await tap(page.getByRole("button", { name: /^licitar \d|^bid \d/i }));
@@ -71,7 +73,8 @@ test.describe("guest app · leilões", () => {
     const top = before.open.find((s) => s.id === slotId)!;
     await bidViaApi(request, { slotId, totalCents: top.minNextCents });
     await expect(page.getByText(/foste ultrapassado|you were outbid/i).first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/^saldo|^balance/i).first()).toBeVisible();
+    // The balance shows up, small, top right.
+    await expect(page.getByRole("button", { name: /^saldo|^balance/i })).toBeVisible();
 
     // Raise: the balance pays part, the card the rest.
     await page.getByRole("button", { name: /subir para|raise to/i }).click();
@@ -99,6 +102,7 @@ test.describe("guest app · leilões", () => {
     } finally {
       await dj.close();
     }
+    await page.getByRole("navigation").getByRole("link", { name: /^agora$|^now$/i }).click();
     await page.getByRole("button", { name: /as minhas licitações|my bids/i }).click();
     await expect(page.getByText(/^tocou$|^played$/i).first()).toBeVisible({ timeout: 15_000 });
 
@@ -117,10 +121,11 @@ test.describe("guest app · leilões", () => {
   test("MB WAY recusado: nada cobrado, a licitação não entra", async ({ page, request }) => {
     await openAuction(request, 600);
     await openGuest(page);
-    await page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }).click();
+    await page.getByRole("button", { name: /^licitar com uma faixa$|^bid with a track$/i }).click();
     // Wait for the search page: the home button also ends in "licitar".
     await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
+    await page.getByRole("textbox", { name: /o meu @|my @/i }).fill("e2e-guest");
     await page.getByRole("radio", { name: /mb way/i }).click();
     await page.getByRole("textbox", { name: /mb way/i }).fill("912345678");
     await page.getByRole("button", { name: /^licitar \d|^bid \d/i }).click();
@@ -134,19 +139,20 @@ test.describe("guest app · leilões", () => {
 
   test("PT/EN: o convidado troca de língua", async ({ page }) => {
     await openGuest(page);
-    await expect(page.getByRole("button", { name: "Licitar com uma faixa" })).toBeVisible();
+    const nav = page.getByRole("navigation");
+    await expect(nav.getByRole("link", { name: "Leilão" })).toBeVisible();
     await page.getByRole("group", { name: /language/i }).getByRole("button", { name: "EN" }).click();
-    await expect(page.getByRole("button", { name: "Bid with a track" })).toBeVisible({ timeout: 15_000 });
+    await expect(nav.getByRole("link", { name: "Auction" })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("group", { name: /language/i }).getByRole("button", { name: "PT" }).click();
-    await expect(page.getByRole("button", { name: "Licitar com uma faixa" })).toBeVisible({ timeout: 15_000 });
+    await expect(nav.getByRole("link", { name: "Leilão" })).toBeVisible({ timeout: 15_000 });
   });
 
-  test("ecrãs públicos: Fila ao vivo e Rankings", async ({ page }) => {
+  test("barra: Leilão ao centro e Ranking com pódio", async ({ page }) => {
     await openGuest(page);
-    await page.getByRole("link", { name: /fila ao vivo|live queue/i }).click();
-    await expect(page).toHaveURL(/\/queue$/, { timeout: 20_000 });
-    await expect(page.getByRole("heading", { name: /fila ao vivo|live queue/i })).toBeVisible();
-    await page.getByRole("navigation").getByRole("link", { name: /^rankings$/i }).click();
+    await page.getByRole("navigation").getByRole("link", { name: /^leilão$|^auction$/i }).click();
+    await expect(page).toHaveURL(/\/auction$/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: /^leilão$|^auction$/i })).toBeVisible();
+    await page.getByRole("navigation").getByRole("link", { name: /^ranking$/i }).click();
     await expect(page).toHaveURL(/\/top$/, { timeout: 20_000 });
     await expect(page.getByText(/quem mais gastou|top spenders|ainda ninguém|nobody is in/i).first()).toBeVisible();
   });
@@ -163,7 +169,7 @@ test.describe("guest app · leilões", () => {
     const home = await new AxeBuilder({ page }).analyze();
     expect(home.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
 
-    await page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }).click();
+    await page.getByRole("button", { name: /^licitar com uma faixa$|^bid with a track$/i }).click();
     // Wait for the search page: the home button also ends in "licitar".
     await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();

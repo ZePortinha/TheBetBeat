@@ -13,7 +13,7 @@ export default async function PartyLayout({
   // Bad token or no live session: the page itself renders the error.
   if (!resolved.ok) return children;
   return (
-    <PartyChrome token={token} venueName={resolved.ctx.venueName}>
+    <PartyChrome token={token} venueName={resolved.ctx.venueName} sessionId={resolved.ctx.sessionId}>
       {children}
     </PartyChrome>
   );

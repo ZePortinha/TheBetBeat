@@ -29,7 +29,7 @@
     "refunded": "Refunded"
   },
   "search": {
-    "title": "Request a song",
+    "title": "Pick the track",
     "placeholder": "Search by title or artist",
     "sectionResults": "Results",
     "sectionFits": "Fits the set",
@@ -60,9 +60,9 @@
   },
   "tabs": {
     "label": "Party navigation",
-    "request": "Request",
-    "queue": "Live queue",
-    "top": "Rankings"
+    "home": "Now",
+    "auction": "Auction",
+    "top": "Ranking"
   },
   "tier": {
     "title": "Choose how long you'll wait",
@@ -181,15 +181,6 @@
     "share": "Share",
     "shareHeadline": "My song played",
     "shareError": "We couldn't open sharing. Save the image and share it yourself."
-  },
-  "queue": {
-    "title": "Live queue",
-    "now": "Now",
-    "upNext": "Coming up",
-    "nextIn": "Next to play",
-    "cta": "Request a track",
-    "empty": "No requests in the queue yet.",
-    "emptyHint": "Be the first to request a song."
   },
   "top": {
     "title": "Top of the night",
@@ -395,20 +386,6 @@
       "startingPrice": "Starting price: {amount}.",
       "why": "Hard transitions cost more: they take the DJ more work."
     },
-    "topup": {
-      "title": "Load balance",
-      "hint": "Load once and bid instantly, no MB WAY wait.",
-      "emptyLine": "Load your balance and bid with no wait.",
-      "load": "Load",
-      "amount": "Amount to load",
-      "cta": "Load {amount}",
-      "leftover": "Whatever you don't use comes back to you at the end of the night.",
-      "waitingHint": "Confirm the request in the MB WAY app. Your balance shows up as soon as you accept.",
-      "doneTitle": "Balance loaded",
-      "doneHint": "You can bid instantly now.",
-      "close": "Close",
-      "failed": "The payment didn't go through. Try again or pick another method."
-    },
     "push": {
       "outbidTitle": "Someone outbid you",
       "outbidBody": "Someone bid more for the slot. Bid again before it closes.",
@@ -417,6 +394,25 @@
       "prompt": "We'll let you know if someone outbids you, even with the app closed.",
       "enable": "Turn on alerts",
       "later": "Not now"
-    }
+    },
+    "screenEyebrow": "Tonight's auctions",
+    "screenTitle": "Auction",
+    "slotAt": "{time} auction",
+    "upcomingTitle": "Next auctions",
+    "opensIn": "Opens in {time}",
+    "from": "From {amount}",
+    "biddingIn": "Bidding in the {name}",
+    "topNowLine": "Top bid {amount}",
+    "liveTeaser": "Auction live",
+    "enterAuction": "See auction",
+    "youOutbidShort": "You were outbid",
+    "walletTitle": "Your balance",
+    "walletRefundNow": "Refund to my payment method now",
+    "pickedBy": "Picked by {label}",
+    "pickedAnon": "Picked at auction, anonymous",
+    "djPick": "DJ's pick",
+    "djPickName": "{dj}'s pick",
+    "rankingRest": "Everyone else",
+    "place": "{place}. place, {name}, {amount}"
   }
 }

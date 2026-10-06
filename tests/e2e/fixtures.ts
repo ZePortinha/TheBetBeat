@@ -232,6 +232,7 @@ export async function auctionState(
 ): Promise<{
   open: Array<{ id: string; minNextCents: number; top: { bidId: string; totalCents: number } | null }>;
   me: { walletCents: number; bids: Array<{ slotId: string; status: string }> } | null;
+  upNext: { slotId: string } | null;
 }> {
   const token = tokenFromGuestPath(await getGuestPath(request));
   const res = await request.get(`/api/guest/auction?token=${encodeURIComponent(token)}`, {

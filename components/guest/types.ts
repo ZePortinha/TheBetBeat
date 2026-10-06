@@ -29,6 +29,13 @@ export interface NowPlayingDto {
   bpm: number | null;
   startedAt: string;
   durationSec: number | null;
+  /** Album art when we know it (catalog), for the hero background. */
+  coverUrl: string | null;
+  /**
+   * Who chose it: null = the DJ's own pick; otherwise the auction winner,
+   * shown the way they chose when bidding (label null = anonymous).
+   */
+  pickedBy: { label: string | null } | null;
 }
 
 export interface SessionStateDto {

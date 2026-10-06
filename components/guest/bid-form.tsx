@@ -102,6 +102,17 @@ export function useSavedPhoneDigits(): [string, (d: string) => void] {
   return [digits, setDigits];
 }
 
+const HANDLE_KEY = "betbeat:handle";
+
+/** The @ used last time on this phone (empty the first time). */
+function savedHandle(): string {
+  try {
+    return localStorage.getItem(HANDLE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export function BidForm({
   token,
   slot,
@@ -139,7 +150,12 @@ export function BidForm({
   );
   // Someone raised meanwhile: never sit below the new minimum.
   const effectiveTotal = Math.max(total, slot.minNextCents, trackFloorCents);
-  const [display, setDisplay] = React.useState<Display>({ mode: "anonymous" });
+  // "O meu @" is the default: bidding is social. Anonymous and table are one tap away.
+  const [display, setDisplay] = React.useState<Display>({ mode: "handle", handle: "" });
+  React.useEffect(() => {
+    const handle = savedHandle();
+    if (handle) setDisplay((d) => (d.mode === "handle" && !d.handle ? { mode: "handle", handle } : d));
+  }, []);
   const [method, setMethod] = React.useState<PaymentMethod>(methods[0] ?? "mbway");
   const [phoneDigits, setPhoneDigits] = useSavedPhoneDigits();
   const [busy, setBusy] = React.useState(false);
@@ -193,6 +209,13 @@ export function BidForm({
     );
     if (toPay > 0) consumeToken();
     setBusy(false);
+    if (res.ok && display.mode === "handle") {
+      try {
+        localStorage.setItem(HANDLE_KEY, display.handle);
+      } catch {
+        // Storage blocked: typed again next time.
+      }
+    }
     if (!res.ok) {
       // 402 = the wallet changed: the form already shows how to pay.
       if (res.status !== 402) setError(errorMessage((k, v) => tErr(k, v), res));
@@ -278,15 +301,15 @@ export function BidForm({
         <div>
           <p className="label mb-2 text-text-secondary">{t("appearAs")}</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={chip(display.mode === "anonymous")} onClick={() => setDisplay({ mode: "anonymous" })}>
-              {t("appearAnonymous")}
-            </button>
             <button
               type="button"
               className={chip(display.mode === "handle")}
-              onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : "" })}
+              onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : savedHandle() })}
             >
               {t("appearHandle")}
+            </button>
+            <button type="button" className={chip(display.mode === "anonymous")} onClick={() => setDisplay({ mode: "anonymous" })}>
+              {t("appearAnonymous")}
             </button>
             <button
               type="button"

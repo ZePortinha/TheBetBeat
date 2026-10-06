@@ -380,29 +380,6 @@ describe("money", () => {
     expect(row.rows[0]).toMatchObject({ status: "captured", captured_cents: 1500 });
   }, 60_000);
 
-  it("loading the balance first makes the next bid instant (card now, MB WAY on confirmation)", async () => {
-    const now = T0 + 2_075_000;
-    const slot = await newSlot(now);
-    const [a, b] = await Promise.all([createGuest(), createGuest()]);
-    const where = { sessionId: SESSION_ID, venueId: VENUE_ID };
-    const card = await auction.startWalletTopUp({ ...where, guestId: a, amountCents: 2000, method: "card" }, now);
-    expect(card.state).toBe("credited");
-    expect(await balance(a)).toBe(2000);
-    // No payment step: the bid comes straight out of the balance.
-    expect(await auction.placeBid({ slotId: slot, guestId: a, totalCents: 1500, target: { kind: "own", libraryTrackId: takeTrack() }, display: { mode: "anonymous" } }, now + 1000)).toMatchObject({ ok: true });
-    expect(await balance(a)).toBe(500);
-
-    const mbway = await auction.startWalletTopUp({ ...where, guestId: b, amountCents: 1000, method: "mbway", phone: takePhone() }, now + 2000);
-    expect(mbway.state).toBe("pending");
-    expect(await balance(b)).toBe(0);
-    const pay = await db.query<{ provider_ref: string }>(`select provider_ref from public.payments where intent_id = $1`, [mbway.intentId]);
-    const provider = (await getPaymentProvider()) as MockPaymentProvider;
-    await paymentsService.recordWebhook(provider.simulateMbwayConfirmation(pay.rows[0]!.provider_ref), now + 3000);
-    const intent = await db.query<{ status: string }>(`select status from public.auction_intents where id = $1`, [mbway.intentId]);
-    expect(intent.rows[0]!.status).toBe("credited");
-    expect(await balance(b)).toBe(1000);
-  }, 60_000);
-
   it("end of night: open bids come back and every wallet is refunded to its payment method", async () => {
     const now = T0 + 2_100_000;
     const slot = await newSlot(now);

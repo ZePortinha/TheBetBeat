@@ -45,23 +45,24 @@ function formatClock(totalSec: number): string {
   return `${min}:${String(sec % 60).padStart(2, "0")}`;
 }
 
-export function NowPlaying({
-  title,
-  artist,
-  coverUrl,
-  bpm,
+/** Heat-gradient progress + elapsed/total, rAF-driven (scaleX only). */
+export function TrackProgress({
   startedAt,
   durationSec,
   getNow,
-  amountCents,
-  handle,
+  labelledBy,
   className,
-}: NowPlayingProps) {
+}: {
+  startedAt: number;
+  durationSec: number;
+  getNow?: () => number;
+  /** id of the element naming the track (progressbar label). */
+  labelledBy: string;
+  className?: string;
+}) {
   const now = getNow ?? (() => Date.now());
   const getNowRef = useRef(now);
   getNowRef.current = now;
-
-  const titleId = useId();
   const fillRef = useRef<HTMLDivElement>(null);
   const [elapsedSec, setElapsedSec] = useState(() =>
     clamp((getNowRef.current() - startedAt) / 1000, 0, durationSec),
@@ -83,6 +84,49 @@ export function NowPlaying({
   }, [startedAt, durationSec]);
 
   const fraction = durationSec > 0 ? clamp(elapsedSec / durationSec, 0, 1) : 0;
+
+  return (
+    <div className={className}>
+      <div
+        className="h-1 overflow-hidden rounded-full bg-surface-3"
+        role="progressbar"
+        aria-labelledby={labelledBy}
+        aria-valuemin={0}
+        aria-valuemax={Math.round(durationSec)}
+        aria-valuenow={Math.round(elapsedSec)}
+        suppressHydrationWarning
+      >
+        <div
+          ref={fillRef}
+          className="h-full w-full origin-left will-change-transform"
+          suppressHydrationWarning
+          style={{
+            background: "var(--gradient-heat)",
+            transform: `scaleX(${fraction})`,
+          }}
+        />
+      </div>
+      <div className="tnum mt-1 flex justify-between text-xs text-text-tertiary">
+        <span suppressHydrationWarning>{formatClock(elapsedSec)}</span>
+        <span>{formatClock(durationSec)}</span>
+      </div>
+    </div>
+  );
+}
+
+export function NowPlaying({
+  title,
+  artist,
+  coverUrl,
+  bpm,
+  startedAt,
+  durationSec,
+  getNow,
+  amountCents,
+  handle,
+  className,
+}: NowPlayingProps) {
+  const titleId = useId();
   const beatPeriod = bpm && bpm > 0 ? `${(60 / bpm).toFixed(3)}s` : undefined;
 
   return (
@@ -135,31 +179,13 @@ export function NowPlaying({
       </div>
 
       {/* Progress: heat gradient, scaleX-only animation via rAF. */}
-      <div className="mt-5">
-        <div
-          className="h-1 overflow-hidden rounded-full bg-surface-3"
-          role="progressbar"
-          aria-labelledby={titleId}
-          aria-valuemin={0}
-          aria-valuemax={Math.round(durationSec)}
-          aria-valuenow={Math.round(elapsedSec)}
-          suppressHydrationWarning
-        >
-          <div
-            ref={fillRef}
-            className="h-full w-full origin-left will-change-transform"
-            suppressHydrationWarning
-            style={{
-              background: "var(--gradient-heat)",
-              transform: `scaleX(${fraction})`,
-            }}
-          />
-        </div>
-        <div className="tnum mt-1 flex justify-between text-xs text-text-tertiary">
-          <span suppressHydrationWarning>{formatClock(elapsedSec)}</span>
-          <span>{formatClock(durationSec)}</span>
-        </div>
-      </div>
+      <TrackProgress
+        className="mt-5"
+        startedAt={startedAt}
+        durationSec={durationSec}
+        {...(getNow ? { getNow } : {})}
+        labelledBy={titleId}
+      />
     </div>
   );
 }

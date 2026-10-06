@@ -61,7 +61,7 @@ export default async function GuestTrackPage({
   return (
     <main className="flex min-h-dvh flex-col gap-5 px-4 pb-[calc(var(--dock-h)+1.5rem)] pt-6">
       <BackHeader title={t("bidTitle")} backHref={searchHref} />
-      <BidScreen token={token} sessionId={resolved.ctx.sessionId} track={track} />
+      <BidScreen token={token} track={track} />
     </main>
   );
 }

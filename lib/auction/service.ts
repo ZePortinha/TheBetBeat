@@ -649,31 +649,6 @@ export async function startTopUpBid(input: TopUpInput, now: number): Promise<Top
   return chargeIntent(intentId, { sessionId: slot.session_id, venueId: slot.venue_id }, input, input.needCents, now);
 }
 
-export interface WalletTopUpInput {
-  guestId: string;
-  sessionId: string;
-  venueId: string;
-  amountCents: number;
-  method: PaymentMethod;
-  phone?: string;
-  email?: string;
-}
-
-/**
- * "Carregar saldo": money into the guest's wallet with no bid attached,
- * so the next bids are instant. Same payment path as a bid's top-up; the
- * intent ends 'credited' (and the balance is refunded at the end of the
- * night like any other, unless kept where the club allows it).
- */
-export async function startWalletTopUp(input: WalletTopUpInput, now: number): Promise<TopUpStarted> {
-  const intentRes = await getPool().query<{ id: string }>(
-    `insert into public.auction_intents (slot_id, guest_id, target_total_cents) values (null, $1, null) returning id`,
-    [input.guestId],
-  );
-  const intentId = (intentRes.rows[0] as { id: string }).id;
-  return chargeIntent(intentId, { sessionId: input.sessionId, venueId: input.venueId }, input, input.amountCents, now);
-}
-
 /** Charges an intent's money: MB WAY push (pending) or card captured at once (settled now). */
 async function chargeIntent(
   intentId: string,
@@ -1232,10 +1207,20 @@ export interface PublicWinner {
   refundAt: string;
 }
 
+export interface UpcomingSlot {
+  id: string;
+  kind: SlotRow["kind"];
+  opensAt: string;
+  closesAt: string;
+  minPriceCents: number;
+}
+
 export interface PublicAuctionState {
   serverNow: string;
   open: PublicSlot[];
-  next: { id: string; kind: SlotRow["kind"]; opensAt: string; closesAt: string; minPriceCents: number } | null;
+  next: UpcomingSlot | null;
+  /** The next few auctions of the night (next = the first one). */
+  upcoming: UpcomingSlot[];
   /** "A seguir": the winner waiting for the DJ. */
   upNext: PublicWinner | null;
   recentWinners: PublicWinner[];
@@ -1315,7 +1300,7 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
     ),
     pool.query<SlotRow>(
       `select * from public.auction_slots where session_id = $1 and status = 'scheduled'
-        order by opens_at limit 1`,
+        order by opens_at limit 4`,
       [sessionId],
     ),
     pool.query<{
@@ -1349,7 +1334,7 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
         where s.session_id = $1 and c.spent_at is not null
         group by c.guest_id
         order by spent desc
-        limit 10`,
+        limit 50`,
       [sessionId],
     ),
     pool.query<{ title: string; artist: string; bpm: string | null; camelot_key: string | null }>(
@@ -1361,7 +1346,13 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
   const now0 = nowRes.rows[0];
 
   const winners = winnersRes.rows.map((r) => winnerDto(r, config));
-  const nextRow = nextRes.rows[0];
+  const upcoming = nextRes.rows.map((s) => ({
+    id: s.id,
+    kind: s.kind,
+    opensAt: s.opens_at.toISOString(),
+    closesAt: s.closes_at.toISOString(),
+    minPriceCents: s.min_price_cents,
+  }));
   return {
     serverNow: new Date(now).toISOString(),
     open: openRes.rows.map((s) => ({
@@ -1387,15 +1378,8 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
             }
           : null,
     })),
-    next: nextRow
-      ? {
-          id: nextRow.id,
-          kind: nextRow.kind,
-          opensAt: nextRow.opens_at.toISOString(),
-          closesAt: nextRow.closes_at.toISOString(),
-          minPriceCents: nextRow.min_price_cents,
-        }
-      : null,
+    next: upcoming[0] ?? null,
+    upcoming,
     upNext: winners.find((w) => w.playStatus === "locked" || w.playStatus === "accepted") ?? null,
     recentWinners: winners.filter((w) => w.playStatus === "played" || w.playStatus === "playing").slice(0, 5),
     ranking: rankingRes.rows.map((r) => ({ label: r.label, spentCents: Number(r.spent) })),
