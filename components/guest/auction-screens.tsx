@@ -551,6 +551,7 @@ export function AuctionOverlays() {
       {flashing.length > 0 ? <div aria-hidden className="auction-flash-frame" /> : null}
       {celebrate && won ? (
         <WinCelebration
+          slotId={won.slotId}
           trackTitle={won.trackTitle}
           trackArtist={won.trackArtist}
           totalCents={won.totalCents}

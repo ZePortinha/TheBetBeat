@@ -89,6 +89,11 @@ test.describe("guest app · leilões", () => {
     // The auction closes: "Vencedor".
     await closeAuction(request, slotId);
     await expect(page.getByRole("dialog", { name: /vencedor|winner/i })).toBeVisible({ timeout: 20_000 });
+    // "Partilhar no Instagram": the story image is theirs to share.
+    await expect(page.getByRole("button", { name: /partilhar no instagram|share on instagram/i })).toBeVisible();
+    const card = await page.request.get(`/api/guest/auction/${slotId}/card?format=story`);
+    expect(card.ok()).toBeTruthy();
+    expect(card.headers()["content-type"]).toContain("image/png");
     await page.getByRole("button", { name: /^fechar$|^close$/i }).click();
 
     // The DJ plays it; "As minhas licitações" says it played.

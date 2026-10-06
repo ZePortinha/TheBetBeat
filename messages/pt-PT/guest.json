@@ -417,6 +417,10 @@
     "rankingRest": "Restantes",
     "place": "{place}.º lugar, {name}, {amount}",
     "anonymousBidder": "Licitante anónimo",
-    "leadsWith": "{name} à frente com {amount}"
+    "leadsWith": "{name} à frente com {amount}",
+    "shareInstagram": "Partilhar no Instagram",
+    "shareTitle": "Vencedor do leilão",
+    "shareSaved": "Imagem guardada. Abre o Instagram e publica nas Stories.",
+    "shareError": "Não conseguimos abrir a partilha. Tenta outra vez."
   }
 }

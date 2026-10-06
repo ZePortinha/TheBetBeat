@@ -11,9 +11,10 @@
 import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
-import { Crown } from "lucide-react";
+import { Crown, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
+import { toast } from "@/components/ui/toast";
 
 function useCountUp(target: number, ms: number, run: boolean): number {
   const [value, setValue] = React.useState(run ? 0 : target);
@@ -32,13 +33,39 @@ function useCountUp(target: number, ms: number, run: boolean): number {
   return value;
 }
 
+/**
+ * "Partilhar no Instagram": the story image (1080×1920) into the phone's
+ * share sheet, where Instagram Stories / Feed live. No share sheet (desktop):
+ * the image is saved instead.
+ */
+async function shareWin(slotId: string, title: string): Promise<"shared" | "saved"> {
+  const res = await fetch(`/api/guest/auction/${slotId}/card?format=story`);
+  if (!res.ok) throw new Error("card");
+  const blob = await res.blob();
+  const file = new File([blob], "betbeat-vencedor.png", { type: "image/png" });
+  const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+  if (typeof nav.share === "function" && nav.canShare?.({ files: [file] })) {
+    await nav.share({ files: [file], title });
+    return "shared";
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return "saved";
+}
+
 export function WinCelebration({
+  slotId,
   trackTitle,
   trackArtist,
   totalCents,
   coverUrl,
   onClose,
 }: {
+  slotId: string;
   trackTitle: string;
   trackArtist: string;
   totalCents: number;
@@ -49,6 +76,19 @@ export function WinCelebration({
   const reduced = useReducedMotion() ?? false;
   const stage = React.useRef<HTMLDivElement>(null);
   const amount = useCountUp(totalCents, 1100, !reduced);
+  const [sharing, setSharing] = React.useState(false);
+
+  async function share() {
+    setSharing(true);
+    try {
+      if ((await shareWin(slotId, t("shareTitle"))) === "saved") toast({ title: t("shareSaved") });
+    } catch (error) {
+      // Closing the share sheet is not an error.
+      if ((error as Error).name !== "AbortError") toast({ title: t("shareError"), variant: "error" });
+    } finally {
+      setSharing(false);
+    }
+  }
 
   React.useEffect(() => {
     if (reduced || !stage.current) return;
@@ -116,12 +156,16 @@ export function WinCelebration({
           </motion.div>
         </div>
         <motion.div
-          className="w-full max-w-xs"
+          className="flex w-full max-w-xs flex-col gap-2"
           initial={reduced ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 1.4 }}
         >
-          <Button size="lg" fullWidth onPress={onClose}>
+          <Button size="lg" fullWidth loading={sharing} onPress={() => void share()}>
+            <Instagram size={20} aria-hidden />
+            {t("shareInstagram")}
+          </Button>
+          <Button size="lg" variant="secondary" fullWidth onPress={onClose}>
             {t("winClose")}
           </Button>
         </motion.div>

@@ -1,10 +1,9 @@
-import { ImageResponse } from "next/og";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
-import { ShareCard, SHARE_CARD_SIZES } from "@/components/ui/share-card";
 import { apiError, rateLimitedResponse } from "../../../_lib/http";
 import { getGuestIdentity } from "../../../_lib/auth";
+import { shareCardResponse } from "../../../_lib/share-card";
 
 export const dynamic = "force-dynamic";
 
@@ -63,38 +62,14 @@ export async function GET(
   const locale = row.locale === "en" ? "en" : "pt-PT";
   const headline = locale === "en" ? "My song played" : "A minha música tocou";
 
-  const playedAt = row.played_at ?? new Date();
-  const fmt = new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Lisbon",
+  return shareCardResponse({
+    format: query.data.format,
+    headline,
+    trackTitle: row.track_title,
+    trackArtist: row.track_artist,
+    coverUrl: row.cover_url,
+    venueName: row.venue_name,
+    at: row.played_at ?? new Date(),
+    locale,
   });
-  // e.g. "sáb., 21 de set., 01:24" → normalize to "sáb · 21 set · 01:24"
-  const dateTimeLabel = fmt
-    .format(playedAt)
-    .replace(/[.,]/g, "")
-    .replace(/\sde\s/g, " ")
-    .split(/\s+/)
-    .join(" ")
-    .replace(/^(\S+)\s(.+)\s(\d{2}:\d{2})$/, "$1 · $2 · $3");
-
-  const { width, height } = SHARE_CARD_SIZES[query.data.format];
-
-  return new ImageResponse(
-    (
-      <ShareCard
-        format={query.data.format}
-        headline={headline}
-        trackTitle={row.track_title}
-        trackArtist={row.track_artist}
-        coverUrl={row.cover_url}
-        venueName={row.venue_name}
-        dateTimeLabel={dateTimeLabel}
-      />
-    ),
-    { width, height },
-  );
 }

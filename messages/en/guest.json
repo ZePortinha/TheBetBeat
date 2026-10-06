@@ -417,6 +417,10 @@
     "rankingRest": "Everyone else",
     "place": "{place}. place, {name}, {amount}",
     "anonymousBidder": "Anonymous bidder",
-    "leadsWith": "{name} leads with {amount}"
+    "leadsWith": "{name} leads with {amount}",
+    "shareInstagram": "Share on Instagram",
+    "shareTitle": "Auction winner",
+    "shareSaved": "Image saved. Open Instagram and post it to your Stories.",
+    "shareError": "We couldn't open sharing. Try again."
   }
 }
