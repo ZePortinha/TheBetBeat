@@ -79,6 +79,11 @@ export function buildRefundMessage(
 
 const REFUND_EMAIL_SUBJECT_PT = "BetBeat — reembolso do teu pedido";
 
+/** SMS body for the guest phone sign-in code. */
+export function buildLoginCodeMessage(code: string): string {
+  return `BetBeat: o teu código é ${code}. Expira em 5 minutos. Não o partilhes.`;
+}
+
 // ---------------------------------------------------------------------------
 // Provider factories (lazy env import, singletons)
 // ---------------------------------------------------------------------------

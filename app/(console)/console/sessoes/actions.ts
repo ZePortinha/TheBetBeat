@@ -17,7 +17,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { query, withTransaction } from "@/lib/db";
 import { parseSessionConfig, MIN_TIER_STEP_CENTS } from "@/lib/domain/config";
+import { parsePtMobiles } from "@/lib/domain/phone";
 import { endSession } from "@/lib/domain/service";
+import { encrypt, hashPhone } from "@/lib/security/crypto";
 import { assertVenueAccess, audit, requireConsole } from "../_lib/context";
 
 /* ------------------------------------------------------------------ */
@@ -309,4 +311,90 @@ export async function endSessionAction(formData: FormData): Promise<void> {
   await audit(ctx, "session.ended_via_console", "session", parsed.data.sessionId, row.venue_id);
   revalidatePath("/console/sessoes");
   redirect("/console/sessoes?ended=1");
+}
+
+/* ------------------------------------------------------------------ */
+/* Party guest list (2026-10-05)                                       */
+/* ------------------------------------------------------------------ */
+
+const MAX_GUEST_LIST_ADD = 500;
+
+export type GuestListState = {
+  added?: number;
+  /** Entries that are not PT mobile numbers, echoed back for fixing. */
+  invalid?: string[];
+  error?: "invalid" | "ended" | "tooMany";
+} | null;
+
+/** Venue-scoped session lookup; redirects away from foreign sessions. */
+async function ownSession(ctx: Awaited<ReturnType<typeof requireConsole>>, sessionId: string) {
+  const res = await query<{ venue_id: string; status: string }>(
+    `select venue_id, status from public.sessions where id = $1`,
+    [sessionId],
+  );
+  const row = res.rows[0];
+  if (!row || !ctx.venues.some((v) => v.id === row.venue_id)) redirect("/console/sessoes");
+  return row;
+}
+
+const guestListAddSchema = z
+  .object({ sessionId: z.string().uuid(), phones: z.string().max(20_000) })
+  .strict();
+
+export async function addGuestListAction(
+  _prev: GuestListState,
+  formData: FormData,
+): Promise<GuestListState> {
+  const ctx = await requireConsole("/console/sessoes");
+  const parsed = guestListAddSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+    phones: formData.get("phones"),
+  });
+  if (!parsed.success) return { error: "invalid" };
+  const { sessionId } = parsed.data;
+  const session = await ownSession(ctx, sessionId);
+  if (session.status === "ended") return { error: "ended" };
+
+  const { valid, invalid } = parsePtMobiles(parsed.data.phones);
+  if (valid.length > MAX_GUEST_LIST_ADD) return { error: "tooMany" };
+  if (valid.length === 0) return invalid.length > 0 ? { added: 0, invalid } : { error: "invalid" };
+
+  // Encrypted number + salted hash (B12.5); duplicates are ignored.
+  const res = await query(
+    `insert into public.session_guest_list (session_id, phone_hash, phone_encrypted)
+     select $1, h, e from unnest($2::text[], $3::text[]) as t(h, e)
+     on conflict (session_id, phone_hash) do nothing`,
+    [sessionId, valid.map(hashPhone), valid.map(encrypt)],
+  );
+  const added = res.rowCount ?? 0;
+  await audit(ctx, "session.guest_list_added", "session", sessionId, session.venue_id, {
+    added,
+    invalid: invalid.length,
+  });
+  revalidatePath(`/console/sessoes/${sessionId}`);
+  return { added, invalid };
+}
+
+const guestListRemoveSchema = z
+  .object({ sessionId: z.string().uuid(), entryId: z.string().uuid() })
+  .strict();
+
+export async function removeGuestListAction(formData: FormData): Promise<void> {
+  const ctx = await requireConsole("/console/sessoes");
+  const parsed = guestListRemoveSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+    entryId: formData.get("entryId"),
+  });
+  if (!parsed.success) redirect("/console/sessoes");
+  const { sessionId, entryId } = parsed.data;
+  const session = await ownSession(ctx, sessionId);
+
+  await query(`delete from public.session_guest_list where id = $1 and session_id = $2`, [
+    entryId,
+    sessionId,
+  ]);
+  await audit(ctx, "session.guest_list_removed", "session", sessionId, session.venue_id, {
+    entryId,
+  });
+  revalidatePath(`/console/sessoes/${sessionId}`);
 }

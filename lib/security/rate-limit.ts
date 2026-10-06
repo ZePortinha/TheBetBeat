@@ -59,4 +59,6 @@ export const LIMITS = {
   quote: { limit: 30, windowMs: 60_000 }, // per guest
   payment: { limit: 10, windowMs: 60_000 }, // per guest
   login: { limit: 10, windowMs: 10 * 60_000 }, // per IP
+  smsCode: { limit: 3, windowMs: 10 * 60_000 }, // per guest and per number
+  smsVerify: { limit: 10, windowMs: 10 * 60_000 }, // per guest
 } as const;

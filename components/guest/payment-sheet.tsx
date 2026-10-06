@@ -71,6 +71,7 @@ export function PaymentSheet({
     locale === "pt-PT" ? "mbway" : "apple_pay",
   );
   const [phoneDigits, setPhoneDigits] = React.useState("");
+  const [savedDigits, setSavedDigits] = React.useState<string | null>(null);
   const [showNif, setShowNif] = React.useState(false);
   const [nif, setNif] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -99,6 +100,21 @@ export function PaymentSheet({
     }
   }, [open]);
 
+  // Pre-fill MB WAY with the saved number (phone sign-in or last payment).
+  React.useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void apiFetch<{ phone: string | null }>("/api/guest/phone").then((res) => {
+      const saved = res.ok && res.data.phone?.startsWith("+351") ? res.data.phone.slice(4) : null;
+      if (cancelled || !saved) return;
+      setSavedDigits(saved);
+      setPhoneDigits((typed) => typed || saved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   // While an MB WAY push is out: poll the request until it settles.
   React.useEffect(() => {
     if (phase !== "waiting" || !requestId) return;
@@ -109,15 +125,21 @@ export function PaymentSheet({
         const status = res.data.status;
         if (status === "paid" || status === "accepted" || status === "playing") {
           setPhase("confirmed");
+        } else if (res.data.payment?.status === "failed") {
+          // A declined push also expires the request: check the payment first.
+          setPhase("failed");
         } else if (status === "expired") {
           setPhase("expired");
-        } else if (res.data.payment?.status === "failed") {
-          setPhase("failed");
         }
       })();
     }, 2500);
     return () => clearInterval(id);
   }, [phase, requestId]);
+
+  // The parent passes inline callbacks and re-renders every second (quote
+  // countdown): keep them in a ref so the hand-off timer is not restarted.
+  const handoffRef = React.useRef({ onOpenChange, onTracked });
+  handoffRef.current = { onOpenChange, onTracked };
 
   // Confirmed: play the animation, then hand off to tracking.
   React.useEffect(() => {
@@ -126,11 +148,11 @@ export function PaymentSheet({
       navigator.vibrate?.(30);
     }
     const id = setTimeout(() => {
-      onOpenChange(false);
-      onTracked(requestId);
+      handoffRef.current.onOpenChange(false);
+      handoffRef.current.onTracked(requestId);
     }, 1200);
     return () => clearTimeout(id);
-  }, [phase, requestId, onOpenChange, onTracked]);
+  }, [phase, requestId]);
 
   async function confirm() {
     setSubmitting(true);
@@ -183,7 +205,7 @@ export function PaymentSheet({
           <>
             <div className="flex items-center justify-between">
               <span className="text-sm text-text-secondary">{t("total")}</span>
-              <span className="tnum text-2xl font-bold text-gold-500">
+              <span className="tnum text-2xl font-bold text-accent-400">
                 {formatEurosDisplay(totalCents)}
               </span>
             </div>
@@ -198,7 +220,7 @@ export function PaymentSheet({
                   onPress={() => setMethod(m)}
                   className={`flex items-center gap-2 rounded-button border px-3 py-3 text-base font-semibold ${
                     method === m
-                      ? "border-gold-500 bg-surface-2 text-text-primary"
+                      ? "border-accent-500 bg-surface-2 text-text-primary"
                       : "border-line-subtle bg-surface-1 text-text-secondary"
                   }`}
                 >
@@ -213,7 +235,7 @@ export function PaymentSheet({
                 <label className="label mb-1 block text-text-tertiary" htmlFor="mbway-phone">
                   {t("phoneLabel")}
                 </label>
-                <div className="flex items-center gap-2 rounded-button border border-line-subtle bg-surface-3 px-4 py-3 focus-within:border-gold-500">
+                <div className="flex items-center gap-2 rounded-button border border-line-subtle bg-surface-3 px-4 py-3 focus-within:border-accent-500">
                   <span className="tnum text-base text-text-secondary">+351</span>
                   <input
                     id="mbway-phone"
@@ -229,6 +251,8 @@ export function PaymentSheet({
                 </div>
                 {phoneDigits.length > 0 && !phoneValid ? (
                   <p className="mt-1 text-sm text-amber-500">{t("phoneInvalid")}</p>
+                ) : phoneDigits === savedDigits ? (
+                  <p className="mt-1 text-sm text-text-tertiary">{t("phoneSaved")}</p>
                 ) : null}
               </div>
             ) : (
@@ -256,7 +280,7 @@ export function PaymentSheet({
                     maxLength={9}
                     value={nif}
                     onChange={(e) => setNif(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                    className="tnum w-full rounded-button border border-line-subtle bg-surface-3 px-4 py-3 text-base text-text-primary outline-none focus:border-gold-500"
+                    className="tnum w-full rounded-button border border-line-subtle bg-surface-3 px-4 py-3 text-base text-text-primary outline-none focus:border-accent-500"
                     aria-invalid={nif.length === 9 && !nifLooksValid(nif)}
                   />
                   {nif.length === 9 && !nifLooksValid(nif) ? (
@@ -273,7 +297,7 @@ export function PaymentSheet({
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-button border border-line-subtle bg-surface-3 px-4 py-3 text-base text-text-primary outline-none focus:border-gold-500"
+                    className="w-full rounded-button border border-line-subtle bg-surface-3 px-4 py-3 text-base text-text-primary outline-none focus:border-accent-500"
                     aria-invalid={!emailValid}
                   />
                   {!emailValid ? (
@@ -367,7 +391,7 @@ function MbwayWait({ remainingMs }: { remainingMs: number }) {
   const seconds = total % 60;
   return (
     <div className="flex flex-col items-center">
-      <Smartphone size={20} strokeWidth={1.75} className="animate-pulse text-gold-500" aria-hidden />
+      <Smartphone size={20} strokeWidth={1.75} className="animate-pulse text-accent-400" aria-hidden />
       <span className="tnum mt-1 text-sm font-semibold text-text-primary">
         {minutes}:{String(seconds).padStart(2, "0")}
       </span>

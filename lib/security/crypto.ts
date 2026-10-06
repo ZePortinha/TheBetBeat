@@ -3,6 +3,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   randomBytes,
 } from "node:crypto";
 import { env } from "@/lib/security/env";
@@ -36,6 +37,13 @@ export function hashPhone(phoneE164: string): string {
   return createHash("sha256")
     .update(env.QR_TOKEN_SECRET) // static salt, separate from the DB
     .update(phoneE164)
+    .digest("hex");
+}
+
+/** Keyed hash of an SMS sign-in code, bound to the guest and the number. */
+export function hashSmsCode(code: string, guestId: string, phoneHash: string): string {
+  return createHmac("sha256", env.QR_TOKEN_SECRET)
+    .update(`${guestId}:${phoneHash}:${code}`)
     .digest("hex");
 }
 
