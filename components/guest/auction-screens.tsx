@@ -48,6 +48,66 @@ function SpecialChip() {
   );
 }
 
+/** Deezer serves any square size: ask for a big one when the art is the background. */
+export function largeCover(url: string): string {
+  return url.replace(/\/\d+x\d+-/, "/1000x1000-");
+}
+
+/** Album art, or the disc when we do not have it. */
+function Cover({ url, seed, className }: { url: string | null; seed: string; className: string }) {
+  return url ? (
+    // eslint-disable-next-line @next/next/no-img-element -- catalog covers come from the provider's CDN
+    <img src={url} alt="" className={cx("rounded-cover object-cover", className)} />
+  ) : (
+    <Disc seed={seed} className={className} />
+  );
+}
+
+/**
+ * Who leads, as big as it gets: the @ as the headline above, the album art
+ * large and clean below it, then the track and the amount. Leading
+ * yourself turns it gold: the pride is the point.
+ */
+function LeaderSpotlight({ top, mine }: { top: NonNullable<PublicSlot["top"]>; mine: boolean }) {
+  const t = useTranslations("guest.auction");
+  return (
+    <div
+      className={cx(
+        "mt-4 rounded-card bg-surface-2 p-4",
+        mine ? "leader-mine ring-2 ring-amber-500" : "ring-1 ring-line-strong",
+      )}
+    >
+      <p className={cx("label flex items-center gap-1.5", mine ? "text-amber-500" : "text-text-secondary")}>
+        <Crown size={16} aria-hidden />
+        {mine ? t("youLead") : t("leader")}
+      </p>
+      <p className={cx("mt-1 break-words text-4xl font-bold", mine ? "leader-name-mine" : "text-text-primary")}>
+        {top.by ?? t("anonymousBidder")}
+      </p>
+      <div className="mt-3 aspect-square w-full overflow-hidden rounded-cover bg-surface-3">
+        {top.coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- catalog covers come from the provider's CDN
+          <img src={largeCover(top.coverUrl)} alt="" className="size-full object-cover" />
+        ) : (
+          <div aria-hidden className="ambient-center flex size-full items-center justify-center">
+            <Disc seed={top.trackTitle} className="size-2/3" />
+          </div>
+        )}
+      </div>
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-lg font-semibold text-text-primary">{top.trackTitle}</p>
+          <p className="truncate text-sm text-text-secondary">{top.trackArtist}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="tnum text-3xl font-bold text-accent-400">{formatEurosDisplay(top.totalCents)}</p>
+          <p className="text-xs text-text-tertiary">{t("backers", { count: top.backers })}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** "Leilão das 23:30" (or "Especial"): how an auction is named everywhere. */
 function slotName(slot: { kind: string; opensAt: string }, t: (key: string, v?: Record<string, string>) => string, locale: string) {
   return slot.kind !== "regular" ? t("special") : t("slotAt", { time: clockTime(slot.opensAt, locale) });
@@ -99,7 +159,7 @@ function AuctionCard({
 
       <p
         className={cx(
-          "tnum mt-3 text-[clamp(3rem,16vw,4.25rem)] font-bold leading-none tracking-[var(--tracking-display)]",
+          "tnum mt-3 text-5xl font-bold",
           finalStretch ? "auction-flash-text" : lastMinute ? "text-ember-500 motion-safe:animate-pulse" : "text-text-primary",
         )}
         aria-live="off"
@@ -110,31 +170,15 @@ function AuctionCard({
         {ended ? t("closing") : lastMinute ? t("lastMinute") : t("closesAt", { time: clockTime(slot.closesAt, locale) })}
       </p>
 
-      <div className="mt-4 flex items-center gap-3 rounded-card bg-surface-2 p-3">
-        {top ? (
-          <>
-            <Disc seed={top.trackTitle} className="size-14 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold text-text-primary">{top.trackTitle}</p>
-              <p className="truncate text-sm text-text-secondary">{top.trackArtist}</p>
-              <p className="truncate text-xs text-text-tertiary">
-                {top.label ?? t("leader")} · {t("backers", { count: top.backers })}
-              </p>
-            </div>
-            <p className="tnum shrink-0 text-2xl font-bold text-accent-400">{formatEurosDisplay(top.totalCents)}</p>
-          </>
-        ) : (
-          <p className="w-full py-2 text-center text-sm text-text-secondary">
-            {t("noBids", { amount: formatEurosDisplay(slot.minPriceCents) })}
-          </p>
-        )}
-      </div>
-
-      {mine ? (
-        <p className={cx("mt-3 text-sm font-semibold", leading ? "text-accent-400" : "text-ember-500")}>
-          {leading ? t("youLead") : t("youOutbid")}
+      {top ? (
+        <LeaderSpotlight top={top} mine={leading} />
+      ) : (
+        <p className="mt-4 rounded-card bg-surface-2 px-4 py-6 text-center text-base text-text-secondary">
+          {t("noBids", { amount: formatEurosDisplay(slot.minPriceCents) })}
         </p>
-      ) : null}
+      )}
+
+      {mine && !leading ? <p className="mt-3 text-sm font-semibold text-ember-500">{t("youOutbid")}</p> : null}
 
       <div className={cx("mt-4 flex flex-col gap-2", ended && "hidden")}>
         {!mine ? (
@@ -394,7 +438,7 @@ export function AuctionTeaser({ token }: { token: string }) {
           </p>
           <p className="mt-1 truncate text-sm text-text-secondary">
             {slot.top
-              ? t("topNowLine", { amount: formatEurosDisplay(slot.top.totalCents) })
+              ? t("leadsWith", { name: slot.top.by ?? t("anonymousBidder"), amount: formatEurosDisplay(slot.top.totalCents) })
               : t("from", { amount: formatEurosDisplay(slot.minPriceCents) })}
           </p>
           {mine ? (
@@ -443,12 +487,12 @@ function WinnerRow({ w, highlight }: { w: PublicWinner; highlight?: boolean }) {
         highlight ? "border-accent-500/60 bg-surface-2" : "border-line-subtle bg-surface-1",
       )}
     >
-      <Disc seed={w.trackTitle} className="size-12 shrink-0" />
+      <Cover url={w.coverUrl} seed={w.trackTitle} className="size-14 shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-base font-semibold text-text-primary">{w.trackTitle}</p>
         <p className="truncate text-sm text-text-secondary">{w.trackArtist}</p>
         <p className="truncate text-xs text-text-tertiary">
-          {w.label ?? t("anonymous")}
+          {w.by ?? t("anonymous")}
           {highlight ? ` · ${t("playBy", { time: clockTime(w.playBy, locale) })}` : ""}
         </p>
       </div>

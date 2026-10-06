@@ -160,10 +160,10 @@ export function PartyHeading({
   return (
     <div>
       {eyebrow ? <p className="label flex items-center gap-1.5 text-accent-400">{eyebrow}</p> : null}
-      <h1 className="mt-1.5 break-words text-[clamp(2rem,9vw,2.6rem)] font-bold leading-[1.05] tracking-[var(--tracking-display)] text-text-primary">
+      <h1 className="mt-1 break-words text-3xl font-bold text-text-primary">
         {title}
       </h1>
-      {sub ? <p className="mt-2 text-base leading-relaxed text-text-secondary">{sub}</p> : null}
+      {sub ? <p className="mt-1.5 text-base text-text-secondary">{sub}</p> : null}
     </div>
   );
 }

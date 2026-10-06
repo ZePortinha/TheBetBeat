@@ -13,7 +13,7 @@ export default async function GuestLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();
   return (
-    <div className="relative isolate mx-auto w-full max-w-md">
+    <div className="guest-type relative isolate mx-auto w-full max-w-md">
       <div aria-hidden className="ambient pointer-events-none fixed inset-0 -z-10" />
       <BootIntro />
       <GuestProviders locale={locale}>{children}</GuestProviders>

@@ -288,7 +288,7 @@
     "handle_taken": "That @ belongs to another number. If it is yours, sign in with your number in the account to get it back, or pick another."
   },
   "auction": {
-    "dockCta": "Bid with a track",
+    "dockCta": "Bid a track",
     "myBidsLink": "My bids",
     "bidTitle": "Bid",
     "openTitle": "Auction open",
@@ -415,6 +415,8 @@
     "djPick": "DJ's pick",
     "djPickName": "{dj}'s pick",
     "rankingRest": "Everyone else",
-    "place": "{place}. place, {name}, {amount}"
+    "place": "{place}. place, {name}, {amount}",
+    "anonymousBidder": "Anonymous bidder",
+    "leadsWith": "{name} leads with {amount}"
   }
 }

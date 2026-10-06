@@ -6,6 +6,8 @@ const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Dev only: testing on a phone through a temporary cloudflared tunnel.
+  allowedDevOrigins: ["*.trycloudflare.com"],
   // Security headers that do not depend on a per-request nonce.
   // CSP (with nonce) is set in middleware.ts.
   async headers() {

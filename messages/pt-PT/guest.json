@@ -288,7 +288,7 @@
     "handle_taken": "Esse @ já pertence a outro número. Se é teu, entra com o teu número na conta para o recuperar, ou escolhe outro."
   },
   "auction": {
-    "dockCta": "Licitar com uma faixa",
+    "dockCta": "Licitar faixa",
     "myBidsLink": "As minhas licitações",
     "bidTitle": "Licitar",
     "openTitle": "Leilão aberto",
@@ -415,6 +415,8 @@
     "djPick": "Escolha do DJ",
     "djPickName": "Escolha de {dj}",
     "rankingRest": "Restantes",
-    "place": "{place}.º lugar, {name}, {amount}"
+    "place": "{place}.º lugar, {name}, {amount}",
+    "anonymousBidder": "Licitante anónimo",
+    "leadsWith": "{name} à frente com {amount}"
   }
 }

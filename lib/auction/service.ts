@@ -1198,8 +1198,12 @@ export interface PublicSlot {
     totalCents: number;
     trackTitle: string;
     trackArtist: string;
-    /** Shown only from the screen-name tier (50 € by default). */
+    /** Shown only from the screen-name tier (50 € by default): the venue screen. */
     label: string | null;
+    /** How the leader chose to appear (@ / table; null = anonymous): the guest app. */
+    by: string | null;
+    /** Album art when we know it. */
+    coverUrl: string | null;
     backers: number;
   } | null;
 }
@@ -1209,7 +1213,11 @@ export interface PublicWinner {
   kind: SlotRow["kind"];
   trackTitle: string;
   trackArtist: string;
+  /** Venue screen: from the screen-name tier only. */
   label: string | null;
+  /** Guest app: how the winner chose to appear (null = anonymous). */
+  by: string | null;
+  coverUrl: string | null;
   totalCents: number;
   playStatus: NonNullable<SlotRow["play_status"]>;
   recognition: string | null;
@@ -1260,6 +1268,7 @@ function winnerDto(
     track_title: string;
     track_artist: string;
     display_label: string | null;
+    cover_url: string | null;
     total_cents: number;
     play_status: NonNullable<SlotRow["play_status"]>;
     recognition: string | null;
@@ -1274,6 +1283,8 @@ function winnerDto(
     trackTitle: r.track_title,
     trackArtist: r.track_artist,
     label: r.total_cents >= config.recognition.screenNameCents ? r.display_label : null,
+    by: r.display_label,
+    coverUrl: r.cover_url,
     totalCents: r.total_cents,
     playStatus: r.play_status,
     recognition: r.recognition,
@@ -1297,14 +1308,20 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
   const { config } = night;
 
   const [openRes, nextRes, winnersRes, rankingRes, nowRes] = await Promise.all([
-    pool.query<SlotRow & { bids: number; top_id: string | null; top_total: number | null; top_title: string | null; top_artist: string | null; top_label: string | null; backers: number | null }>(
+    pool.query<SlotRow & { bids: number; top_id: string | null; top_total: number | null; top_title: string | null; top_artist: string | null; top_label: string | null; top_cover: string | null; backers: number | null }>(
       `select s.*, coalesce(c.n, 0)::int as bids,
               b.id as top_id, b.total_cents as top_total, b.track_title as top_title,
               b.track_artist as top_artist, b.display_label as top_label,
+              coalesce(ct.cover_url,
+                       (select t.cover_url from public.tracks t
+                         where lower(t.title) = lower(b.track_title) and lower(t.artist) = lower(b.track_artist)
+                           and t.cover_url is not null
+                         limit 1)) as top_cover,
               (select count(distinct guest_id) from public.auction_contributions
                 where bid_id = b.id and returned_at is null)::int as backers
          from public.auction_slots s
          left join public.auction_bids b on b.slot_id = s.id and b.status = 'leading'
+         left join public.tracks ct on ct.id = b.catalog_track_id
          left join lateral (select count(*) as n from public.auction_contributions where slot_id = s.id) c on true
         where s.session_id = $1 and s.status = 'open'
         order by s.closes_at`,
@@ -1321,15 +1338,22 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
       track_title: string;
       track_artist: string;
       display_label: string | null;
+      cover_url: string | null;
       total_cents: number;
       play_status: NonNullable<SlotRow["play_status"]>;
       recognition: string | null;
       closed_at: Date;
     }>(
       `select s.id as slot_id, s.kind, b.track_title, b.track_artist, b.display_label, b.total_cents,
-              s.play_status, s.recognition, s.closed_at
+              s.play_status, s.recognition, s.closed_at,
+              coalesce(ct.cover_url,
+                       (select t.cover_url from public.tracks t
+                         where lower(t.title) = lower(b.track_title) and lower(t.artist) = lower(b.track_artist)
+                           and t.cover_url is not null
+                         limit 1)) as cover_url
          from public.auction_slots s
          join public.auction_bids b on b.id = s.winning_bid_id
+         left join public.tracks ct on ct.id = b.catalog_track_id
         where s.session_id = $1 and s.play_status is not null
         order by s.closed_at desc
         limit 12`,
@@ -1386,6 +1410,8 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
               trackTitle: s.top_title ?? "",
               trackArtist: s.top_artist ?? "",
               label: s.top_total >= config.recognition.screenNameCents ? s.top_label : null,
+              by: s.top_label,
+              coverUrl: s.top_cover,
               backers: s.backers ?? 1,
             }
           : null,

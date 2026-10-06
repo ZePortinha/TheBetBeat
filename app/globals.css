@@ -54,6 +54,68 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/*
+ * Guest app type scale (2026-10-06): the iOS sizes (caption 12, subhead
+ * 15, body 17, title 20/22/28, large title 34) with leading that tightens
+ * and tracking that turns negative as text grows, so every screen shares
+ * one rhythm. Scoped through Tailwind's own variables: every text-* in the
+ * guest app (and its sheets, portalled to <body>) follows it; the cockpit,
+ * console and venue screen keep their dense scale.
+ */
+.guest-type,
+body:has(.guest-type) {
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.35;
+  --text-xs--letter-spacing: 0;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4;
+  --text-sm--letter-spacing: -0.01em;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.45;
+  --text-base--letter-spacing: -0.016em;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.3;
+  --text-lg--letter-spacing: -0.017em;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.25;
+  --text-xl--letter-spacing: -0.019em;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.15;
+  --text-2xl--letter-spacing: -0.021em;
+  --text-3xl: 2.125rem;
+  --text-3xl--line-height: 1.1;
+  --text-3xl--letter-spacing: -0.022em;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.05;
+  --text-4xl--letter-spacing: -0.024em;
+  --text-5xl: 3.5rem;
+  --text-5xl--line-height: 1;
+  --text-5xl--letter-spacing: -0.026em;
+}
+
+/* Leading the auction yourself: a gold frame and a gold @ (motion-safe glow). */
+.leader-mine {
+  box-shadow: 0 0 0 1px rgba(255, 159, 10, 0.4), 0 12px 48px rgba(255, 159, 10, 0.28);
+}
+.leader-name-mine {
+  background: linear-gradient(100deg, #ffd60a 0%, var(--color-amber-500) 45%, #ffd60a 90%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 28px rgba(255, 159, 10, 0.35);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .leader-name-mine {
+    animation: leader-shine 3.2s linear infinite;
+  }
+}
+@keyframes leader-shine {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 /* Prices, times, BPM: tabular figures (B10.3). */
 .tnum {
   font-variant-numeric: tabular-nums;

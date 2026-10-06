@@ -51,8 +51,8 @@ test.describe("guest app · leilões", () => {
       await locator.click();
     };
 
-    // 1. "Licitar com uma faixa" on the live auction (home).
-    await tap(page.getByRole("button", { name: /^licitar com uma faixa$|^bid with a track$/i }));
+    // 1. "Licitar faixa" on the live auction (home).
+    await tap(page.getByRole("button", { name: /^licitar faixa$|^bid a track$/i }));
     await expect(page).toHaveURL(/\/search$/);
     // 2. A track.
     await tap(page.getByRole("button").filter({ hasText: /^.*licitar$|bid$/i }).first());
@@ -121,7 +121,7 @@ test.describe("guest app · leilões", () => {
   test("MB WAY recusado: nada cobrado, a licitação não entra", async ({ page, request }) => {
     await openAuction(request, 600);
     await openGuest(page);
-    await page.getByRole("button", { name: /^licitar com uma faixa$|^bid with a track$/i }).click();
+    await page.getByRole("button", { name: /^licitar faixa$|^bid a track$/i }).click();
     // Wait for the search page: the home button also ends in "licitar".
     await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
@@ -160,7 +160,7 @@ test.describe("guest app · leilões", () => {
   test("QR inválido mostra erro amigável, sem CTA", async ({ page }) => {
     await page.goto("/s/not-a-real-token.aaaa");
     await expect(page.getByText(/este qr já não é válido|no longer valid/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /licitar com uma faixa|bid with a track/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /licitar faixa|bid a track/i })).toHaveCount(0);
   });
 
   test("axe: início e licitação sem violações graves", async ({ page, request }) => {
@@ -169,7 +169,7 @@ test.describe("guest app · leilões", () => {
     const home = await new AxeBuilder({ page }).analyze();
     expect(home.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
 
-    await page.getByRole("button", { name: /^licitar com uma faixa$|^bid with a track$/i }).click();
+    await page.getByRole("button", { name: /^licitar faixa$|^bid a track$/i }).click();
     // Wait for the search page: the home button also ends in "licitar".
     await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
@@ -190,7 +190,7 @@ test.describe("guest app · leilões", () => {
         () => document.getAnimations().filter((a) => a.playState === "running").length,
       );
       expect(animated).toBe(0);
-      await page.getByRole("button", { name: /licitar com uma faixa|bid with a track/i }).click();
+      await page.getByRole("button", { name: /licitar faixa|bid a track/i }).click();
       await expect(page).toHaveURL(/\/search$/);
     });
   });

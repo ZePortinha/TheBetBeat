@@ -54,7 +54,7 @@ function Intro({
       >
         <Icon size={28} strokeWidth={2} aria-hidden />
       </span>
-      <h2 className="mt-5 text-[1.75rem] font-bold leading-tight tracking-[var(--tracking-heading)] text-text-primary">
+      <h2 className="mt-5 text-2xl font-bold text-text-primary">
         {title}
       </h2>
       <p className="mt-2 max-w-[34ch] text-base leading-relaxed text-text-secondary">{hint}</p>
@@ -171,7 +171,7 @@ export function PhoneLoginScreen({ token }: { token?: string }) {
               {t("phoneLabel")}
             </label>
             <div className={`${field} flex items-center gap-3 px-4`}>
-              <span className="tnum text-[1.0625rem] text-text-secondary">+351</span>
+              <span className="tnum text-base text-text-secondary">+351</span>
               <input
                 id="login-phone"
                 type="tel"
@@ -181,7 +181,7 @@ export function PhoneLoginScreen({ token }: { token?: string }) {
                 value={digits}
                 onChange={(e) => setDigits(e.target.value.replace(/\D/g, "").slice(0, 9))}
                 aria-invalid={digits.length > 0 && !phoneValid}
-                className="tnum min-w-0 flex-1 bg-transparent text-[1.0625rem] outline-none"
+                className="tnum min-w-0 flex-1 bg-transparent text-base outline-none"
               />
             </div>
             {digits.length > 0 && !phoneValid ? (
@@ -287,8 +287,8 @@ export function PhoneLoginScreen({ token }: { token?: string }) {
         <section className="flex flex-col gap-6">
           <Intro Icon={Check} tone="green" title={t("signedInTitle")} hint={t("signedInHint")} />
           <div className="flex min-h-14 items-center justify-between rounded-card bg-surface-1 px-4">
-            <span className="text-[1.0625rem] text-text-primary">{t("phoneRow")}</span>
-            <span className="tnum text-[1.0625rem] text-text-secondary">{pretty}</span>
+            <span className="text-base text-text-primary">{t("phoneRow")}</span>
+            <span className="tnum text-base text-text-secondary">{pretty}</span>
           </div>
           {errorLine}
           <Button fullWidth size="lg" onPress={() => router.push(`/s/${token}`)}>

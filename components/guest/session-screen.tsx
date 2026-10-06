@@ -18,17 +18,12 @@ import { Pressable } from "@/components/ui/pressable";
 import { publicChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
 import { apiFetch } from "./api";
-import { AuctionTeaser, NightWinners } from "./auction-screens";
+import { AuctionTeaser, NightWinners, largeCover } from "./auction-screens";
 import { LocaleToggle } from "./locale-toggle";
 import { PartyTopBar } from "./party-chrome";
 import type { NowPlayingDto, SessionInfo, SessionStateDto } from "./types";
 
 const POLL_MS = 15_000;
-
-/** Deezer serves any square size: ask for a big one for the background. */
-function largeCover(url: string): string {
-  return url.replace(/\/\d+x\d+-/, "/1000x1000-");
-}
 
 function NowPlayingHero({ now, live, djName }: { now: NowPlayingDto | null; live: boolean; djName: string | null }) {
   const t = useTranslations("guest");
@@ -62,11 +57,11 @@ function NowPlayingHero({ now, live, djName }: { now: NowPlayingDto | null; live
           <div>
             <h1
               id={titleId}
-              className="line-clamp-2 text-[clamp(2rem,9vw,2.75rem)] font-bold leading-[1.02] tracking-[var(--tracking-display)] text-text-primary"
+              className="line-clamp-2 text-4xl font-bold text-text-primary"
             >
               {now.title}
             </h1>
-            <p className="mt-1.5 truncate text-lg text-text-secondary">{now.artist}</p>
+            <p className="mt-1 truncate text-lg font-medium text-text-secondary">{now.artist}</p>
             <p className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-bg-base/60 px-3 py-1.5 text-sm font-semibold text-text-primary ring-1 ring-line-strong backdrop-blur">
               {pickedBy ? (
                 <Gavel size={14} className="shrink-0 text-accent-400" aria-hidden />
@@ -93,7 +88,7 @@ function NowPlayingHero({ now, live, djName }: { now: NowPlayingDto | null; live
             ) : null}
           </div>
         ) : (
-          <h1 id={titleId} className="text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-[1.05] text-text-primary">
+          <h1 id={titleId} className="text-2xl font-bold text-text-primary">
             {t("session.nothingPlaying")}
           </h1>
         )}
@@ -165,7 +160,7 @@ export function SessionScreen({
         className="flex min-h-14 w-full items-center gap-4 rounded-card border border-line-subtle bg-surface-1 px-4 text-left data-pressed:bg-surface-2"
       >
         <ReceiptText size={20} strokeWidth={1.75} className="text-accent-400" aria-hidden />
-        <span className="flex-1 text-[1.0625rem] text-text-primary">{t("auction.myBidsLink")}</span>
+        <span className="flex-1 text-base text-text-primary">{t("auction.myBidsLink")}</span>
         <ChevronRight size={20} strokeWidth={1.75} className="text-text-tertiary" aria-hidden />
       </Pressable>
 
