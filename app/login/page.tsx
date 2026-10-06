@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { safeNextPath } from "@/lib/security/redirect";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "./login-form";
 
@@ -23,7 +24,7 @@ export default async function LoginPage({
         </p>
       ) : null}
       <LoginForm
-        next={params.next ?? "/cockpit"}
+        next={safeNextPath(params.next, "/cockpit")}
         labels={{
           email: t("email"),
           password: t("password"),

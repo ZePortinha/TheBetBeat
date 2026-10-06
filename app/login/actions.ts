@@ -6,16 +6,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createHash } from "node:crypto";
 import { clientIpFrom } from "@/lib/security/client-ip";
+import { safeNextPath } from "@/lib/security/redirect";
 import { rateLimit, LIMITS } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 
 const schema = z.object({
   email: z.string().email().max(200),
   password: z.string().min(1).max(200),
-  next: z
-    .string()
-    .regex(/^\/(?!\/)[\w\-/?=&%.]*$/)
-    .catch("/cockpit"),
+  next: z.unknown().transform((v) => safeNextPath(v, "/cockpit")),
   turnstileToken: z.string().max(4096).optional(),
 });
 
