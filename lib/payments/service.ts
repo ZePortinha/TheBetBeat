@@ -27,6 +27,7 @@ import { TIERS } from "@/lib/domain/types";
 import { postLedgerGroup } from "@/lib/ledger/post";
 import { captureGroup, refundGroup } from "@/lib/ledger/groups";
 import { getPaymentProvider } from "@/lib/payments";
+import { PaymentOutcomeUnknownError } from "@/lib/payments/journal";
 import type { PaymentProvider, WebhookEvent } from "@/lib/payments/types";
 import { publishBroadcasts } from "@/lib/realtime/publish";
 
@@ -602,4 +603,86 @@ export async function reconcilePendingMbway(now: number, limit = 20): Promise<nu
     moved += 1;
   }
   return moved;
+}
+
+/* ------------------------------------------------------------------ */
+/* MB WAY orphans                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A confirmed MB WAY payment whose reference has no payments row: the push
+ * call timed out (or the row insert failed) after ifthenpay had already sent
+ * the request to the guest's phone, and the guest approved it. Recorded on
+ * the charge's journal row by its orderId; `refundMbwayOrphans` gives the
+ * money back. Returns false when the orderId is not one of our charges.
+ */
+export async function noteOrphanMbwayPayment(orderId: string, providerRef: string, now: number): Promise<boolean> {
+  const { pgJournal } = await import("./journal-pg");
+  const op = await pgJournal.markPaid(orderId, providerRef, new Date(now).toISOString());
+  await getPool().query(
+    `insert into public.audit_log (actor, action, entity, entity_id, payload)
+     values ('system:psp', $1, 'payment', $2, $3)`,
+    [op ? "payment.orphan_detected" : "payment.unknown_order", providerRef, JSON.stringify({ orderId })],
+  );
+  return op !== null;
+}
+
+const ORPHAN_GRACE_MS = 60_000;
+const ORPHAN_MAX_ATTEMPTS = 5;
+
+/**
+ * Refunds orphan MB WAY payments in full (B1.2: if it does not play, the
+ * guest does not pay). Waits a minute so a payment row being written right
+ * now is not mistaken for an orphan. The refund goes through the journal
+ * with key `orphan:<ref>`, so it is sent once. No ledger entries: the money
+ * never entered the books. After 5 refusals, or an unknown outcome, it stops
+ * and leaves a `payment.orphan_refund_failed` alert for the admin.
+ */
+export async function refundMbwayOrphans(now: number, limit = 10): Promise<number> {
+  const res = await getPool().query<{ idempotency_key: string; provider_ref: string; amount_cents: number; orphan_attempts: number }>(
+    `select o.idempotency_key, o.provider_ref, o.amount_cents, o.orphan_attempts
+       from public.psp_operations o
+      where o.kind = 'charge' and o.paid_at is not null and o.orphan_settled_at is null
+        and o.provider_ref is not null
+        and o.paid_at < to_timestamp($1 / 1000.0)
+        and not exists (select 1 from public.payments p where p.provider_ref = o.provider_ref)
+      order by o.paid_at
+      limit $2`,
+    [now - ORPHAN_GRACE_MS, limit],
+  );
+  if (res.rows.length === 0) return 0;
+  const provider = await getPaymentProvider();
+  let refunded = 0;
+  for (const o of res.rows) {
+    let action: string;
+    let settle = true;
+    let detail: Record<string, unknown> = {};
+    try {
+      const result = await provider.refund(o.provider_ref, o.amount_cents, `orphan:${o.provider_ref}`);
+      action = "payment.orphan_refunded";
+      detail = { refundRef: result.providerRef };
+      refunded += 1;
+    } catch (error) {
+      const message = error instanceof Error ? error.message.slice(0, 500) : "unknown";
+      const unknown = error instanceof PaymentOutcomeUnknownError;
+      settle = unknown || o.orphan_attempts + 1 >= ORPHAN_MAX_ATTEMPTS;
+      action = settle ? "payment.orphan_refund_failed" : "payment.orphan_refund_retry";
+      detail = { error: message };
+    }
+    await withTransaction(async (client) => {
+      await client.query(
+        `update public.psp_operations
+            set orphan_attempts = orphan_attempts + 1,
+                orphan_settled_at = case when $2 then now() else null end
+          where idempotency_key = $1`,
+        [o.idempotency_key, settle],
+      );
+      await client.query(
+        `insert into public.audit_log (actor, action, entity, entity_id, payload)
+         values ('system:worker', $1, 'payment', $2, $3)`,
+        [action, o.provider_ref, JSON.stringify({ amountCents: o.amount_cents, ...detail })],
+      );
+    });
+  }
+  return refunded;
 }

@@ -518,3 +518,14 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
 - Instagram: the winner screen shares a 1080x1920 story image through the phone's share sheet (where Instagram lives). There is no Instagram web intent, so on desktop the image is saved instead.
+
+## 2026-10-06 - Real MB WAY made safe for production
+
+Product owner: MB WAY must be real and production-ready (top priority). ifthenpay was already wired in (2026-10-06, `c003e67`); this round closes the gaps that would lose or double money in production.
+
+- **Refund endpoint fixed.** Refunds called `https://api.ifthenpay.com/v2/payments/refund`, which neither ifthenpay's helpdesk ("API - Refunds": `ifthenpay.com/api/endpoint/payments/refund`) nor their own Pipedream connector (`api.ifthenpay.com/endpoint/payments/refund`) uses. Now `https://api.ifthenpay.com/endpoint/payments/refund`. `pnpm mbway:smoke` proves it with the real keys before go-live.
+- **Journal instead of an in-memory memo** (`psp_operations`, migration 0013). ifthenpay has no idempotency keys, and the refund worker relied on the provider returning an already-done refund as is. The memo was lost on restart, so a retried refund paid the guest twice. Keys are now journaled in Postgres, outside the caller's transaction.
+- **Unknown outcomes are never retried automatically.** Timeout, network error, 5xx or an unreadable body → `PaymentOutcomeUnknownError`; the refund worker alerts the admin at once instead of retrying. A 4xx or a refusal code (0, -1) means nothing moved, so those still retry with backoff. Refund timeout raised to 30 s to make unknowns rarer.
+- **Refund cap per payment.** Done + in-flight + unknown refunds of one MB WAY payment can never exceed what was charged (advisory lock per payment). Payments made before the journal have no charge row and no cap.
+- **Orphan payments refunded.** A push whose call timed out can still be approved by the guest. The callback now carries `orderId`; a confirmed payment with no payments row is marked on its charge, and the worker refunds it in full after a minute (B1.2). No ledger entries: that money never entered the books; the audit log keeps the trail.
+- Not done: MB WAY sandbox. ifthenpay gives test keys on request; the contract and keys are the product owner's.

@@ -20,6 +20,7 @@
     "db:audit": "tsx scripts/db-audit.ts",
     "i18n:check": "tsx scripts/i18n-check.ts",
     "simulate": "tsx scripts/simulate.ts",
+    "mbway:smoke": "tsx scripts/mbway-smoke.ts",
     "prepare": "node scripts/install-hooks.mjs"
   },
   "dependencies": {

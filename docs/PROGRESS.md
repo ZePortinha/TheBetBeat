@@ -15,6 +15,17 @@
 | 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing/catalog credentials unavailable → adapters stay mocked behind interfaces; Sentry/PostHog wiring, load-test run, B12 review pending |
 | 9 — Delivery | docs done | README, `docs/OPERATIONS.md`, `docs/SECURITY.md`, DECISIONS updated. Final `db:audit` result still to paste into SECURITY.md |
 
+## Real MB WAY hardening (cloud session — 2026-10-06)
+
+Branch `claude/mbway-integracao-real-rz5b2z`. ifthenpay refund endpoint fixed;
+PSP journal (migration 0013) for exactly-once pushes/refunds across restarts,
+refund cap per payment, unknown outcomes alert instead of retrying, orphan
+payments auto-refunded; `pnpm mbway:smoke` go-live check. Green: typecheck,
+lint, `pnpm test` (459), `tests/integration/psp-journal.integration.test.ts`
+on a plain Postgres 16. Still to run locally: `pnpm db:reset`, `pnpm db:audit`,
+`SUPABASE_TEST=1 pnpm test`; with the real keys, `pnpm mbway:smoke` (see
+docs/INTEGRATIONS.md, steps 5–6). Details in DECISIONS.
+
 ## This round (cloud session, no Docker / Supabase — 2026-10-02)
 
 Branch `cloud/finish-surfaces` (also pushed to the session branch). Everything

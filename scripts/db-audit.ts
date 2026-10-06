@@ -38,6 +38,7 @@ const SERVER_ONLY_WRITE = new Set([
   "wallet_preferences",
   "push_subscriptions",
   "phone_handles",
+  "psp_operations",
 ]);
 
 /** Tables anon (no session at all) may never touch. */
@@ -49,6 +50,7 @@ const NO_ANON = new Set([
   "auction_intents", "wallet_entries", "auction_slot_metrics", "wallet_preferences",
   "push_subscriptions",
   "phone_handles",
+  "psp_operations",
 ]);
 
 async function main() {
