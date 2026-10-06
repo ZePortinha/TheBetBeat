@@ -5,7 +5,7 @@
  *
  * Left ~35% "Agora": NowPlaying + the auction winner "A seguir" with its
  * play target and actions. Right ~65%: the slot auctions (open auctions,
- * schedule, "Abrir leilão agora"). Bottom: discreet payment/refund feed.
+ * schedule, "Abrir leilão agora").
  */
 
 import * as React from "react";
@@ -15,10 +15,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { NowPlaying } from "@/components/ui/now-playing";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AuctionBoard, AuctionNext, useCockpitAuction } from "./auction-panel";
-import { formatEurosDisplay } from "./format";
 import { TopBar } from "./top-bar";
 import { useCockpit } from "./use-cockpit";
-import type { FeedEntry } from "./types";
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -31,36 +29,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FeedBar({ feed }: { feed: FeedEntry[] }) {
-  const t = useTranslations("cockpit.feed");
-  return (
-    <footer
-      className="flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-t border-line-subtle bg-bg-raised px-4"
-      aria-label={t("title")}
-    >
-      {feed.length === 0 ? (
-        <span className="text-sm text-text-tertiary">{t("empty")}</span>
-      ) : (
-        feed.map((entry) => (
-          <span
-            key={entry.id}
-            className="tnum shrink-0 whitespace-nowrap rounded-chip bg-surface-1 px-2.5 py-1 text-sm text-text-secondary"
-          >
-            {t(entry.kind === "paid" ? "paid" : entry.kind === "played" ? "played" : entry.kind === "sla_missed" ? "slaMissed" : "refunded", {
-              amount: formatEurosDisplay(entry.amountCents),
-              track: entry.track,
-            })}
-          </span>
-        ))
-      )}
-    </footer>
-  );
-}
-
 export function LiveScreen({ sessionId }: { sessionId: string | null }) {
   const t = useTranslations("cockpit");
   const cockpit = useCockpit(sessionId);
-  const [search, setSearch] = React.useState("");
 
   const { state, loading } = cockpit;
   const auction = useCockpitAuction(state?.session?.id ?? sessionId);
@@ -95,8 +66,6 @@ export function LiveScreen({ sessionId }: { sessionId: string | null }) {
         sessionName={session.name}
         requestsOpen={session.requestsOpen}
         onToggleOpen={cockpit.setRequestsOpen}
-        search={search}
-        onSearch={setSearch}
         revenueCents={revenue.totalCents}
         djCents={revenue.djCents}
         connection={cockpit.connection}
@@ -136,7 +105,6 @@ export function LiveScreen({ sessionId }: { sessionId: string | null }) {
         </section>
       </div>
 
-      <FeedBar feed={cockpit.feed} />
 
     </div>
   );

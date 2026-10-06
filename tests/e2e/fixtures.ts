@@ -165,104 +165,80 @@ export async function searchTracks(
   return data.sections.flatMap((s) => s.tracks);
 }
 
-export interface PaidRequest {
-  requestId: string;
-  paymentId: string;
-  trackTitle: string;
-  tier: "QUEUE" | "SOON" | "NEXT";
-  amountCents: number;
+/* ------------------------------------------------------------------ */
+/* Slot auctions (dev-only driver: /api/dev/auction)                   */
+/* ------------------------------------------------------------------ */
+
+/** A live seeded night with one fresh open auction closing in N seconds. */
+export async function openAuction(request: APIRequestContext, closesInSec = 240): Promise<string> {
+  const res = await request.post("/api/dev/auction", {
+    data: { action: "open", sessionId: SEED.sessionId, closesInSec },
+  });
+  if (!res.ok()) throw new Error(`dev auction open failed (${res.status()})`);
+  return ((await res.json()) as { slotId: string }).slotId;
+}
+
+/** Ends that auction now and runs one worker tick (winner locked or no winner). */
+export async function closeAuction(request: APIRequestContext, slotId: string): Promise<void> {
+  const res = await request.post("/api/dev/auction", { data: { action: "close", slotId } });
+  if (!res.ok()) throw new Error(`dev auction close failed (${res.status()})`);
+}
+
+export interface ApiBid {
   guest: AnonymousGuest;
+  trackId: string;
 }
 
 /**
- * Full guest money path over the public API: quote → MB WAY request →
- * dev-panel confirmation (which delivers the SIGNED webhook through the
- * real `/api/webhooks/payments` route). Leaves a `paid` request waiting
- * for the DJ — exactly what the cockpit's "Decidir" column shows.
+ * One bid through the public guest API, paid with the (mock) card so it
+ * is placed at once. A second guest outbidding the UI guest is just this.
  */
-export async function createPaidRequest(
+export async function bidViaApi(
   request: APIRequestContext,
-  opts: { tier?: "QUEUE" | "SOON" | "NEXT"; token?: string; guest?: AnonymousGuest } = {},
-): Promise<PaidRequest> {
-  const tier = opts.tier ?? "QUEUE";
+  opts: {
+    slotId: string;
+    totalCents: number;
+    guest?: AnonymousGuest;
+    trackId?: string;
+    backBidId?: string;
+    handle?: string;
+    token?: string;
+  },
+): Promise<ApiBid> {
   const token = opts.token ?? tokenFromGuestPath(await getGuestPath(request));
   const guest = opts.guest ?? (await signInAnonymousGuest(request));
-  const auth = { authorization: `Bearer ${guest.accessToken}` };
+  const trackId =
+    opts.trackId ?? (await searchTracks(request, guest, token)).filter((t) => t.available).at(-1)?.id ?? "";
+  const res = await request.post("/api/guest/auction/bid", {
+    headers: { authorization: `Bearer ${guest.accessToken}` },
+    data: {
+      token,
+      slotId: opts.slotId,
+      totalCents: opts.totalCents,
+      target: opts.backBidId ? { kind: "back", bidId: opts.backBidId } : { kind: "own", trackId },
+      display: opts.handle ? { mode: "handle", handle: opts.handle } : { mode: "anonymous" },
+      method: "card",
+      turnstileToken: "e2e-dev-always-pass",
+    },
+  });
+  if (!res.ok()) throw new Error(`bid failed (${res.status()}): ${await res.text()}`);
+  return { guest, trackId };
+}
 
-  const tracks = (await searchTracks(request, guest, token)).filter((t) => t.available);
-  if (tracks.length === 0) throw new Error("no available tracks to request");
-
-  // Try a few tracks: a tier can be unavailable (SOON full, NEXT taken)
-  // or a track just got requested by someone else.
-  let lastError = "unknown";
-  for (const track of tracks.slice(0, 8)) {
-    const quoteRes = await request.post("/api/guest/quotes", {
-      headers: auth,
-      data: { token, trackId: track.id },
-    });
-    if (!quoteRes.ok()) {
-      lastError = `quote ${quoteRes.status()}`;
-      continue;
-    }
-    const quote = (await quoteRes.json()) as {
-      quoteId: string;
-      tiers: Array<{ tier: string; priceCents: number; available: boolean }>;
-    };
-    const tierDto = quote.tiers.find((t) => t.tier === tier);
-    if (!tierDto?.available) {
-      lastError = `tier ${tier} unavailable`;
-      if (tier !== "QUEUE") throw new Error(`tier ${tier} unavailable in this session`);
-      continue;
-    }
-
-    const createRes = await request.post("/api/guest/requests", {
-      headers: auth,
-      data: {
-        quoteId: quote.quoteId,
-        tier,
-        amountCents: tierDto.priceCents,
-        method: "mbway",
-        phone: "+351912345678",
-        turnstileToken: "e2e-dev-always-pass",
-      },
-    });
-    if (!createRes.ok()) {
-      lastError = `create ${createRes.status()} ${await createRes.text()}`;
-      continue;
-    }
-    const created = (await createRes.json()) as {
-      requestId: string;
-      payment: { paymentId: string };
-    };
-
-    const confirmRes = await request.post("/api/dev/psp", {
-      headers: auth,
-      data: { paymentId: created.payment.paymentId, action: "confirm" },
-    });
-    if (!confirmRes.ok()) {
-      throw new Error(`dev PSP confirm failed (${confirmRes.status()})`);
-    }
-
-    // The webhook lands synchronously, but poll once in case of a slow DB.
-    for (let i = 0; i < 10; i += 1) {
-      const detail = await request.get(`/api/guest/requests/${created.requestId}`, {
-        headers: auth,
-      });
-      const body = (await detail.json()) as { status: string };
-      if (body.status === "paid") break;
-      await new Promise((r) => setTimeout(r, 300));
-    }
-
-    return {
-      requestId: created.requestId,
-      paymentId: created.payment.paymentId,
-      trackTitle: track.title,
-      tier,
-      amountCents: tierDto.priceCents,
-      guest,
-    };
-  }
-  throw new Error(`could not create a paid request: ${lastError}`);
+/** The public auction state (+ the guest's own part when signed in). */
+export async function auctionState(
+  request: APIRequestContext,
+  guest?: AnonymousGuest,
+): Promise<{
+  open: Array<{ id: string; minNextCents: number; top: { bidId: string; totalCents: number } | null }>;
+  me: { walletCents: number; bids: Array<{ slotId: string; status: string }> } | null;
+}> {
+  const token = tokenFromGuestPath(await getGuestPath(request));
+  const res = await request.get(`/api/guest/auction?token=${encodeURIComponent(token)}`, {
+    headers: guest ? { authorization: `Bearer ${guest.accessToken}` } : {},
+  });
+  if (!res.ok()) throw new Error(`auction state failed (${res.status()})`);
+  return res.json();
 }
 
 /* ------------------------------------------------------------------ */

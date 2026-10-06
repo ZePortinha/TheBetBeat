@@ -11,8 +11,9 @@ const querySchema = z.object({ sessionId: z.string().uuid() }).strict();
 /**
  * GET /api/cockpit/stats?sessionId= — Sessão & Receita read model (B7):
  * revenue per hour, acceptance rate, refunds by reason, top tracks and
- * payout status. Only THIS session's numbers ever leave the server
- * (B12.2 "o DJ … não as finanças da casa").
+ * payout status, from tonight's slot auctions (2026-10-05). Only THIS
+ * session's numbers ever leave the server (B12.2 "o DJ … não as finanças
+ * da casa").
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireStaffApi();
@@ -29,38 +30,52 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const pool = getPool();
   try {
-    const [hourly, acceptance, refunds, topTracks, payouts, ledger, cfg] =
+    const [hourly, acceptance, refunds, topTracks, pending, payouts, ledger, cfg] =
       await Promise.all([
+        // Winners that played (or are playing), by the hour they played.
         pool.query<{ hour: Date; total: string; n: string }>(
-          `select date_trunc('hour', coalesce(played_at, playing_at)) as hour,
-                  sum(amount_cents)::bigint as total, count(*)::bigint as n
-             from public.requests
-            where session_id = $1 and status in ('playing', 'played')
+          `select date_trunc('hour', coalesce(s.played_at, s.playing_at)) as hour,
+                  sum(w.total_cents)::bigint as total, count(*)::bigint as n
+             from public.auction_slots s
+             join public.auction_bids w on w.id = s.winning_bid_id
+            where s.session_id = $1 and s.play_status in ('playing', 'played')
             group by 1 order by 1`,
           [scope.sessionId],
         ),
+        // Winners the DJ took vs turned down or let expire.
         pool.query<{ accepted: string; declined: string }>(
-          `select count(*) filter (where accepted_at is not null)::bigint as accepted,
-                  count(*) filter (where status = 'refunded'
-                    and close_reason in ('rejected_by_dj', 'dj_timeout'))::bigint as declined
-             from public.requests
-            where session_id = $1`,
+          `select count(*) filter (where s.play_status in ('accepted', 'playing', 'played'))::bigint as accepted,
+                  count(*) filter (where s.refund_reason in ('rejected_by_dj', 'not_played'))::bigint as declined
+             from public.auction_slots s
+            where s.session_id = $1`,
           [scope.sessionId],
         ),
-        pool.query<{ reason: string | null; n: string; total: string }>(
-          `select close_reason as reason, count(*)::bigint as n,
-                  sum(refunded_cents)::bigint as total
-             from public.requests
-            where session_id = $1 and refunded_cents > 0
-            group by close_reason order by total desc`,
+        // Money that went back to guests tonight, by reason.
+        pool.query<{ reason: string; n: string; total: string }>(
+          `select split_part(rf.reason, ':', 1) as reason, count(*)::bigint as n,
+                  sum(rf.amount_cents)::bigint as total
+             from public.refunds rf
+             join public.payments p on p.id = rf.payment_id
+             left join public.requests r on r.id = rf.request_id
+            where coalesce(p.session_id, r.session_id) = $1
+            group by 1 order by total desc`,
           [scope.sessionId],
         ),
         pool.query<{ title: string; artist: string; n: string; total: string }>(
-          `select track_title as title, track_artist as artist,
-                  count(*)::bigint as n, sum(amount_cents)::bigint as total
-             from public.requests
-            where session_id = $1 and status in ('accepted', 'playing', 'played')
+          `select w.track_title as title, w.track_artist as artist,
+                  count(*)::bigint as n, sum(w.total_cents)::bigint as total
+             from public.auction_slots s
+             join public.auction_bids w on w.id = s.winning_bid_id
+            where s.session_id = $1 and s.play_status in ('locked', 'accepted', 'playing', 'played')
             group by 1, 2 order by total desc limit 5`,
+          [scope.sessionId],
+        ),
+        // Winners still to play: the DJ share they will add once played.
+        pool.query<{ total: string }>(
+          `select coalesce(sum(w.total_cents), 0)::bigint as total
+             from public.auction_slots s
+             join public.auction_bids w on w.id = s.winning_bid_id
+            where s.session_id = $1 and s.play_status in ('locked', 'accepted', 'playing')`,
           [scope.sessionId],
         ),
         pool.query<{ recipient_type: string; amount_cents: string; status: string }>(
@@ -104,8 +119,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         rate: decided > 0 ? accepted / decided : null,
       },
       refundsByReason: refunds.rows.map((r) => ({
-        // Partial SLA refunds leave close_reason null — label them.
-        reason: r.reason ?? "sla_missed",
+        reason: r.reason,
         count: Number(r.n),
         totalCents: Number(r.total),
       })),
@@ -125,12 +139,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         refunds: statement.refunds,
         djNet: statement.djNet,
       },
-      // Live projection of the DJ share for value not yet recognized.
-      djShareProjection: computeSplit(
-        statement.gmv - statement.refunds >= 0 ? statement.gmv - statement.refunds : 0,
-        config.betbeatFeeBps,
-        venueShareBps,
-      ).djCents,
+      // DJ share already earned plus the share of winners still to play
+      // (money sitting in guest wallets is not the DJ's until it is spent).
+      djShareProjection:
+        statement.djNet +
+        computeSplit(Number(pending.rows[0]?.total ?? 0), config.betbeatFeeBps, venueShareBps).djCents,
     });
   } catch (error) {
     const correlationId = Math.random().toString(16).slice(2, 10);

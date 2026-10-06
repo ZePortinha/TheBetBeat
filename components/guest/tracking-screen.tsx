@@ -16,18 +16,16 @@ import { TrackHero } from "@/components/ui/track-hero";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountdownRing } from "@/components/ui/countdown-ring";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { toast } from "@/components/ui/toast";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { guestChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
-import type { Tier } from "@/lib/domain/types";
-import { apiFetch, errorMessage } from "./api";
+import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
 import { BackHeader } from "./back-header";
 import { DevPanel, DevPanelInline } from "./dev-panel";
 import { PaymentConfirmedAnim } from "./payment-sheet";
-import type { GuestRequestDetail, UpgradePreviewDto, UpgradeResultDto } from "./types";
+import type { GuestRequestDetail } from "./types";
 
 const POLL_MS = 5000;
 
@@ -39,13 +37,10 @@ export function TrackingScreen({
   requestId: string;
 }) {
   const t = useTranslations("guest.tracking");
-  const tPay = useTranslations("guest.payment");
-  const tTiers = useTranslations("common.tiers");
   const router = useRouter();
   const { guestId, ready } = useGuest();
 
   const [detail, setDetail] = React.useState<GuestRequestDetail | null>(null);
-  const [upgradeOpen, setUpgradeOpen] = React.useState(false);
 
   const refetch = React.useCallback(async () => {
     const res = await apiFetch<GuestRequestDetail>(`/api/guest/requests/${requestId}`);
@@ -143,23 +138,9 @@ export function TrackingScreen({
             }
           />
 
-          {detail.status !== "playing" && detail.tier !== "NEXT" ? (
-            <Button variant="secondary" fullWidth onPress={() => setUpgradeOpen(true)}>
-              {t("upgradeCta")}
-            </Button>
-          ) : null}
         </>
       )}
 
-      <UpgradeSheet
-        open={upgradeOpen}
-        onOpenChange={setUpgradeOpen}
-        requestId={requestId}
-        currentTier={detail.tier}
-        tierName={(tier) => tTiers(tier)}
-        onChanged={() => void refetch()}
-        mbwayWaitTitle={tPay("waitingTitle")}
-      />
       <DevPanel />
     </main>
   );
@@ -262,146 +243,3 @@ function PlayedCelebration({
 }
 
 /** "Subir de nível" (B4.1): pay only the difference; deadline restarts. */
-function UpgradeSheet({
-  open,
-  onOpenChange,
-  requestId,
-  currentTier,
-  tierName,
-  onChanged,
-  mbwayWaitTitle,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  requestId: string;
-  currentTier: Tier;
-  tierName: (tier: Tier) => string;
-  onChanged: () => void;
-  mbwayWaitTitle: string;
-}) {
-  const t = useTranslations("guest.tracking");
-  const tErr = useTranslations("guest.errors");
-  const { turnstileToken, consumeToken } = useGuest();
-
-  const [preview, setPreview] = React.useState<UpgradePreviewDto | null>(null);
-  const [submitting, setSubmitting] = React.useState<Tier | null>(null);
-  const [waiting, setWaiting] = React.useState<{ expiresAt: number | null; toTier: Tier } | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!open) return;
-    setPreview(null);
-    setWaiting(null);
-    setError(null);
-    void (async () => {
-      const res = await apiFetch<UpgradePreviewDto>(`/api/guest/requests/${requestId}/upgrade`);
-      if (res.ok) setPreview(res.data);
-      else setError(errorMessage((k, v) => tErr(k, v), res));
-    })();
-  }, [open, requestId, tErr]);
-
-  // While an MB WAY difference is pending, poll until the tier flips.
-  React.useEffect(() => {
-    if (!waiting) return;
-    const id = setInterval(() => {
-      void (async () => {
-        const res = await apiFetch<{ tier: Tier }>(`/api/guest/requests/${requestId}`);
-        if (res.ok && res.data.tier === waiting.toTier) {
-          toast({ title: t("upgradeApplied", { tier: tierName(waiting.toTier) }), variant: "success" });
-          onChanged();
-          onOpenChange(false);
-        }
-      })();
-    }, 2500);
-    return () => clearInterval(id);
-  }, [waiting, requestId, onChanged, onOpenChange, t, tierName]);
-
-  async function upgrade(toTier: Tier) {
-    if (toTier !== "SOON" && toTier !== "NEXT") return;
-    setSubmitting(toTier);
-    setError(null);
-    const res = await apiFetch<UpgradeResultDto>(`/api/guest/requests/${requestId}/upgrade`, {
-      method: "POST",
-      body: JSON.stringify({ toTier, turnstileToken: turnstileToken ?? "missing" }),
-    });
-    consumeToken();
-    setSubmitting(null);
-    if (!res.ok) {
-      setError(errorMessage((k, v) => tErr(k, v), res));
-      return;
-    }
-    if (res.data.state === "applied") {
-      toast({ title: t("upgradeApplied", { tier: tierName(toTier) }), variant: "success" });
-      onChanged();
-      onOpenChange(false);
-    } else {
-      setWaiting({
-        expiresAt: res.data.payment?.expiresAt ? Date.parse(res.data.payment.expiresAt) : null,
-        toTier,
-      });
-    }
-  }
-
-  return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("upgradeTitle")} scaleBackground>
-      <div className="flex flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-2">
-        {waiting ? (
-          <div className="flex flex-col items-center gap-4 py-4 text-center">
-            {waiting.expiresAt ? (
-              <CountdownRing deadlineAt={waiting.expiresAt} durationMs={4 * 60_000} size={104} label={mbwayWaitTitle} />
-            ) : null}
-            <p className="text-base font-semibold text-text-primary">{mbwayWaitTitle}</p>
-            <DevPanelInline />
-          </div>
-        ) : (
-          <>
-            <p className="text-sm text-text-secondary">{t("upgradeHint")}</p>
-            {preview === null && !error ? <Skeleton height={80} rounded="card" /> : null}
-            {preview?.options
-              .filter((o) => o.tier !== currentTier)
-              .map((o) => (
-                <div
-                  key={o.tier}
-                  className={`rounded-card border px-4 py-3 ${
-                    o.available ? "border-line-strong bg-surface-1" : "border-line-subtle bg-surface-1 opacity-60"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-bold text-text-primary">{tierName(o.tier)}</p>
-                      <p className="tnum text-sm text-text-secondary">~{o.etaDisplayMin} min</p>
-                    </div>
-                    <span className="tnum text-lg font-bold text-accent-400">
-                      {o.diffCents > 0
-                        ? t("upgradeDiff", { diff: formatEurosDisplay(o.diffCents) })
-                        : t("upgradeIncluded")}
-                    </span>
-                  </div>
-                  {o.available ? (
-                    <Button
-                      fullWidth
-                      className="mt-3"
-                      loading={submitting === o.tier}
-                      onPress={() => void upgrade(o.tier)}
-                    >
-                      {t("upgradeConfirm", { tier: tierName(o.tier) })}
-                    </Button>
-                  ) : (
-                    <p className="mt-2 text-sm text-text-tertiary">{t("upgradeUnavailable")}</p>
-                  )}
-                </div>
-              ))}
-            {preview && preview.options.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-tertiary">{t("upgradeUnavailable")}</p>
-            ) : null}
-            {error ? (
-              <p className="text-sm text-ember-500" role="alert">
-                {error}
-              </p>
-            ) : null}
-          </>
-        )}
-      </div>
-    </BottomSheet>
-  );
-}

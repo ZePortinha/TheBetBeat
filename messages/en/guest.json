@@ -195,13 +195,13 @@
     "amountsHidden": "Amounts stay between you and the DJ."
   },
   "myRequests": {
-    "title": "My requests",
-    "empty": "You haven't requested a song yet",
-    "emptyHint": "Pick a track and tell the DJ how long you're willing to wait.",
+    "title": "My bids",
+    "empty": "You have not bid on a track yet",
+    "emptyHint": "Pick a track and join the open auction. If you are outbid, the money goes back to your balance.",
     "receipt": "Receipt {ref}",
     "refunded": "Refunded {amount}",
-    "active": "In progress",
-    "history": "Earlier",
+    "active": "Older requests in progress",
+    "history": "Older requests",
     "refundNote": "Refunds reach the same payment method within 1 to 3 business days."
   },
   "dev": {
@@ -340,7 +340,7 @@
     "bidCta": "Bid {amount}",
     "backCta": "Back with {amount}",
     "rulesNote": "If you are outbid, the money returns to your balance. If the track does not play, we refund everything.",
-    "paymentFailed": "The payment did not go through. Nothing was charged.",
+    "paymentFailed": "The payment did not go through. If you approve it late in MB WAY, the amount goes to your balance.",
     "waitingHint": "As soon as you confirm, the bid enters the auction.",
     "placedTitle": "Bid placed",
     "placedHint": "We will tell you if someone outbids you.",
@@ -359,6 +359,7 @@
     "endOfNight": "At the end of the night, any balance left:",
     "refundAtEnd": "Refund it",
     "keepForNext": "Keep for another night",
-    "walletKeptHint": "It stays in the app for another night at this club. If you do not use it within {days} days, we refund it to your payment method."
+    "walletKeptHint": "It stays in the app for another night at this club. If you do not use it within {days} days, we refund it to your payment method.",
+    "closing": "Closing the auction…"
   }
 }

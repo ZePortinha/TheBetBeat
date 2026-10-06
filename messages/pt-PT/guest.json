@@ -195,13 +195,13 @@
     "amountsHidden": "Os valores ficam entre ti e o DJ."
   },
   "myRequests": {
-    "title": "Os meus pedidos",
-    "empty": "Ainda não pediste nenhuma música",
-    "emptyHint": "Escolhe uma faixa e diz ao DJ quanto tempo estás disposto a esperar.",
+    "title": "As minhas licitações",
+    "empty": "Ainda não licitaste nenhuma faixa",
+    "emptyHint": "Escolhe uma faixa e entra no leilão aberto. Se fores ultrapassado, o dinheiro volta ao teu saldo.",
     "receipt": "Recibo {ref}",
     "refunded": "Devolvido {amount}",
-    "active": "A decorrer",
-    "history": "Anteriores",
+    "active": "Pedidos antigos em curso",
+    "history": "Pedidos antigos",
     "refundNote": "Os reembolsos chegam ao mesmo método em 1 a 3 dias úteis."
   },
   "dev": {
@@ -340,7 +340,7 @@
     "bidCta": "Licitar {amount}",
     "backCta": "Apoiar com {amount}",
     "rulesNote": "Se fores ultrapassado, o dinheiro volta ao saldo. Se a faixa não tocar, devolvemos tudo.",
-    "paymentFailed": "O pagamento não passou. Não foi cobrado nada.",
+    "paymentFailed": "O pagamento não passou. Se o aceitares tarde no MB WAY, o valor fica no teu saldo.",
     "waitingHint": "Assim que confirmares, a licitação entra no leilão.",
     "placedTitle": "Licitação feita",
     "placedHint": "Avisamos-te se alguém te ultrapassar.",
@@ -359,6 +359,7 @@
     "endOfNight": "No fim da noite, o saldo que sobrar:",
     "refundAtEnd": "Devolver",
     "keepForNext": "Guardar para outra noite",
-    "walletKeptHint": "Fica guardado na app para outra noite nesta casa. Se não o usares em {days} dias, devolvemos ao teu meio de pagamento."
+    "walletKeptHint": "Fica guardado na app para outra noite nesta casa. Se não o usares em {days} dias, devolvemos ao teu meio de pagamento.",
+    "closing": "A fechar o leilão…"
   }
 }

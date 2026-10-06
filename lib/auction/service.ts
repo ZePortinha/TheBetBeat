@@ -26,6 +26,7 @@ import { parseSessionConfig } from "@/lib/domain/config";
 import { postLedgerGroup } from "@/lib/ledger/post";
 import { captureGroup, recognitionGroup, refundGroup } from "@/lib/ledger/groups";
 import { computeSplit } from "@/lib/ledger/split";
+import { getInvoicingProvider } from "@/lib/invoicing";
 import { getPaymentProvider } from "@/lib/payments";
 import type { PaymentMethod } from "@/lib/domain/types";
 import { guestChannel, publicChannel, staffChannel } from "@/lib/realtime/events";
@@ -89,6 +90,8 @@ export interface Night {
   sessionId: string;
   venueId: string;
   status: string;
+  /** The DJ's "pausar pedidos" switch: no new bids while off. */
+  requestsOpen: boolean;
   startsAtMs: number;
   endsAtMs: number;
   config: AuctionConfig;
@@ -111,6 +114,7 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     id: string;
     venue_id: string;
     status: string;
+    requests_open: boolean;
     starts_at: Date;
     ends_at: Date;
     auction_config: unknown;
@@ -118,7 +122,7 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     session_config: unknown;
     venue_share_bps: number;
   }>(
-    `select s.id, s.venue_id, s.status, s.starts_at, s.ends_at, s.auction_config,
+    `select s.id, s.venue_id, s.status, s.requests_open, s.starts_at, s.ends_at, s.auction_config,
             v.settings -> 'auction' as venue_auction,
             coalesce(ss.config, '{}'::jsonb) as session_config,
             coalesce(ss.venue_share_bps, 5000) as venue_share_bps
@@ -134,6 +138,7 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     sessionId: row.id,
     venueId: row.venue_id,
     status: row.status,
+    requestsOpen: row.requests_open,
     startsAtMs: row.starts_at.getTime(),
     endsAtMs: row.ends_at.getTime(),
     config: safeAuctionConfig(row.auction_config ?? row.venue_auction ?? {}),
@@ -371,6 +376,7 @@ export type BidError =
   | "track_not_found"
   | "track_fixed"
   | "bid_not_found"
+  | "requests_closed"
   | "insufficient_funds";
 
 export type PlaceResult =
@@ -413,6 +419,7 @@ async function placeInTx(
   if (slot.status !== "open") return fail("closed");
   const night = await loadNight(client, slot.session_id);
   if (!night) return fail("slot_not_found");
+  if (!night.requestsOpen) return fail("requests_closed");
 
   const leader = await leaderOf(client, slot.id);
   const decision = decideBid(
@@ -686,7 +693,10 @@ export async function settleTopUpInTx(
       [pay.venue_id, pay.guest_id, pay.session_id, pay.captured_cents, paymentId],
     );
   }
-  if (intent.status !== "pending") return { value: { state: "failed" }, publishes: [] };
+  // Late money (the intent already expired): it stays in the wallet.
+  if (intent.status !== "pending") {
+    return { value: { state: "superseded" }, publishes: toGuests([pay.guest_id], "wallet.changed", {}) };
+  }
 
   const display: DisplayChoice =
     intent.display_mode === "handle"
@@ -799,13 +809,23 @@ async function refundWinnerInTx(
 
 /** The winner played: the money behind it is spent and split (ledger recognition). */
 async function markPlayedInTx(client: PoolClient, slot: SlotRow, night: Night, now: number): Promise<OutgoingBroadcast[]> {
-  const spent = await client.query<{ amount_cents: number }>(
+  const spent = await client.query<{ guest_id: string; amount_cents: number }>(
     `update public.auction_contributions set spent_at = to_timestamp($2 / 1000.0)
       where bid_id = $1 and returned_at is null and spent_at is null
-      returning amount_cents`,
+      returning guest_id, amount_cents`,
     [slot.winning_bid_id, now],
   );
   const total = spent.rows.reduce((sum, r) => sum + r.amount_cents, 0);
+  // One receipt per guest for their part, issued by the worker (outbox).
+  const byGuest = new Map<string, number>();
+  for (const r of spent.rows) byGuest.set(r.guest_id, (byGuest.get(r.guest_id) ?? 0) + r.amount_cents);
+  for (const [guestId, amount] of byGuest) {
+    await client.query(
+      `insert into public.invoices (auction_slot_id, guest_id, amount_cents, status)
+       values ($1, $2, $3, 'pending') on conflict do nothing`,
+      [slot.id, guestId, amount],
+    );
+  }
   if (total > 0) {
     await postLedgerGroup(
       client,
@@ -1301,6 +1321,44 @@ export interface MyAuctionState {
     status: MyBidStatus;
   }>;
   pending: Array<{ intentId: string; slotId: string; targetTotalCents: number; createdAt: string }>;
+}
+
+/**
+ * Issues the receipts of played auction winners (outbox written by
+ * markPlayedInTx). The provider is idempotent per reference, so a retry
+ * after a crash never issues twice. Called by the worker loop.
+ */
+export async function issuePendingAuctionInvoices(limit = 20): Promise<number> {
+  const pool = getPool();
+  const pending = await pool.query<{ id: string; slot_id: string; guest_id: string; amount_cents: number; title: string; artist: string }>(
+    `select i.id, i.auction_slot_id as slot_id, i.guest_id, i.amount_cents, b.track_title as title, b.track_artist as artist
+       from public.invoices i
+       join public.auction_slots s on s.id = i.auction_slot_id
+       join public.auction_bids b on b.id = s.winning_bid_id
+      where i.status = 'pending'
+      order by i.created_at
+      limit $1`,
+    [limit],
+  );
+  if (pending.rows.length === 0) return 0;
+  const invoicing = await getInvoicingProvider();
+  let issued = 0;
+  for (const row of pending.rows) {
+    const result = await invoicing.issueReceipt({
+      requestId: `auction:${row.slot_id}:${row.guest_id}`,
+      guestId: row.guest_id,
+      amountCents: row.amount_cents,
+      vatRate: 23,
+      description: `${row.title} — ${row.artist}`,
+    });
+    await pool.query(
+      `update public.invoices set status = $2, provider = $3, provider_ref = $4, pdf_url = $5
+        where id = $1 and status = 'pending'`,
+      [row.id, result.status, invoicing.name, result.providerRef, result.pdfUrl],
+    );
+    if (result.status === "issued") issued += 1;
+  }
+  return issued;
 }
 
 /**

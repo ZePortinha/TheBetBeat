@@ -19,8 +19,9 @@ const PERIODS: Record<Period, string> = {
 
 /**
  * Análise (B9.6) — server-aggregated DTOs only; the page never ships raw
- * rows. "Scan" is proxied by distinct guests that produced a quote at
- * this venue (anonymous guest sessions are global, not venue-tagged).
+ * rows. Since the slot auctions (2026-10-05) every number comes from the
+ * auctions closed in the period (auction_slot_metrics); revenue = money
+ * behind winners that played. Per-slot detail lives in Console › Leilões.
  */
 export default async function AnalyticsPage({
   searchParams,
@@ -36,95 +37,77 @@ export default async function AnalyticsPage({
   const period: Period = sp.period === "7d" || sp.period === "30d" ? sp.period : "tonight";
   const interval = PERIODS[period];
 
-  const [funnelRes, tierRes, hourRes, acceptRes, refundRes, venueRes] =
-    await Promise.all([
-      // Funnel: scans (distinct guests with quotes) → quotes → payments → played.
-      query<{
-        scans: string;
-        quotes: string;
-        paid: string;
-        played: string;
-      }>(
-        `with q as (
-           select guest_id, id from public.quotes
-            where session_id in (select id from public.sessions where venue_id = $1)
-              and created_at >= now() - $2::interval
-         ),
-         r as (
-           select * from public.requests
-            where venue_id = $1 and created_at >= now() - $2::interval
-         )
-         select
-           (select count(distinct guest_id) from q)::bigint as scans,
-           (select count(*) from q)::bigint as quotes,
-           (select count(*) from r where paid_at is not null)::bigint as paid,
-           (select count(*) from r where status = 'played')::bigint as played`,
-        [venue.id, interval],
-      ),
-      // Conversion by tier: paid requests per tier over the quote volume.
-      query<{ tier: string; paid: string; played: string }>(
-        `select tier::text,
-                count(*) filter (where paid_at is not null)::bigint as paid,
-                count(*) filter (where status = 'played')::bigint as played
-           from public.requests
-          where venue_id = $1 and created_at >= now() - $2::interval
-          group by tier
-          order by tier`,
-        [venue.id, interval],
-      ),
-      // Revenue by hour (Lisbon wall-clock).
-      query<{ hour: number; revenue: string }>(
-        `select extract(hour from paid_at at time zone 'Europe/Lisbon')::int as hour,
-                coalesce(sum(amount_cents - refunded_cents), 0)::bigint as revenue
-           from public.requests
-          where venue_id = $1 and paid_at >= now() - $2::interval
-          group by 1 order by 1`,
-        [venue.id, interval],
-      ),
-      // Acceptance: DJ accepted over paid-and-decided.
-      query<{ paid: string; accepted: string }>(
-        `select count(*) filter (where paid_at is not null)::bigint as paid,
-                count(*) filter (where accepted_at is not null)::bigint as accepted
-           from public.requests
-          where venue_id = $1 and created_at >= now() - $2::interval`,
-        [venue.id, interval],
-      ),
-      // Refunds by reason.
-      query<{ reason: string; n: string; amount: string }>(
-        `select rf.reason, count(*)::bigint as n,
-                coalesce(sum(rf.amount_cents), 0)::bigint as amount
-           from public.refunds rf
-           join public.requests r on r.id = rf.request_id
-          where r.venue_id = $1 and rf.created_at >= now() - $2::interval
-          group by rf.reason
-          order by n desc`,
-        [venue.id, interval],
-      ),
-      query<{ settings: { occupancy?: number } }>(
-        `select settings from public.venues where id = $1`,
-        [venue.id],
-      ),
-    ]);
+  const [totalsRes, phaseRes, hourRes, refundRes, venueRes] = await Promise.all([
+    // Funnel and KPIs over the auctions that closed in the period.
+    query<{
+      closed: string;
+      with_bids: string;
+      won: string;
+      played: string;
+      revenue: string;
+      avg_bidders: string | null;
+    }>(
+      `select count(*)::bigint as closed,
+              count(*) filter (where bids > 0)::bigint as with_bids,
+              count(*) filter (where outcome = 'won')::bigint as won,
+              count(*) filter (where play_status = 'played')::bigint as played,
+              coalesce(sum(revenue_cents), 0)::bigint as revenue,
+              avg(bidders) filter (where bids > 0) as avg_bidders
+         from public.auction_slot_metrics
+        where venue_id = $1 and status = 'closed' and closes_at >= now() - $2::interval`,
+      [venue.id, interval],
+    ),
+    // Per phase of the night.
+    query<{ phase: string; closed: string; won: string; avg_final: string | null; revenue: string }>(
+      `select phase, count(*)::bigint as closed,
+              count(*) filter (where outcome = 'won')::bigint as won,
+              avg(final_price_cents) filter (where outcome = 'won') as avg_final,
+              coalesce(sum(revenue_cents), 0)::bigint as revenue
+         from public.auction_slot_metrics
+        where venue_id = $1 and status = 'closed' and closes_at >= now() - $2::interval
+        group by phase`,
+      [venue.id, interval],
+    ),
+    // Revenue by hour of the close (Lisbon wall-clock).
+    query<{ hour: number; revenue: string }>(
+      `select extract(hour from closes_at at time zone 'Europe/Lisbon')::int as hour,
+              coalesce(sum(revenue_cents), 0)::bigint as revenue
+         from public.auction_slot_metrics
+        where venue_id = $1 and play_status = 'played' and closes_at >= now() - $2::interval
+        group by 1 order by 1`,
+      [venue.id, interval],
+    ),
+    // Refunds by reason (auction wallets and any older tier request).
+    query<{ reason: string; n: string; amount: string }>(
+      `select split_part(rf.reason, ':', 1) as reason, count(*)::bigint as n,
+              coalesce(sum(rf.amount_cents), 0)::bigint as amount
+         from public.refunds rf
+         join public.payments p on p.id = rf.payment_id
+         left join public.requests r on r.id = rf.request_id
+        where coalesce(p.venue_id, r.venue_id) = $1 and rf.created_at >= now() - $2::interval
+        group by 1
+        order by n desc`,
+      [venue.id, interval],
+    ),
+    query<{ settings: { occupancy?: number } }>(
+      `select settings from public.venues where id = $1`,
+      [venue.id],
+    ),
+  ]);
 
-  const funnel = funnelRes.rows[0];
-  const scans = Number(funnel?.scans ?? 0);
-  const quotes = Number(funnel?.quotes ?? 0);
-  const paid = Number(funnel?.paid ?? 0);
-  const played = Number(funnel?.played ?? 0);
-
-  const totalRevenue = hourRes.rows.reduce((sum, r) => sum + Number(r.revenue), 0);
+  const totals = totalsRes.rows[0];
+  const closed = Number(totals?.closed ?? 0);
+  const withBids = Number(totals?.with_bids ?? 0);
+  const won = Number(totals?.won ?? 0);
+  const played = Number(totals?.played ?? 0);
+  const totalRevenue = Number(totals?.revenue ?? 0);
+  const avgBidders = totals?.avg_bidders ? Number(totals.avg_bidders) : null;
   const occupancy = venueRes.rows[0]?.settings?.occupancy ?? 0;
 
-  const accept = acceptRes.rows[0];
-  const acceptancePct =
-    Number(accept?.paid ?? 0) > 0
-      ? Math.round((Number(accept?.accepted ?? 0) / Number(accept?.paid)) * 100)
-      : null;
-
   const funnelStages: Array<[string, number]> = [
-    [t("funnel.scan"), scans],
-    [t("funnel.quote"), quotes],
-    [t("funnel.paid"), paid],
+    [t("funnel.closed"), closed],
+    [t("funnel.withBids"), withBids],
+    [t("funnel.won"), won],
     [t("funnel.played"), played],
   ];
   const funnelMax = Math.max(1, ...funnelStages.map(([, n]) => n));
@@ -170,14 +153,14 @@ export default async function AnalyticsPage({
         <div className="grid grid-cols-4 gap-4">
           <Stat label={t("revenue")} value={formatEuros(totalRevenue)} money />
           <Stat
-            label={t("acceptance")}
-            value={acceptancePct === null ? "—" : `${acceptancePct}%`}
-            hint={t("acceptanceHint")}
+            label={t("wonRate")}
+            value={closed > 0 ? `${Math.round((won / closed) * 100)}%` : "—"}
+            hint={t("wonRateHint")}
           />
           <Stat
-            label={t("conversion")}
-            value={quotes > 0 ? `${Math.round((paid / quotes) * 100)}%` : "—"}
-            hint={t("conversionHint")}
+            label={t("bidders")}
+            value={avgBidders === null ? "—" : avgBidders.toFixed(1)}
+            hint={t("biddersHint")}
           />
           <Stat
             label={t("revenuePerGuest")}
@@ -209,38 +192,34 @@ export default async function AnalyticsPage({
               </div>
             ))}
           </div>
-          <p className="pt-3 text-xs text-text-tertiary">{t("funnel.scanNote")}</p>
         </div>
 
         <div className="rounded-card border border-line-subtle bg-surface-1 p-5">
           <h2 className="pb-4 text-lg font-semibold text-text-primary">
-            {t("byTier.title")}
+            {t("byPhase.title")}
           </h2>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line-subtle text-text-tertiary">
-                <th className="label py-2 text-left">{t("byTier.tier")}</th>
-                <th className="label py-2 text-right">{t("byTier.paid")}</th>
-                <th className="label py-2 text-right">{t("byTier.played")}</th>
-                <th className="label py-2 text-right">{t("byTier.conversion")}</th>
+                <th className="label py-2 text-left">{t("byPhase.phase")}</th>
+                <th className="label py-2 text-right">{t("byPhase.closed")}</th>
+                <th className="label py-2 text-right">{t("byPhase.won")}</th>
+                <th className="label py-2 text-right">{t("byPhase.avgFinal")}</th>
+                <th className="label py-2 text-right">{t("byPhase.revenue")}</th>
               </tr>
             </thead>
             <tbody>
-              {(["QUEUE", "SOON", "NEXT"] as const).map((tier) => {
-                const row = tierRes.rows.find((r) => r.tier === tier);
-                const tierPaid = Number(row?.paid ?? 0);
+              {(["warmup", "ramp", "peak", "close"] as const).map((phase) => {
+                const row = phaseRes.rows.find((r) => r.phase === phase);
                 return (
-                  <tr key={tier} className="border-b border-line-subtle last:border-0">
-                    <td className="py-2 font-semibold text-text-primary">
-                      {t(`tiers.${tier}`)}
-                    </td>
-                    <td className="py-2 text-right text-text-primary tnum">{tierPaid}</td>
+                  <tr key={phase} className="border-b border-line-subtle last:border-0">
+                    <td className="py-2 font-semibold text-text-primary">{t(`phases.${phase}`)}</td>
+                    <td className="py-2 text-right text-text-primary tnum">{Number(row?.closed ?? 0)}</td>
+                    <td className="py-2 text-right text-text-secondary tnum">{Number(row?.won ?? 0)}</td>
                     <td className="py-2 text-right text-text-secondary tnum">
-                      {Number(row?.played ?? 0)}
+                      {row?.avg_final ? formatEuros(Math.round(Number(row.avg_final))) : "—"}
                     </td>
-                    <td className="py-2 text-right text-text-secondary tnum">
-                      {quotes > 0 ? `${Math.round((tierPaid / quotes) * 100)}%` : "—"}
-                    </td>
+                    <td className="py-2 text-right text-accent-400 tnum">{formatEuros(Number(row?.revenue ?? 0))}</td>
                   </tr>
                 );
               })}

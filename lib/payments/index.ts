@@ -7,6 +7,7 @@
  * mock/webhooks without a configured environment (lib/security/env.ts is
  * server-only and validates at load).
  */
+import type { PaymentMethod } from "@/lib/domain/types";
 import type { PaymentProvider } from "./types";
 import { MockPaymentProvider } from "./mock";
 
@@ -38,11 +39,28 @@ export async function getPaymentProvider(): Promise<PaymentProvider> {
       });
       return cached;
     }
-    // Phase 8: register the real PSP adapter here (MB WAY, cards, wallets,
-    // marketplace split/payouts) behind the same PaymentProvider surface.
+    // Real MB WAY through ifthenpay. Cards/wallets stay on the mock in
+    // development and are unavailable in production until a card gateway.
+    case "ifthenpay": {
+      const { IfthenpayProvider } = await import("./ifthenpay");
+      cached = new IfthenpayProvider({
+        mbWayKey: env.IFTHENPAY_MBWAY_KEY!,
+        backofficeKey: env.IFTHENPAY_BACKOFFICE_KEY!,
+        fallback:
+          env.NODE_ENV === "production" ? null : new MockPaymentProvider({ webhookSecret: env.PAYMENT_WEBHOOK_SECRET }),
+      });
+      return cached;
+    }
     default: {
       const exhausted: never = env.PAYMENT_PROVIDER;
       throw new Error(`Unknown PAYMENT_PROVIDER: ${String(exhausted)}`);
     }
   }
+}
+
+/** Methods guests can pay with right now (the bid form shows only these). */
+export async function availablePaymentMethods(): Promise<PaymentMethod[]> {
+  const { env } = await import("@/lib/security/env");
+  if (env.PAYMENT_PROVIDER === "ifthenpay" && env.NODE_ENV === "production") return ["mbway"];
+  return ["mbway", "card", "apple_pay", "google_pay"];
 }

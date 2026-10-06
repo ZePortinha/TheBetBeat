@@ -38,8 +38,6 @@ export function quickTotals(slot: PublicSlot, steps: readonly number[]): number[
   return [...new Set(totals)];
 }
 
-const METHODS: PaymentMethod[] = ["mbway", "card", "apple_pay", "google_pay"];
-
 export function BidForm({
   token,
   slot,
@@ -47,6 +45,7 @@ export function BidForm({
   target,
   currentBidTotal,
   walletCents,
+  methods,
   initialTotal,
   onDone,
 }: {
@@ -57,6 +56,8 @@ export function BidForm({
   /** Total already behind the bid this action strengthens (0 if new/outbid). */
   currentBidTotal: number;
   walletCents: number;
+  /** What the server can charge right now (production with ifthenpay: MB WAY only). */
+  methods: PaymentMethod[];
   initialTotal?: number;
   onDone: () => void;
 }) {
@@ -72,7 +73,7 @@ export function BidForm({
   // Someone raised meanwhile: never sit below the new minimum.
   const effectiveTotal = Math.max(total, slot.minNextCents);
   const [display, setDisplay] = React.useState<Display>({ mode: "anonymous" });
-  const [method, setMethod] = React.useState<PaymentMethod>("mbway");
+  const [method, setMethod] = React.useState<PaymentMethod>(methods[0] ?? "mbway");
   const [phoneDigits, setPhoneDigits] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -285,7 +286,7 @@ export function BidForm({
       {toPay > 0 ? (
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={tPay("title")}>
-            {METHODS.map((m) => (
+            {methods.map((m) => (
               <Pressable
                 key={m}
                 role="radio"

@@ -25,7 +25,7 @@ import { QRBlock } from "@/components/ui/qr-block";
 import { publicChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
 import type { DisplayStateDto } from "@/app/api/display/_lib/state";
-import { countdown } from "@/components/guest/use-auction";
+import { countdown, inFinalStretch } from "@/components/guest/use-auction";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { Crossfade } from "./crossfade";
 
@@ -142,6 +142,7 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
       ].join(" ")}
     >
       <div aria-hidden className="ambient absolute inset-0 -z-10" />
+      {open && inFinalStretch(open.closesAt, serverNow) ? <div aria-hidden className="auction-flash-frame" /> : null}
 
       {/* ── Content column (the only region that ever crossfades) ──── */}
       <section className="flex min-w-0 flex-col justify-center gap-[4.5vmin]">
@@ -233,9 +234,11 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
                 <div className="flex items-baseline gap-[3vmin]">
                   <span
                     className={
-                      Date.parse(open.closesAt) - serverNow <= auction.rules.lastMinuteWarningSec * 1000
-                        ? "tnum shrink-0 text-ember-500"
-                        : "tnum shrink-0 text-text-primary"
+                      inFinalStretch(open.closesAt, serverNow)
+                        ? "tnum shrink-0 auction-flash-text"
+                        : Date.parse(open.closesAt) - serverNow <= auction.rules.lastMinuteWarningSec * 1000
+                          ? "tnum shrink-0 text-ember-500"
+                          : "tnum shrink-0 text-text-primary"
                     }
                     style={{ ...displayFont, fontSize: "clamp(2.5rem, 9vmin, var(--text-80))", fontWeight: 800 }}
                   >

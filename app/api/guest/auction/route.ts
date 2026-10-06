@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { myAuctionState, publicAuctionState } from "@/lib/auction/service";
+import { availablePaymentMethods } from "@/lib/payments";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { apiError, rateLimitedResponse } from "../_lib/http";
 import { getGuestIdentity } from "../_lib/auth";
@@ -29,5 +30,5 @@ export async function GET(request: Request) {
     identity ? myAuctionState(sessionId, venueId, identity.guestId) : Promise.resolve(null),
   ]);
   if (!pub) return apiError("session_not_live", 409);
-  return NextResponse.json({ ...pub, me });
+  return NextResponse.json({ ...pub, me, paymentMethods: await availablePaymentMethods() });
 }

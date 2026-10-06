@@ -61,10 +61,10 @@ export default async function SessionStatementPage({
       [sessionId, venue.id],
     ),
     query<{ total: string; played: string; refunded: string }>(
-      `select count(*)::bigint as total,
-              count(*) filter (where status = 'played')::bigint as played,
-              count(*) filter (where status = 'refunded')::bigint as refunded
-         from public.requests where session_id = $1 and venue_id = $2`,
+      `select count(*) filter (where status = 'closed')::bigint as total,
+              count(*) filter (where play_status = 'played')::bigint as played,
+              count(*) filter (where play_status = 'refunded')::bigint as refunded
+         from public.auction_slots where session_id = $1 and venue_id = $2`,
       [sessionId, venue.id],
     ),
   ]);

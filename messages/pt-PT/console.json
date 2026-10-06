@@ -266,7 +266,8 @@
       "sla_missed": "Prazo falhado (diferença)",
       "payment_timeout": "Pagamento expirado",
       "tier_demoted": "Desceu para Na Fila",
-      "refund": "Reembolso"
+      "refund": "Reembolso",
+      "wallet": "Saldo devolvido"
     },
     "refundStatus": {
       "pending": "Pendente",
@@ -286,9 +287,14 @@
       "paused": "Em pausa",
       "ended": "Terminada"
     },
-    "requestsTotal": "Pedidos",
-    "requestsPlayed": "Tocaram",
-    "requestsRefunded": "Reembolsados"
+    "requestsTotal": "Leilões fechados",
+    "requestsPlayed": "Vencedores que tocaram",
+    "requestsRefunded": "Vencedores devolvidos",
+    "invoiceStatus": {
+      "pending": "A emitir",
+      "issued": "Emitida",
+      "failed": "Falhou"
+    }
   },
   "analytics": {
     "crumbRoot": "Painel da Casa",
@@ -300,32 +306,15 @@
       "30d": "30 dias"
     },
     "revenue": "Receita",
-    "acceptance": "Aceitação",
-    "acceptanceHint": "Pedidos aceites pelo DJ sobre pedidos pagos",
-    "conversion": "Conversão",
-    "conversionHint": "Pagamentos sobre cotações",
     "revenuePerGuest": "Receita por convidado",
     "occupancySet": "Com lotação de {occupancy}",
     "occupancyUnset": "Introduz a lotação para calcular",
     "funnel": {
-      "title": "Funil",
-      "scan": "Scan",
-      "quote": "Cotação",
-      "paid": "Pagamento",
-      "played": "Tocou",
-      "scanNote": "Scan = convidados distintos que pediram uma cotação nesta casa."
-    },
-    "byTier": {
-      "title": "Conversão por nível",
-      "tier": "Nível",
-      "paid": "Pagos",
-      "played": "Tocaram",
-      "conversion": "Conversão"
-    },
-    "tiers": {
-      "QUEUE": "Na Fila",
-      "SOON": "Em Breve",
-      "NEXT": "A Seguir"
+      "title": "Funil dos leilões",
+      "closed": "Fechados",
+      "withBids": "Com licitações",
+      "won": "Com vencedor",
+      "played": "Tocaram"
     },
     "revenueByHour": "Receita por hora",
     "refundsByReason": "Reembolsos por motivo",
@@ -338,12 +327,32 @@
       "sla_missed": "Prazo falhado (diferença)",
       "payment_timeout": "Pagamento expirado",
       "tier_demoted": "Desceu para Na Fila",
-      "refund": "Reembolso"
+      "refund": "Reembolso",
+      "wallet": "Saldo devolvido",
+      "upgrade_unavailable": "Subida de nível indisponível"
     },
     "occupancyTitle": "Lotação",
     "occupancyHint": "Quantas pessoas estiveram na casa. Serve para calcular a receita por convidado.",
     "occupancyLabel": "Pessoas",
-    "occupancySave": "Guardar lotação"
+    "occupancySave": "Guardar lotação",
+    "wonRate": "Taxa de vencedor",
+    "wonRateHint": "Leilões com vencedor sobre leilões fechados",
+    "bidders": "Licitadores por leilão",
+    "biddersHint": "Média nos leilões com licitações",
+    "byPhase": {
+      "title": "Por fase da noite",
+      "phase": "Fase",
+      "closed": "Leilões",
+      "won": "Com vencedor",
+      "avgFinal": "Preço médio",
+      "revenue": "Receita"
+    },
+    "phases": {
+      "warmup": "Aquecimento",
+      "ramp": "Subida",
+      "peak": "Pico",
+      "close": "Fecho"
+    }
   },
   "admin": {
     "venues": {

@@ -116,9 +116,9 @@
     "acceptanceDetail": "{accepted} de {decided} decididos",
     "refundsByReason": "Reembolsos por motivo",
     "noRefunds": "Sem reembolsos nesta sessão",
-    "topTracks": "Top faixas",
-    "noTracks": "Ainda sem pedidos",
-    "requestsLabel": "{count} pedidos",
+    "topTracks": "Faixas vencedoras",
+    "noTracks": "Ainda sem vencedores",
+    "requestsLabel": "{count, plural, one {# vitória} other {# vitórias}}",
     "payout": "Payout",
     "payoutNone": "Disponível depois de terminar o set",
     "payoutStatus": {
@@ -137,7 +137,11 @@
       "cancelled_by_dj": "Cancelado pelo DJ",
       "session_ended": "Fim do set",
       "payment_timeout": "Pagamento expirado",
-      "sla_missed": "Prazo falhado (diferença)"
+      "sla_missed": "Prazo falhado (diferença)",
+      "wallet": "Saldo devolvido",
+      "not_played": "Não tocou a tempo",
+      "outbid": "Ultrapassado",
+      "upgrade_unavailable": "Subida indisponível"
     }
   },
   "settings": {
@@ -178,7 +182,7 @@
     },
     "sounds": {
       "title": "Sons",
-      "hint": "Alerta curto a cada pedido pago, com um tom por nível.",
+      "hint": "Alerta curto quando um leilão fecha com vencedor à tua espera.",
       "volume": "Volume",
       "silent": "Modo silencioso",
       "silentHint": "Sem som: a borda do ecrã pisca a dourado.",
@@ -205,15 +209,15 @@
     },
     "endSet": {
       "title": "Terminar set",
-      "hint": "Fecha a sessão e reembolsa os pedidos por tocar.",
+      "hint": "Fecha a sessão: as licitações em aberto, os vencedores por tocar e os saldos voltam aos convidados.",
       "open": "Terminar set",
       "sheetTitle": "Terminar o set?",
-      "summary": "{count} pedidos por tocar serão reembolsados ({amount}).",
-      "summaryNone": "Não há pedidos por reembolsar.",
+      "summary": "{count, plural, one {# convidado recebe} other {# convidados recebem}} o dinheiro de volta ({amount}).",
+      "summaryNone": "Não há dinheiro por devolver.",
       "hold": "Manter premido para terminar",
       "holdHint": "Mantém premido 2 segundos para confirmar.",
       "ended": "Set terminado",
-      "loading": "A calcular reembolsos…",
+      "loading": "A calcular devoluções…",
       "cancel": "Cancelar",
       "failed": "Não foi possível terminar o set. Tenta novamente."
     },

@@ -10,15 +10,24 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import type { MyAuctionState, PublicAuctionState } from "@/lib/auction/service";
+import type { PaymentMethod } from "@/lib/domain/types";
 import { guestChannel, publicChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
 import { toast } from "@/components/ui/toast";
 import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
 
-export type AuctionState = PublicAuctionState & { me: MyAuctionState | null };
+export type AuctionState = PublicAuctionState & { me: MyAuctionState | null; paymentMethods: PaymentMethod[] };
 
 const POLL_MS = 3000;
+/** The final stretch of an auction: the screen flashes red ↔ white. */
+export const FINAL_STRETCH_MS = 30_000;
+
+/** True while an auction is in its last 30 seconds. */
+export function inFinalStretch(closesAtIso: string, serverNow: number): boolean {
+  const left = Date.parse(closesAtIso) - serverNow;
+  return left > 0 && left <= FINAL_STRETCH_MS;
+}
 
 export function useAuction(token: string, sessionId: string) {
   const t = useTranslations("guest.auction");
@@ -28,11 +37,18 @@ export function useAuction(token: string, sessionId: string) {
   const [now, setNow] = React.useState(() => Date.now());
   const [celebrate, setCelebrate] = React.useState<string | null>(null);
 
+  // My bids last seen leading: if one turns into the winner, celebrate —
+  // even when the realtime "auction.won" never arrived.
+  const leading = React.useRef<Set<string> | null>(null);
   const refetch = React.useCallback(async () => {
     const res = await apiFetch<AuctionState>(`/api/guest/auction?token=${encodeURIComponent(token)}`);
     if (!res.ok) return;
     setOffsetMs(Date.parse(res.data.serverNow) - Date.now());
     setState(res.data);
+    const bids = res.data.me?.bids ?? [];
+    const won = bids.find((b) => b.status === "next" && leading.current?.has(b.slotId));
+    if (won) setCelebrate(won.slotId);
+    leading.current = new Set(bids.filter((b) => b.status === "leading").map((b) => b.slotId));
   }, [token]);
 
   React.useEffect(() => {

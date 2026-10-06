@@ -51,7 +51,6 @@ import { useCockpit } from "./use-cockpit";
 import type { CockpitSession, EndSetSummary } from "./types";
 
 const SAVE_DEBOUNCE_MS = 350;
-const BASE_PRICE_STEP_CENTS = 50;
 const NO_REPEAT_STEP_MIN = 5;
 
 /* ------------------------------------------------------------------ */
@@ -613,7 +612,6 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
     );
   }
 
-  const bounds = session.basePriceBounds;
   const genres = (state?.genres ?? []).map((g) => ({
     genre: g.genre,
     blocked: genreOverrides[g.genre] ?? g.blocked,
@@ -654,42 +652,7 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* ── Pricing column ─────────────────────────────────────── */}
         <div className="flex flex-col gap-4">
-          <Card title={t("rhythm.title")} hint={t("rhythm.hint")} testId="settings-rhythm">
-            <Stepper
-              value={draft.acceptanceRatePerHour}
-              display={t("rhythm.unit", { value: draft.acceptanceRatePerHour })}
-              min={1}
-              max={60}
-              step={1}
-              onChange={(next) => commit({ acceptanceRatePerHour: next })}
-              decreaseLabel={t("rhythm.decrease")}
-              increaseLabel={t("rhythm.increase")}
-              testId="settings-rhythm"
-            />
-          </Card>
-
-          <Card title={t("basePrice.title")} hint={t("basePrice.hint")} testId="settings-base-price">
-            <Stepper
-              value={draft.basePriceCents}
-              display={formatEurosDisplay(draft.basePriceCents)}
-              min={bounds.minCents}
-              max={bounds.maxCents}
-              step={BASE_PRICE_STEP_CENTS}
-              onChange={(next) => commit({ basePriceCents: next })}
-              decreaseLabel={t("basePrice.decrease")}
-              increaseLabel={t("basePrice.increase")}
-              testId="settings-base-price"
-            />
-            <p className="tnum text-sm text-text-tertiary">
-              {t("basePrice.bounds", {
-                min: formatEurosDisplay(bounds.minCents),
-                max: formatEurosDisplay(bounds.maxCents),
-              })}
-            </p>
-          </Card>
-
           <Card title={t("catalog.title")} hint={t("catalog.hint")}>
             <Segmented
               value={draft.catalogMode}

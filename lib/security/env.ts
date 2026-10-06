@@ -25,9 +25,18 @@ const serverEnvSchema = z.object({
     }, "DATA_ENCRYPTION_KEY must be base64 for exactly 32 bytes"),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1),
   TURNSTILE_SECRET_KEY: z.string().min(1),
-  PAYMENT_PROVIDER: z.enum(["mock"]).default("mock"),
+  PAYMENT_PROVIDER: z.enum(["mock", "ifthenpay"]).default("mock"),
   PAYMENT_WEBHOOK_SECRET: z.string().min(16),
-  SMS_PROVIDER: z.enum(["mock"]).default("mock"),
+  // ifthenpay (real MB WAY) — required when PAYMENT_PROVIDER=ifthenpay.
+  IFTHENPAY_MBWAY_KEY: z.string().optional(),
+  IFTHENPAY_BACKOFFICE_KEY: z.string().optional(),
+  IFTHENPAY_ANTI_PHISHING_KEY: z.string().optional(),
+  SMS_PROVIDER: z.enum(["mock", "twilio"]).default("mock"),
+  // Twilio (real SMS) — required when SMS_PROVIDER=twilio. TWILIO_FROM is a
+  // number in E.164 or an alphanumeric sender such as "BetBeat".
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM: z.string().optional(),
   EMAIL_PROVIDER: z.enum(["mock"]).default("mock"),
   INVOICING_PROVIDER: z.enum(["mock"]).default("mock"),
   CATALOG_PROVIDER: z.enum(["mock"]).default("mock"),
@@ -35,6 +44,18 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_POSTHOG_KEY: z.string().optional().or(z.literal("")),
   NEXT_PUBLIC_POSTHOG_HOST: z.string().optional().or(z.literal("")),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+}).superRefine((v, ctx) => {
+  const need = (cond: boolean, keys: Array<keyof typeof v>) => {
+    if (!cond) return;
+    for (const key of keys) {
+      if (!v[key]) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key], message: "required by the chosen provider" });
+    }
+  };
+  need(v.PAYMENT_PROVIDER === "ifthenpay", ["IFTHENPAY_MBWAY_KEY", "IFTHENPAY_BACKOFFICE_KEY", "IFTHENPAY_ANTI_PHISHING_KEY"]);
+  need(v.SMS_PROVIDER === "twilio", ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM"]);
+  if (v.IFTHENPAY_ANTI_PHISHING_KEY !== undefined && v.IFTHENPAY_ANTI_PHISHING_KEY.length > 0 && v.IFTHENPAY_ANTI_PHISHING_KEY.length < 16) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["IFTHENPAY_ANTI_PHISHING_KEY"], message: "use at least 16 random characters" });
+  }
 });
 
 function loadEnv() {

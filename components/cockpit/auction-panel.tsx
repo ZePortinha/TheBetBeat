@@ -22,6 +22,7 @@ import { cx } from "@/components/ui/pressable";
 import { toast } from "@/components/ui/toast";
 import { countdown } from "@/components/guest/use-auction";
 import { formatEurosDisplay } from "./format";
+import { playTierAlert } from "./sounds";
 
 type SlotAction = "accept" | "reject" | "playing" | "played" | "pause" | "resume" | "cancel" | "announced";
 
@@ -51,6 +52,8 @@ export function useCockpitAuction(sessionId: string | null) {
   const [offsetMs, setOffsetMs] = React.useState(0);
   const [now, setNow] = React.useState(() => Date.now());
   const [busy, setBusy] = React.useState<string | null>(null);
+  // null until the first load, so opening the cockpit never beeps.
+  const seenLocked = React.useRef<Set<string> | null>(null);
 
   const refetch = React.useCallback(async () => {
     if (!sessionId) return;
@@ -59,6 +62,10 @@ export function useCockpitAuction(sessionId: string | null) {
     const data = (await res.json()) as CockpitAuctionState;
     setOffsetMs(Date.parse(data.serverNow) - Date.now());
     setState(data);
+    // A new winner waiting for the DJ: sound (or flash in silent mode).
+    const locked = data.slots.filter((s) => s.playStatus === "locked").map((s) => s.id);
+    if (seenLocked.current && locked.some((id) => !seenLocked.current!.has(id))) playTierAlert("NEXT");
+    seenLocked.current = new Set(locked);
   }, [sessionId]);
 
   React.useEffect(() => {

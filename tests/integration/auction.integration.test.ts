@@ -242,6 +242,15 @@ describe("after the close", () => {
       [SESSION_ID],
     );
     expect(recognition.rowCount).toBeGreaterThan(0);
+    // The guest's receipt: written with the money, issued by the worker.
+    const receipt = () =>
+      db.query<{ status: string; amount_cents: number }>(
+        `select status, amount_cents from public.invoices where auction_slot_id = $1 and guest_id = $2`,
+        [slot, a],
+      );
+    expect((await receipt()).rows[0]).toMatchObject({ status: "pending", amount_cents: 2000 });
+    await auction.issuePendingAuctionInvoices();
+    expect((await receipt()).rows[0]).toMatchObject({ status: "issued", amount_cents: 2000 });
   }, 60_000);
 
   it("a rejected track goes back to the wallets and the slot reopens", async () => {
@@ -306,6 +315,24 @@ describe("money", () => {
     const intent = await db.query<{ status: string }>(`select status from public.auction_intents where id = $1`, [started.intentId]);
     expect(intent.rows[0]!.status).toBe("superseded");
     expect(await balance(a)).toBe(1000);
+  }, 60_000);
+
+  it("MB WAY approved just after our 4-minute timeout still lands in the wallet", async () => {
+    const now = T0 + 2_050_000;
+    const slot = await newSlot(now);
+    const a = await createGuest();
+    const req = { slotId: slot, guestId: a, totalCents: 1500, target: { kind: "own" as const, libraryTrackId: takeTrack() }, display: { mode: "anonymous" as const } };
+    const started = await auction.startTopUpBid({ ...req, needCents: 1500, method: "mbway", phone: takePhone() }, now + 1000);
+    const pay = await db.query<{ id: string; provider_ref: string }>(`select id, provider_ref from public.payments where intent_id = $1`, [started.intentId]);
+    // Our side gave up first (what the worker does at expires_at)…
+    await db.query(`update public.payments set status = 'expired' where id = $1`, [pay.rows[0]!.id]);
+    await db.query(`update public.auction_intents set status = 'failed', reason = 'expired' where id = $1`, [started.intentId]);
+    // …then the guest approved in the MB WAY app: the money moved.
+    const provider = (await getPaymentProvider()) as MockPaymentProvider;
+    await paymentsService.recordWebhook(provider.simulateMbwayConfirmation(pay.rows[0]!.provider_ref), now + 5000);
+    expect(await balance(a)).toBe(1500);
+    const row = await db.query<{ status: string; captured_cents: number }>(`select status, captured_cents from public.payments where id = $1`, [pay.rows[0]!.id]);
+    expect(row.rows[0]).toMatchObject({ status: "captured", captured_cents: 1500 });
   }, 60_000);
 
   it("end of night: open bids come back and every wallet is refunded to its payment method", async () => {

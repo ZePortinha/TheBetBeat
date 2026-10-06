@@ -25,7 +25,7 @@ import { apiFetch } from "./api";
 import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
 import { WinCelebration } from "./win-celebration";
-import { clockTime, countdown, useAuction, type AuctionState } from "./use-auction";
+import { clockTime, countdown, inFinalStretch, useAuction, type AuctionState } from "./use-auction";
 
 type Me = NonNullable<AuctionState["me"]>;
 type SheetState = { slot: PublicSlot; target: BidTargetInput; current: number; title: string } | null;
@@ -57,12 +57,17 @@ function AuctionCard({
   const locale = useLocale();
   const left = Date.parse(slot.closesAt) - serverNow;
   const lastMinute = left <= state.rules.lastMinuteWarningSec * 1000;
+  const finalStretch = inFinalStretch(slot.closesAt, serverNow);
+  const ended = left <= 0;
   const mine = state.me?.bids.find((b) => b.slotId === slot.id && b.owner);
   const leading = mine?.status === "leading";
   const top = slot.top;
 
   return (
-    <article className="rounded-card border border-line-subtle bg-surface-1 p-4" aria-label={t("openTitle")}>
+    <article
+      className={cx("rounded-card border border-line-subtle bg-surface-1 p-4", finalStretch && "auction-flash-card")}
+      aria-label={t("openTitle")}
+    >
       <div className="flex items-center justify-between gap-3">
         <p className="label flex items-center gap-1.5 text-text-primary">
           <Gavel size={14} className="text-accent-400" aria-hidden />
@@ -74,14 +79,14 @@ function AuctionCard({
       <p
         className={cx(
           "tnum mt-3 text-[clamp(2.5rem,13vw,3.5rem)] font-bold leading-none tracking-[var(--tracking-display)]",
-          lastMinute ? "animate-pulse text-ember-500" : "text-text-primary",
+          finalStretch ? "auction-flash-text" : lastMinute ? "text-ember-500 motion-safe:animate-pulse" : "text-text-primary",
         )}
         aria-live="off"
       >
         {countdown(slot.closesAt, serverNow)}
       </p>
       <p className={cx("mt-1 text-sm", lastMinute ? "font-semibold text-ember-500" : "text-text-secondary")}>
-        {lastMinute ? t("lastMinute") : t("closesAt", { time: clockTime(slot.closesAt, locale) })}
+        {ended ? t("closing") : lastMinute ? t("lastMinute") : t("closesAt", { time: clockTime(slot.closesAt, locale) })}
       </p>
 
       <div className="mt-4 flex items-center gap-3 rounded-card bg-surface-2 p-3">
@@ -110,7 +115,7 @@ function AuctionCard({
         </p>
       ) : null}
 
-      <div className="mt-3 flex flex-col gap-2">
+      <div className={cx("mt-3 flex flex-col gap-2", ended && "hidden")}>
         {mine?.libraryTrackId ? (
           <Button
             fullWidth
@@ -257,12 +262,25 @@ export function AuctionLive({
   const router = useRouter();
   const { state, refetch, serverNow, celebrate, dismissCelebration } = useAuction(token, sessionId);
   const [sheet, setSheet] = React.useState<SheetState>(null);
+  const buzzed = React.useRef(new Set<string>());
+  const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
+
+  // Entering the last 30 s of an auction you are in: one buzz, once.
+  const flashingKey = flashing.map((s) => s.id).join(",");
+  React.useEffect(() => {
+    for (const id of flashingKey ? flashingKey.split(",") : []) {
+      if (buzzed.current.has(id)) continue;
+      buzzed.current.add(id);
+      if (state?.me?.bids.some((b) => b.slotId === id)) navigator.vibrate?.([120, 80, 120]);
+    }
+  }, [flashingKey, state]);
 
   if (!state) return <Skeleton height={220} rounded="card" />;
   const won = celebrate ? state.me?.bids.find((b) => b.slotId === celebrate) : undefined;
 
   return (
     <>
+      {flashing.length > 0 ? <div aria-hidden className="auction-flash-frame" /> : null}
       <WalletChip
         token={token}
         cents={state.me?.walletCents ?? 0}
@@ -344,6 +362,7 @@ export function AuctionLive({
             target={sheet.target}
             currentBidTotal={sheet.current}
             walletCents={state.me?.walletCents ?? 0}
+            methods={state.paymentMethods}
             onDone={() => {
               setSheet(null);
               void refetch();
@@ -365,11 +384,21 @@ export function AuctionLive({
 }
 
 /** "As minhas licitações" + balance (top of /requests). */
-export function MyBids({ token, sessionId }: { token: string; sessionId: string }) {
+export function MyBids({
+  token,
+  sessionId,
+  empty,
+}: {
+  token: string;
+  sessionId: string;
+  /** Shown when there is nothing at all (no bids, no balance). */
+  empty?: React.ReactNode;
+}) {
   const t = useTranslations("guest.auction");
   const { state, refetch } = useAuction(token, sessionId);
   const me: Me | null = state?.me ?? null;
-  if (!state || !me) return null;
+  if (!state) return <Skeleton height={76} rounded="card" />;
+  if (!me || (me.bids.length === 0 && me.walletCents <= 0)) return <>{empty ?? null}</>;
   return (
     <>
       <WalletChip
@@ -492,6 +521,7 @@ export function BidScreen({
               target={{ kind: "own", trackId: track.id }}
               currentBidTotal={mine?.status === "leading" ? mine.totalCents : 0}
               walletCents={state.me?.walletCents ?? 0}
+              methods={state.paymentMethods}
               onDone={() => router.push(`/s/${token}`)}
             />
           )}

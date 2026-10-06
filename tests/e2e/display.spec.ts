@@ -51,8 +51,8 @@ test.describe("venue display", () => {
     await expect(nowTitle).toBeVisible();
     await expect(nowTitle).not.toBeEmpty();
 
-    // Caption invites the guest to request a song.
-    await expect(page.getByText("Pede a tua música")).toBeVisible();
+    // Caption invites the guest to bid with a song.
+    await expect(page.getByText("Licita na tua música")).toBeVisible();
 
     // Poll endpoint returns the same public DTO the page renders.
     const token = path.replace("/display/", "");

@@ -1,259 +1,184 @@
 /**
- * Guest app E2E (BRIEF B6 / Phase 4 criteria). Runs on the `phone`
+ * Guest app E2E — slot auctions (2026-10-05). Runs on the `phone`
  * project (393×852) only.
  *
- * Covers: pedir → pagar → acompanhar → tocou → partilhar, the refund
- * path, the "≤ 4 taps from QR to payment" rule (B1.3), PT/EN, reduced
- * motion / transparency / contrast rendering and axe (no serious or
- * critical violations).
+ * Covers: the logo intro, bidding in ≤ 4 taps from the QR, being outbid
+ * (money back to the balance) and raising, "Vencedor" when the auction
+ * closes, the DJ playing it, the last-30-seconds flash, MB WAY declined,
+ * PT/EN, the public screens, axe and reduced motion.
  *
- * Needs: local Supabase seeded (`pnpm db:reset`), `pnpm dev` and, for the
- * MB WAY timing paths, nothing else — the dev PSP panel delivers the
- * signed webhooks synchronously. The DJ side is driven through the
- * cockpit API with a second (DJ) browser context.
- *
- * NOT verified in the cloud session that wrote this file (no DB there):
- * run locally and fix selectors if a label drifted.
+ * Needs: local Supabase seeded (`pnpm db:reset`) and `pnpm dev`. Auctions
+ * are driven through the dev-only /api/dev/auction (open, close + tick);
+ * payments through the mock PSP (card at once, MB WAY via the dev panel).
  */
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Browser, type Page } from "@playwright/test";
-import { createPaidRequest, getGuestUrl, loginStaff } from "./fixtures";
+import { expect, test, type Page } from "@playwright/test";
+import { auctionState, bidViaApi, closeAuction, getGuestUrl, loginStaff, openAuction } from "./fixtures";
 
 const PHONE_ONLY = "phone viewport only";
 
-test.describe("guest app", () => {
+test.describe("guest app · leilões", () => {
   test.beforeEach(() => {
     test.skip(test.info().project.name !== "phone", PHONE_ONLY);
+    // `pnpm dev` compiles each route on first use: the flows need headroom.
+    test.setTimeout(120_000);
   });
 
-  /**
-   * QR → Sessão → Faixa → Nível → Pagamento, counting taps: the brief
-   * allows at most 4 before the payment is confirmed (B6 "no máximo 4
-   * toques até pagar"). Returns the tracking URL's request id.
-   */
-  async function requestAndPayViaUi(page: Page): Promise<{ requestId: string; taps: number }> {
+  /** Open the guest app and wait for the logo intro to leave. */
+  async function openGuest(page: Page): Promise<string> {
+    const guestUrl = await getGuestUrl(page);
+    await page.goto(guestUrl);
+    await expect(page.getByTestId("boot-intro")).toBeHidden({ timeout: 10_000 });
+    return guestUrl;
+  }
+
+  test("a intro do logótipo bate e dá lugar à app", async ({ page }) => {
+    const guestUrl = await getGuestUrl(page);
+    // Watch from the first bytes: the splash plays while the page loads.
+    await page.goto(guestUrl, { waitUntil: "commit" });
+    await expect(page.getByTestId("boot-intro")).toBeVisible();
+    await expect(page.getByTestId("boot-intro")).toBeHidden({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+
+  test("licitar em ≤ 4 toques, ser ultrapassado, subir e ser Vencedor; o DJ toca", async ({ page, browser, request }) => {
+    const slotId = await openAuction(request, 600);
+    await openGuest(page);
     let taps = 0;
     const tap = async (locator: ReturnType<Page["locator"]>) => {
       taps += 1;
       await locator.click();
     };
 
-    const guestUrl = await getGuestUrl(page);
-    await page.goto(guestUrl);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-
-    // 1. "Pedir música"
-    await tap(page.getByRole("button", { name: /pedir música|request a song/i }));
+    // 1. "Ser o primeiro a licitar" on the open auction card.
+    await tap(page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }));
     await expect(page).toHaveURL(/\/search$/);
-
-    // 2. First available track row (search autofocus + curated sections).
-    const row = page.locator("button:not([disabled])").filter({ hasText: /desde|from/i }).first();
-    await expect(row).toBeVisible({ timeout: 15_000 });
-    await tap(row);
+    // 2. A track.
+    await tap(page.getByRole("button").filter({ hasText: /^.*licitar$|bid$/i }).first());
     await expect(page).toHaveURL(/\/track\//);
-
-    // 3. Tier screen: cheapest available tier is preselected; final price,
-    //    ETA and the promise are visible before paying (B1.4).
-    await expect(page.locator("[data-tier][aria-pressed='true']")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/se não tocar, devolvemos tudo|if it doesn.t play/i).first()).toBeVisible();
-    const payCta = page.getByRole("button", { name: /^pagar|^pay/i });
-    await expect(payCta).toBeEnabled({ timeout: 15_000 });
-    await tap(payCta);
-
-    // 4. Payment sheet: MB WAY first on a pt-PT device; phone validated inline.
-    const sheet = page.getByRole("dialog");
-    await expect(sheet).toBeVisible();
-    await expect(sheet.getByRole("radio", { name: /mb way/i })).toHaveAttribute("aria-checked", "true");
-    await sheet.locator("#mbway-phone").fill("912345678");
-    await tap(sheet.getByRole("button", { name: /confirmar e pagar|confirm and pay/i }));
-
-    // MB WAY wait: countdown + dev panel to confirm the push.
-    await expect(sheet.getByText(/confirma na app mb way|confirm in the mb way app/i)).toBeVisible({ timeout: 15_000 });
-    await sheet.getByText(/confirmar mb way/i).click();
-
-    // Payment confirmed animation → tracking screen.
-    await expect(page.getByRole("status").filter({ hasText: /pagamento confirmado|payment confirmed/i })).toBeVisible({ timeout: 15_000 });
-    await page.waitForURL(/\/requests\/[0-9a-f-]{36}$/, { timeout: 15_000 });
-    const requestId = /\/requests\/([0-9a-f-]{36})$/.exec(page.url())![1]!;
-    return { requestId, taps };
-  }
-
-  async function djContext(browser: Browser) {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await loginStaff(page, "dj", "/cockpit");
-    return { context, page };
-  }
-
-  test("pedir → pagar → acompanhar → tocou → partilhar (≤ 4 toques até pagar)", async ({ page, browser }) => {
-    const { requestId, taps } = await requestAndPayViaUi(page);
+    // 3. Card, 4. "Licitar 2 €" (the minimum is preselected).
+    await tap(page.getByRole("radio", { name: /cartão|card/i }));
+    await tap(page.getByRole("button", { name: /^licitar \d|^bid \d/i }));
+    await expect(page.getByText(/licitação feita|bid placed/i)).toBeVisible({ timeout: 15_000 });
     expect(taps).toBeLessThanOrEqual(4);
 
-    // Tracking: Pago, with the DJ-is-looking line.
-    await expect(page.getByText(/o dj está a ver o teu pedido|the dj is looking/i)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: /^feito$|^done$/i }).click();
+    await expect(page.getByText(/^vais à frente$|^you are in the lead$/i)).toBeVisible({ timeout: 15_000 });
 
-    const dj = await djContext(browser);
+    // Someone else outbids: the money goes back to the balance.
+    const before = await auctionState(request);
+    const top = before.open.find((s) => s.id === slotId)!;
+    await bidViaApi(request, { slotId, totalCents: top.minNextCents });
+    await expect(page.getByText(/foste ultrapassado|you were outbid/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/^saldo|^balance/i).first()).toBeVisible();
+
+    // Raise: the balance pays part, the card the rest.
+    await page.getByRole("button", { name: /subir para|raise to/i }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByText(/do saldo|from balance/i)).toBeVisible();
+    await sheet.getByRole("radio", { name: /cartão|card/i }).click();
+    await sheet.getByRole("button", { name: /^licitar|^bid/i }).click();
+    await expect(sheet.getByText(/licitação feita|bid placed/i)).toBeVisible({ timeout: 15_000 });
+    await sheet.getByRole("button", { name: /^feito$|^done$/i }).click();
+    await expect(page.getByText(/^vais à frente$|^you are in the lead$/i)).toBeVisible({ timeout: 15_000 });
+
+    // The auction closes: "Vencedor".
+    await closeAuction(request, slotId);
+    await expect(page.getByRole("dialog", { name: /vencedor|winner/i })).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: /^fechar$|^close$/i }).click();
+
+    // The DJ plays it; "As minhas licitações" says it played.
+    const dj = await browser.newContext();
     try {
-      // DJ accepts → "Aceite"/"Na fila" with position + ETA.
-      const accept = await dj.page.request.post(`/api/cockpit/requests/${requestId}/accept`, { data: {} });
-      expect(accept.ok()).toBeTruthy();
-      await expect(page.getByText(/posição \d+ · ~\d+ min|position \d+ · ~\d+ min|~\d+ min/i).first()).toBeVisible({ timeout: 15_000 });
-
-      // DJ marks it playing → "É agora".
-      const play = await dj.page.request.post(`/api/cockpit/requests/${requestId}/play`, { data: {} });
-      expect(play.ok()).toBeTruthy();
-      await expect(page.getByText(/é agora|it.s on now/i)).toBeVisible({ timeout: 15_000 });
-
-      // Played is automatic when the DJ marks the NEXT one playing (B4.2):
-      // a second (API-driven) guest pays, the DJ accepts and plays it.
-      const next = await createPaidRequest(dj.page.request);
-      expect((await dj.page.request.post(`/api/cockpit/requests/${next.requestId}/accept`, { data: {} })).ok()).toBeTruthy();
-      expect((await dj.page.request.post(`/api/cockpit/requests/${next.requestId}/play`, { data: {} })).ok()).toBeTruthy();
+      const djPage = await dj.newPage();
+      await loginStaff(djPage, "dj", "/cockpit");
+      for (const action of ["accept", "playing", "played"]) {
+        expect((await djPage.request.post(`/api/cockpit/auction/${slotId}`, { data: { action } })).ok()).toBeTruthy();
+      }
     } finally {
-      await dj.context.close();
+      await dj.close();
     }
+    await page.getByRole("button", { name: /as minhas licitações|my bids/i }).click();
+    await expect(page.getByText(/^tocou$|^played$/i).first()).toBeVisible({ timeout: 15_000 });
 
-    // "Tocou": celebration + native share (falls back to opening the card).
-    await expect(page.getByText(/a tua música tocou|your song played/i)).toBeVisible({ timeout: 20_000 });
-    const share = page.getByRole("button", { name: /partilhar|share/i });
-    await expect(share).toBeVisible();
-
-    // Share card is generated server-side in both formats (B6.6).
-    for (const format of ["story", "square"]) {
-      const card = await page.request.get(`/api/guest/requests/${requestId}/card?format=${format}`);
-      expect(card.ok()).toBeTruthy();
-      expect(card.headers()["content-type"]).toContain("image/png");
-      expect((await card.body()).length).toBeGreaterThan(1000);
-    }
-
-    // No gambling vocabulary anywhere on the page (B1.7).
+    // No gambling vocabulary anywhere (B1.7).
     const text = (await page.locator("body").innerText()).toLowerCase();
     expect(text).not.toMatch(/\b(aposta|apostar|odds|ganhar)\b/);
   });
 
-  test("caminho do reembolso: o DJ recusa e o convidado vê o valor devolvido", async ({ page, browser }) => {
-    const { requestId } = await requestAndPayViaUi(page);
-
-    const dj = await djContext(browser);
-    try {
-      const reject = await dj.page.request.post(`/api/cockpit/requests/${requestId}/reject`, {
-        data: { reason: "off_style" },
-      });
-      expect(reject.ok()).toBeTruthy();
-    } finally {
-      await dj.context.close();
-    }
-
-    // Plain-language refund (B6.5): amount + why.
-    await expect(page.getByText(/devolvemos .*€|we.re refunding/i)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/não encaixou esta música|didn.t fit this set/i)).toBeVisible();
-
-    // History lists it as refunded (B6.9).
-    await page.getByRole("button", { name: /voltar|back/i }).first().click();
-    await page.getByRole("button", { name: /os meus pedidos|my requests/i }).click();
-    await expect(page).toHaveURL(/\/requests$/);
-    await expect(page.getByText(/devolvido|refunded/i).first()).toBeVisible({ timeout: 15_000 });
+  test("últimos 30 segundos: o ecrã pisca vermelho e branco", async ({ page, request }) => {
+    await openAuction(request, 25);
+    await openGuest(page);
+    await expect(page.locator(".auction-flash-frame")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(".auction-flash-card")).toBeVisible();
   });
 
-  test("MB WAY recusado não cobra nada e permite tentar de novo", async ({ page }) => {
-    const guestUrl = await getGuestUrl(page);
-    await page.goto(guestUrl);
-    await page.getByRole("button", { name: /pedir música|request a song/i }).click();
-    const row = page.locator("button:not([disabled])").filter({ hasText: /desde|from/i }).first();
-    await row.click();
-    const payCta = page.getByRole("button", { name: /^pagar|^pay/i });
-    await expect(payCta).toBeEnabled({ timeout: 15_000 });
-    await payCta.click();
-    const sheet = page.getByRole("dialog");
-    await sheet.locator("#mbway-phone").fill("912345678");
-    await sheet.getByRole("button", { name: /confirmar e pagar|confirm and pay/i }).click();
-    await expect(sheet.getByText(/confirma na app mb way/i)).toBeVisible({ timeout: 15_000 });
-
-    await sheet.getByText(/^recusar$/i).click();
-    await expect(sheet.getByText(/o pagamento foi recusado|payment was declined/i)).toBeVisible({ timeout: 15_000 });
-    await expect(sheet.getByText(/não foi cobrado nada|nothing was charged/i)).toBeVisible();
-    await expect(sheet.getByRole("button", { name: /reenviar|resend/i })).toBeVisible();
-  });
-
-  test("validação inline do telemóvel MB WAY e do NIF", async ({ page }) => {
-    const guestUrl = await getGuestUrl(page);
-    await page.goto(guestUrl);
-    await page.getByRole("button", { name: /pedir música|request a song/i }).click();
-    await page.locator("button:not([disabled])").filter({ hasText: /desde|from/i }).first().click();
-    const payCta = page.getByRole("button", { name: /^pagar|^pay/i });
-    await expect(payCta).toBeEnabled({ timeout: 15_000 });
-    await payCta.click();
-    const sheet = page.getByRole("dialog");
-
-    const confirm = sheet.getByRole("button", { name: /confirmar e pagar|confirm and pay/i });
-    await expect(confirm).toBeDisabled();
-    await sheet.locator("#mbway-phone").fill("812345678");
-    await expect(sheet.getByText(/9 dígitos|9 digits/i)).toBeVisible();
-    await expect(confirm).toBeDisabled();
-    await sheet.locator("#mbway-phone").fill("912345678");
-    await expect(confirm).toBeEnabled();
-
-    await sheet.getByRole("button", { name: /fatura com nif|invoice with/i }).click();
-    await sheet.locator("#nif").fill("123456788"); // wrong check digit (123456789 is valid)
-    await expect(sheet.getByText(/nif não parece válido|doesn.t look valid/i)).toBeVisible();
-    await expect(confirm).toBeDisabled();
-    await sheet.locator("#nif").fill("501442600"); // valid check digit, fictional
-    await expect(confirm).toBeEnabled();
+  test("MB WAY recusado: nada cobrado, a licitação não entra", async ({ page, request }) => {
+    await openAuction(request, 600);
+    await openGuest(page);
+    await page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }).click();
+    await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
+    await page.getByRole("radio", { name: /mb way/i }).click();
+    await page.getByRole("textbox", { name: /mb way/i }).fill("912345678");
+    await page.getByRole("button", { name: /^licitar \d|^bid \d/i }).click();
+    await expect(page.getByText(/confirma na app mb way|confirm in the mb way app/i)).toBeVisible({ timeout: 15_000 });
+    // The guest declines in the MB WAY app (the dev PSP delivers the signed webhook).
+    const list = (await (await page.request.get("/api/dev/psp")).json()) as { payments: Array<{ paymentId: string; status: string }> };
+    const pending = list.payments.find((p) => p.status === "pending")!;
+    expect((await page.request.post("/api/dev/psp", { data: { paymentId: pending.paymentId, action: "decline" } })).ok()).toBeTruthy();
+    await expect(page.getByText(/o pagamento não passou|did not go through/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test("PT/EN: o convidado troca de língua", async ({ page }) => {
-    const guestUrl = await getGuestUrl(page);
-    await page.goto(guestUrl);
-    await expect(page.getByRole("button", { name: "Pedir música" })).toBeVisible();
+    await openGuest(page);
+    await expect(page.getByRole("button", { name: "Licitar com uma faixa" })).toBeVisible();
     await page.getByRole("group", { name: /language/i }).getByRole("button", { name: "EN" }).click();
-    await expect(page.getByRole("button", { name: "Request a song" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Bid with a track" })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("group", { name: /language/i }).getByRole("button", { name: "PT" }).click();
-    await expect(page.getByRole("button", { name: "Pedir música" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Licitar com uma faixa" })).toBeVisible({ timeout: 15_000 });
   });
 
-  test("ecrãs públicos: Agora na pista e Top da noite", async ({ page }) => {
-    const guestUrl = await getGuestUrl(page);
-    await page.goto(guestUrl);
-    await page.getByRole("button", { name: /agora na pista|now on the floor/i }).click();
+  test("ecrãs públicos: Fila ao vivo e Rankings", async ({ page }) => {
+    await openGuest(page);
+    await page.getByRole("link", { name: /fila ao vivo|live queue/i }).click();
     await expect(page).toHaveURL(/\/queue$/);
-    await expect(page.getByRole("heading", { name: /agora na pista|now on the floor/i })).toBeVisible();
-    await page.goto(`${guestUrl}/top`);
-    await expect(page.getByRole("heading", { name: /top da noite|top of the night/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /fila ao vivo|live queue/i })).toBeVisible();
+    await page.getByRole("navigation").getByRole("link", { name: /^rankings$/i }).click();
+    await expect(page).toHaveURL(/\/top$/);
+    await expect(page.getByText(/quem mais gastou|top spenders|ainda ninguém|nobody is in/i).first()).toBeVisible();
   });
 
   test("QR inválido mostra erro amigável, sem CTA", async ({ page }) => {
     await page.goto("/s/not-a-real-token.aaaa");
     await expect(page.getByText(/este qr já não é válido|no longer valid/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /pedir música|request a song/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /licitar com uma faixa|bid with a track/i })).toHaveCount(0);
   });
 
-  test("axe: sessão e nível sem violações graves", async ({ page }) => {
-    const guestUrl = await getGuestUrl(page);
-    await page.goto(guestUrl);
-    await expect(page.getByRole("button", { name: /pedir música|request a song/i })).toBeVisible();
-    const session = await new AxeBuilder({ page }).analyze();
-    expect(session.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
+  test("axe: início e licitação sem violações graves", async ({ page, request }) => {
+    await openAuction(request, 600);
+    await openGuest(page);
+    const home = await new AxeBuilder({ page }).analyze();
+    expect(home.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
 
-    await page.getByRole("button", { name: /pedir música|request a song/i }).click();
-    await page.locator("button:not([disabled])").filter({ hasText: /desde|from/i }).first().click();
-    await expect(page.locator("[data-tier][aria-pressed='true']")).toBeVisible({ timeout: 15_000 });
-    const tier = await new AxeBuilder({ page }).analyze();
-    expect(tier.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
+    await page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }).click();
+    await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
+    await expect(page.getByRole("radiogroup").first()).toBeVisible({ timeout: 15_000 });
+    const bid = await new AxeBuilder({ page }).analyze();
+    expect(bid.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   });
 
   test.describe("preferências do sistema (B10.6)", () => {
-    test.use({ reducedMotion: "reduce", forcedColors: "none" });
+    test.use({ reducedMotion: "reduce" });
 
-    test("reduced motion: o fluxo continua inteiro", async ({ page }) => {
+    test("reduced motion: nada anima e o fluxo continua inteiro", async ({ page, request }) => {
+      await openAuction(request, 600);
       await page.emulateMedia({ reducedMotion: "reduce" });
-      const guestUrl = await getGuestUrl(page);
-      await page.goto(guestUrl);
-      // Beat Pulse ring must not run an animation under reduced motion.
-      const animated = await page.evaluate(() =>
-        document.getAnimations().filter((a) => a.playState === "running").length,
+      await openGuest(page);
+      const animated = await page.evaluate(
+        () => document.getAnimations().filter((a) => a.playState === "running").length,
       );
       expect(animated).toBe(0);
-      await page.getByRole("button", { name: /pedir música|request a song/i }).click();
+      await page.getByRole("button", { name: /licitar com uma faixa|bid with a track/i }).click();
       await expect(page).toHaveURL(/\/search$/);
     });
   });

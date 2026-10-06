@@ -14,7 +14,6 @@ import { ChevronRight, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pressable } from "@/components/ui/pressable";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { guestChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
@@ -34,7 +33,7 @@ export function MyRequestsScreen({
   sessionId: string;
 }) {
   const t = useTranslations("guest.myRequests");
-  const ts = useTranslations("guest.session");
+  const ta = useTranslations("guest.auction");
   const tStatus = useTranslations("guest.status");
   const tTiers = useTranslations("common.tiers");
   const locale = useLocale();
@@ -108,26 +107,23 @@ export function MyRequestsScreen({
   return (
     <main className="flex min-h-dvh flex-col gap-5 px-4 pb-[calc(var(--dock-h)+1.5rem)] pt-6">
       <BackHeader title={t("title")} backHref={`/s/${token}`} />
-      <MyBids token={token} sessionId={sessionId} />
+      <MyBids
+        token={token}
+        sessionId={sessionId}
+        empty={
+          requests?.length === 0 ? (
+            <EmptyState
+              icon={ReceiptText}
+              title={t("empty")}
+              hint={t("emptyHint")}
+              action={<Button onPress={() => router.push(`/s/${token}/search`)}>{ta("dockCta")}</Button>}
+            />
+          ) : null
+        }
+      />
 
-      {requests === null ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} height={76} rounded="card" />
-          ))}
-        </div>
-      ) : requests.length === 0 ? (
-        <EmptyState
-          icon={ReceiptText}
-          title={t("empty")}
-          hint={t("emptyHint")}
-          action={
-            <Button onPress={() => router.push(`/s/${token}/search`)}>
-              {ts("requestCta")}
-            </Button>
-          }
-        />
-      ) : (
+      {/* Older tier requests (before the slot auctions) stay as history. */}
+      {requests === null || requests.length === 0 ? null : (
         <>
           {active.length > 0 ? (
             <section className="flex flex-col gap-2" aria-label={t("active")}>

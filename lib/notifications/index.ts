@@ -91,11 +91,20 @@ export function buildLoginCodeMessage(code: string): string {
 let smsSingleton: SmsProvider | undefined;
 let emailSingleton: EmailProvider | undefined;
 
-async function instantiateSms(kind: "mock"): Promise<SmsProvider> {
+async function instantiateSms(kind: "mock" | "twilio"): Promise<SmsProvider> {
   switch (kind) {
     case "mock": {
       const { MockSmsProvider } = await import("@/lib/notifications/mock");
       return new MockSmsProvider();
+    }
+    case "twilio": {
+      const { env } = await import("@/lib/security/env");
+      const { TwilioSmsProvider } = await import("@/lib/notifications/twilio");
+      return new TwilioSmsProvider({
+        accountSid: env.TWILIO_ACCOUNT_SID!,
+        authToken: env.TWILIO_AUTH_TOKEN!,
+        from: env.TWILIO_FROM!,
+      });
     }
   }
 }

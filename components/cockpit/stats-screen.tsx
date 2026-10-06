@@ -232,7 +232,7 @@ export function StatsScreen({ sessionId }: { sessionId: string | null }) {
               {stats.refundsByReason.map((r) => (
                 <li key={r.reason} className="flex items-center justify-between text-sm">
                   <span className="text-text-secondary">
-                    {t(`closeReasons.${r.reason}` as never)}
+                    {t.has(`closeReasons.${r.reason}` as never) ? t(`closeReasons.${r.reason}` as never) : r.reason}
                     <span className="tnum ml-2 text-text-tertiary">×{r.count}</span>
                   </span>
                   <span className="tnum font-semibold text-text-primary">

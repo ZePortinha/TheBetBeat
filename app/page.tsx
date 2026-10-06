@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signToken } from "@/lib/security/tokens";
+import { BootIntro } from "@/components/ui/boot-intro";
 import {
   DevStrip,
   Footer,
@@ -60,6 +61,7 @@ export default async function Home() {
 
   return (
     <div className="relative">
+      <BootIntro />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-button focus:bg-accent-500 focus:px-4 focus:py-2 focus:text-text-on-accent"

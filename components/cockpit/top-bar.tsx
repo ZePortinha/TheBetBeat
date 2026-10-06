@@ -9,7 +9,7 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import { Search, Wifi, WifiOff } from "lucide-react";
+import { Wifi, WifiOff } from "lucide-react";
 import { springDefault } from "@/lib/motion";
 import type { RealtimeConnectionState } from "@/lib/realtime/client";
 import { cx, Pressable } from "@/components/ui/pressable";
@@ -94,8 +94,6 @@ export interface TopBarProps {
   sessionName: string;
   requestsOpen: boolean;
   onToggleOpen: (open: boolean) => void;
-  search: string;
-  onSearch: (value: string) => void;
   revenueCents: number;
   djCents: number;
   connection: RealtimeConnectionState;
@@ -107,8 +105,6 @@ export function TopBar({
   sessionName,
   requestsOpen,
   onToggleOpen,
-  search,
-  onSearch,
   revenueCents,
   djCents,
   connection,
@@ -139,22 +135,7 @@ export function TopBar({
         pausedText={t("topBar.requestsPaused")}
       />
 
-      <label className="relative hidden min-w-0 flex-1 items-center md:flex">
-        <Search
-          size={20}
-          strokeWidth={1.75}
-          aria-hidden
-          className="pointer-events-none absolute left-3 text-text-tertiary"
-        />
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => onSearch(event.target.value)}
-          placeholder={t("topBar.searchPlaceholder")}
-          aria-label={t("a11y.search")}
-          className="h-12 w-full rounded-full border border-line-subtle bg-surface-3 pl-10 pr-4 text-base text-text-primary placeholder:text-text-tertiary focus:border-accent-500/50 focus:outline-none"
-        />
-      </label>
+      <div className="flex-1" />
 
       <div className="flex shrink-0 flex-col items-end">
         <PriceTag cents={revenueCents} size="md" />

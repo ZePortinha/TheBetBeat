@@ -20,7 +20,7 @@ import "server-only";
  */
 
 import type { PoolClient } from "pg";
-import { withTransaction } from "@/lib/db";
+import { getPool, withTransaction } from "@/lib/db";
 import type { PaymentRow } from "@/lib/domain/dto";
 import type { Tier } from "@/lib/domain/types";
 import { TIERS } from "@/lib/domain/types";
@@ -434,7 +434,14 @@ export async function recordWebhook(
       };
     }
 
-    const action = webhookActionForPayment(payment, event.type);
+    const topup = parsePaymentPurpose(payment.idempotency_key).kind === "topup";
+    let action = webhookActionForPayment(payment, event.type);
+    // A real MB WAY can be approved seconds after our own 4-minute expiry:
+    // the money did move, so a top-up still lands in the wallet (its bid is
+    // simply superseded) instead of being ignored.
+    if (action === "ignore" && topup && event.type === "payment.confirmed" && payment.status === "expired") {
+      action = "confirm_mbway";
+    }
     const meta: MoneyMeta = {
       requestId: payment.request_id,
       sessionId: payment.session_id,
@@ -456,7 +463,6 @@ export async function recordWebhook(
     }
 
     // 1. Payment row + ledger.
-    const topup = parsePaymentPurpose(payment.idempotency_key).kind === "topup";
     if (action === "confirm_mbway") {
       const amount = event.amountCents ?? payment.amount_cents;
       await client.query(
@@ -559,4 +565,41 @@ async function auditWebhook(
       JSON.stringify({ eventId: event.id, action }),
     ],
   );
+}
+
+/**
+ * Backup for lost ifthenpay callbacks: asks the provider about recent MB WAY
+ * payments still pending here (or expired here in the last minutes, in case
+ * the guest approved right at the end) and records what it reports. The
+ * worker calls it every ~15 s; mock references are never polled.
+ */
+export async function reconcilePendingMbway(now: number, limit = 20): Promise<number> {
+  const res = await getPool().query<{ provider_ref: string; status: string }>(
+    `select provider_ref, status from public.payments
+      where method = 'mbway' and starts_with(provider_ref, 'ifp_') and not starts_with(provider_ref, 'ifp_failed_')
+        and status in ('pending', 'expired')
+        and created_at > to_timestamp($1 / 1000.0) - interval '10 minutes'
+        and created_at < to_timestamp($1 / 1000.0) - interval '10 seconds'
+      order by created_at
+      limit $2`,
+    [now, limit],
+  );
+  if (res.rows.length === 0) return 0;
+  const provider = await getPaymentProvider();
+  let moved = 0;
+  for (const p of res.rows) {
+    const remote = await provider.getStatus(p.provider_ref).catch(() => null);
+    const type: WebhookEvent["type"] | null =
+      remote?.status === "captured"
+        ? "payment.confirmed"
+        : remote?.status === "failed" && p.status === "pending"
+          ? "payment.failed"
+          : remote?.status === "expired" && p.status === "pending"
+            ? "payment.expired"
+            : null;
+    if (!type) continue;
+    await recordWebhook({ id: `ifthenpay:${p.provider_ref}:${type}:poll`, providerRef: p.provider_ref, type, raw: { poll: true } }, now);
+    moved += 1;
+  }
+  return moved;
 }

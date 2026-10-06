@@ -24,12 +24,12 @@
  * `pnpm dev`. Things to double-check on the first local run:
  *   - the session form's default date/times pass server validation in your
  *     timezone (the form defaults to today 23:00–04:00 Europe/Lisbon);
- *   - `createPaidRequest` + accept/play ordering in the gated test;
+ *   - the auction played before "Terminar sessão" in the gated test;
  *   - the MFA enrolment path in `loginStaff` needs SUPABASE_SERVICE_ROLE_KEY
  *     in `.env.local` when the manager/admin already enrolled TOTP.
  */
 import { expect, test, type Page } from "@playwright/test";
-import { createPaidRequest, loginStaff, SEED } from "./fixtures";
+import { bidViaApi, closeAuction, loginStaff, openAuction, SEED } from "./fixtures";
 
 const DESKTOP_ONLY = "desktop viewport only";
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
@@ -256,7 +256,7 @@ test.describe("console · painel da casa", () => {
     const pages: Array<[string, string]> = [
       ["/console/sessoes", "Sessões"],
       ["/console/zonas", "Zonas e QR"],
-      ["/console/precos", "Preços"],
+      ["/console/leiloes", "Leilões"],
       ["/console/equipa", "Equipa"],
       ["/console/receita", "Receita"],
       ["/console/analise", "Análise"],
@@ -276,10 +276,10 @@ test.describe("console · painel da casa", () => {
     await expect(team.getByText(SEED.staff.manager.name)).toBeVisible();
     await expect(team.getByText("(tu)")).toBeVisible();
     await expect(team.getByText(SEED.staff.dj.name)).toBeVisible();
-    // Preços: the simulator computes client-side from lib/pricing.
-    await page.goto("/console/precos");
-    await expect(page.getByRole("img", { name: "Evolução dos preços por nível" })).toBeVisible();
-    await expect(page.getByText("Como se chega ao preço")).toBeVisible({ timeout: 10_000 });
+    // Leilões: the club rules and the night preview.
+    await page.goto("/console/leiloes");
+    await expect(page.getByText("Fases da noite")).toBeVisible();
+    await expect(page.getByText(/Numa noite das 23:00 às 06:00/)).toBeVisible();
   });
 
   test("Terminar sessão from the console closes the seeded session and creates payouts", async ({
@@ -292,22 +292,16 @@ test.describe("console · painel da casa", () => {
     );
     test.setTimeout(120_000);
 
-    // Captured revenue first: two paid requests, both marked playing — the
-    // second `play` closes the first as `played` (B4.2), so the ledger
-    // holds a capture and the end-of-set payouts have amount > 0.
-    const first = await createPaidRequest(request);
-    const second = await createPaidRequest(request, { guest: first.guest });
+    // Revenue first: an auction won and played, so the ledger holds a
+    // recognition and the end-of-set payouts have amount > 0.
+    const slotId = await openAuction(request, 600);
+    await bidViaApi(request, { slotId, totalCents: 1500 });
+    await closeAuction(request, slotId);
 
     await loginStaff(page, "manager", `/console/sessoes/${SEED.sessionId}`);
-    for (const paid of [first, second]) {
-      const accept = await page.request.post(`/api/cockpit/requests/${paid.requestId}/accept`, {
-        data: {},
-      });
-      expect(accept.ok()).toBeTruthy();
-      const play = await page.request.post(`/api/cockpit/requests/${paid.requestId}/play`, {
-        data: {},
-      });
-      expect(play.ok()).toBeTruthy();
+    for (const action of ["playing", "played"]) {
+      const res = await page.request.post(`/api/cockpit/auction/${slotId}`, { data: { action } });
+      expect(res.ok()).toBeTruthy();
     }
 
     await page.getByTestId("session-end-button").click();

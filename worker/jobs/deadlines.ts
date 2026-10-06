@@ -28,8 +28,8 @@ import {
   expireUnpaidRequest,
   markTrackFinished,
 } from "@/lib/domain/service";
-import { parsePaymentPurpose } from "@/lib/payments/service";
-import { tickAuctions } from "@/lib/auction/service";
+import { parsePaymentPurpose, reconcilePendingMbway } from "@/lib/payments/service";
+import { issuePendingAuctionInvoices, tickAuctions } from "@/lib/auction/service";
 
 export const DEADLINE_WATCHDOG_QUEUE = "deadline-watchdog";
 
@@ -263,6 +263,10 @@ async function scanSessionsToClose(
 /* ------------------------------------------------------------------ */
 
 /** One full pass over every deadline kind. Safe to run concurrently. */
+/** Real MB WAY (ifthenpay): poll pending payments in case a callback is lost. */
+const MBWAY_POLL_MS = 15_000;
+let lastMbwayPoll = 0;
+
 export async function scanDeadlines(
   now: number,
   config: DeadlineScanConfig,
@@ -279,6 +283,21 @@ export async function scanDeadlines(
   } catch (error) {
     result.errors += 1;
     logScanError("auctions", "tick", error);
+  }
+  try {
+    await issuePendingAuctionInvoices();
+  } catch (error) {
+    result.errors += 1;
+    logScanError("auctions", "invoices", error);
+  }
+  if (now - lastMbwayPoll >= MBWAY_POLL_MS) {
+    lastMbwayPoll = now;
+    try {
+      await reconcilePendingMbway(now);
+    } catch (error) {
+      result.errors += 1;
+      logScanError("payments", "mbway-poll", error);
+    }
   }
   return result;
 }

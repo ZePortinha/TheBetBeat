@@ -68,8 +68,9 @@ export default async function RevenuePage() {
       }>(
         `select rf.id, rf.amount_cents, rf.reason, rf.status, rf.created_at
            from public.refunds rf
-           join public.requests r on r.id = rf.request_id
-          where r.venue_id = $1
+           join public.payments p on p.id = rf.payment_id
+           left join public.requests r on r.id = rf.request_id
+          where coalesce(p.venue_id, r.venue_id) = $1
           order by rf.created_at desc limit 20`,
         [venue.id],
       ),
@@ -82,8 +83,9 @@ export default async function RevenuePage() {
       }>(
         `select i.id, i.amount_cents, i.status, i.provider_ref, i.created_at
            from public.invoices i
-           join public.requests r on r.id = i.request_id
-          where r.venue_id = $1
+           left join public.requests r on r.id = i.request_id
+           left join public.auction_slots s on s.id = i.auction_slot_id
+          where coalesce(r.venue_id, s.venue_id) = $1
           order by i.created_at desc limit 20`,
         [venue.id],
       ),
@@ -283,7 +285,7 @@ export default async function RevenuePage() {
                     <td className="px-4 py-3 text-right text-text-primary tnum">
                       {formatEuros(inv.amount_cents)}
                     </td>
-                    <td className="px-4 py-3 text-text-secondary">{inv.status}</td>
+                    <td className="px-4 py-3 text-text-secondary">{t(`invoiceStatus.${inv.status}`)}</td>
                     <td className="px-4 py-3 text-text-secondary tnum">
                       {formatDateTime(inv.created_at)}
                     </td>
