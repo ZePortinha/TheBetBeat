@@ -529,3 +529,12 @@ Product owner: MB WAY must be real and production-ready (top priority). ifthenpa
 - **Refund cap per payment.** Done + in-flight + unknown refunds of one MB WAY payment can never exceed what was charged (advisory lock per payment). Payments made before the journal have no charge row and no cap.
 - **Orphan payments refunded.** A push whose call timed out can still be approved by the guest. The callback now carries `orderId`; a confirmed payment with no payments row is marked on its charge, and the worker refunds it in full after a minute (B1.2). No ledger entries: that money never entered the books; the audit log keeps the trail.
 - Not done: MB WAY sandbox. ifthenpay gives test keys on request; the contract and keys are the product owner's.
+
+## 2026-10-06 - Overnight security round
+
+- **Column-level grants** (migration 0014). RLS limits rows, not columns: a guest could set its own `phone_verified_at` and take any @handle, and a manager could set `betbeat_fee_bps = 0`. Clients now write only an allowlist of columns; everything else goes through server routes. `db:audit` fails on any other client-writable column.
+- **Client IP = the entry `TRUSTED_PROXY_HOPS` from the right** of X-Forwarded-For; the left end is client-controlled and gave bots a fresh rate-limit bucket per request.
+- **Managers need AAL2 on the cockpit API too**, not only on pages; without it only DJ memberships count.
+- **Temporary staff passwords must be changed** at first sign-in (`app_metadata.must_change_password`, min 12 characters).
+- **Mock payments stay allowed in production** while there is no ifthenpay contract (product owner, 2026-10-06), so demos keep working. They credit money that does not exist: switch to `PAYMENT_PROVIDER=ifthenpay` before any real night.
+

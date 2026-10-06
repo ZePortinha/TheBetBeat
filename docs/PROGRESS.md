@@ -26,6 +26,21 @@ on a plain Postgres 16. Still to run locally: `pnpm db:reset`, `pnpm db:audit`,
 `SUPABASE_TEST=1 pnpm test`; with the real keys, `pnpm mbway:smoke` (see
 docs/INTEGRATIONS.md, steps 5–6). Details in DECISIONS.
 
+## Security hardening (cloud session, overnight — 2026-10-06)
+
+Same branch. Column grants (migration 0014) stop guests and managers writing
+protected columns through PostgREST (verified phone, @handle, BetBeat fee);
+`db:audit` now checks column privileges. Also: client IP from the right end of
+X-Forwarded-For (`TRUSTED_PROXY_HOPS`), Origin check on API writes, MFA (AAL2)
+on the cockpit API for managers, safe post-login/MFA redirects, preview SSRF
+allowlist, reserved @handles, durable SMS caps, per-IP caps + 1 s cache on
+public reads, coalesced realtime hints, forced change of temporary staff
+passwords, cockpit caches cleared at sign-in. Green: typecheck, lint,
+`pnpm test` (475), db:audit and the RLS/domain/auction/worker/journal
+integration suites on a plain Postgres 16 with a Supabase stub.
+Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
+`pnpm test:e2e`; restart Supabase (config.toml: min password 12).
+
 ## This round (cloud session, no Docker / Supabase — 2026-10-02)
 
 Branch `cloud/finish-surfaces` (also pushed to the session branch). Everything
