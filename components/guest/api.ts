@@ -40,6 +40,7 @@ export async function apiFetch<T>(
 
 /** Error codes that have a dedicated guest translation. */
 const KNOWN_ERROR_CODES = new Set([
+  "handle_taken",
   "rate_limited",
   "bot_check_failed",
   "quote_expired",

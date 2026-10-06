@@ -500,3 +500,12 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - Ranking: the top 3 on a podium (1st in the middle, tallest, crown); everyone else below, smaller and muted. Up to 50.
 - "O meu @" is the default way to appear. Anonymous and table come second. The last @ is remembered on the phone.
 - One shared auction state per party layout (AuctionProvider): one poll, no reload when switching tabs. The last-30-s flash and the winner celebration show on every tab.
+
+## 2026-10-06 - A phone number owns one @
+
+- Product owner: the first time someone gives their number, it gets associated with an @ that follows them.
+- `phone_handles` (salted phone hash → @, unique ignoring case). The link is made only when the number is proven: the SMS code, or an MB WAY payment approved in the app (that now also marks the number verified).
+- A proven number brings its @ back on any device. An @ owned by another number cannot be used (`handle_taken`, with how to recover it: sign in with the number). A typed, unproven number never counts as ownership, so nobody can borrow someone's @.
+- There is no lookup by number from the client: knowing someone's number never reveals their @. The bid form prefills the guest's own @ from `GET /api/guest/profile`.
+- MB WAY in development: the mock provider sends nothing to the phone. The waiting screen now says so and shows the simulator buttons. Real requests need the ifthenpay keys (docs/INTEGRATIONS.md).
+- Integration tests now hide their "AU …/IT …" tracks from the dev club's library after each run (they were showing up in search and on the home).

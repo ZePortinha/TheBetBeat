@@ -217,7 +217,8 @@
     "expire": "Expirar",
     "duplicate": "Webhook duplicado",
     "networkFail": "Falha de rede",
-    "done": "Enviado: {action}"
+    "done": "Enviado: {action}",
+    "mockHint": "Modo de teste: nenhum pedido MB WAY é enviado para o telemóvel. Carrega em Confirmar para simular a aprovação na app."
   },
   "account": {
     "title": "Entrar com telemóvel",
@@ -283,7 +284,8 @@
     "track_fixed": "Já licitaste com outra faixa neste leilão.",
     "bid_not_found": "Essa licitação já não está ativa.",
     "insufficient_funds": "O saldo não chega. Escolhe como pagar o resto.",
-    "below_track_minimum": "O preço de partida desta faixa é mais alto: a transição a partir do que está a tocar é mais difícil. Atualizámos o mínimo."
+    "below_track_minimum": "O preço de partida desta faixa é mais alto: a transição a partir do que está a tocar é mais difícil. Atualizámos o mínimo.",
+    "handle_taken": "Esse @ já pertence a outro número. Se é teu, entra com o teu número na conta para o recuperar, ou escolhe outro."
   },
   "auction": {
     "dockCta": "Licitar com uma faixa",

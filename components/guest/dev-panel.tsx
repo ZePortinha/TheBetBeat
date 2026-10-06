@@ -82,7 +82,9 @@ export function DevPanelInline() {
   if (!pending) return null;
   return (
     <div className="w-full rounded-card border border-dashed border-line-strong bg-bg-raised px-3 py-3 text-left">
-      <p className="label mb-2 text-text-tertiary">{t("title")}</p>
+      <p className="label mb-1 text-text-tertiary">{t("title")}</p>
+      {/* Test mode: no real request reaches the phone until ifthenpay keys are set. */}
+      <p className="mb-2 text-xs text-text-secondary">{t("mockHint")}</p>
       <ActionButtons payment={pending} />
     </div>
   );

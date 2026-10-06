@@ -201,7 +201,7 @@ beforeAll(async () => {
     `select t.id from (
         select distinct on (lower(lt.title), lower(lt.artist)) lt.id, lt.title, lt.artist
           from public.library_tracks lt
-         where lt.venue_id = $1
+         where lt.venue_id = $1 and not lt.blocked
          order by lower(lt.title), lower(lt.artist), lt.id
       ) t
       where not exists (

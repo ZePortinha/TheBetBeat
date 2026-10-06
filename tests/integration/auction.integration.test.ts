@@ -44,6 +44,8 @@ const db = await import("@/lib/db");
 const auction = await import("@/lib/auction/service");
 const paymentsService = await import("@/lib/payments/service");
 const { getPaymentProvider } = await import("@/lib/payments");
+const phoneHandles = await import("@/lib/guests/phone-handle");
+const { hashPhone } = await import("@/lib/security/crypto");
 import type { MockPaymentProvider } from "@/lib/payments/mock";
 
 const VENUE_ID = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -133,6 +135,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db.query(`update public.sessions set status = 'ended', ended_at = now() where id = $1`, [SESSION_ID]);
+  // The test tracks live in the dev club's library: hide them from guests afterwards.
+  await db.query(`update public.library_tracks set blocked = true where venue_id = $1 and title like $2`, [VENUE_ID, `AU ${RUN} %`]);
   await db.closePool();
 }, 60_000);
 
@@ -378,6 +382,32 @@ describe("money", () => {
     expect(await balance(a)).toBe(1500);
     const row = await db.query<{ status: string; captured_cents: number }>(`select status, captured_cents from public.payments where id = $1`, [pay.rows[0]!.id]);
     expect(row.rows[0]).toMatchObject({ status: "captured", captured_cents: 1500 });
+  }, 60_000);
+
+  it("a number owns one @: an approved MB WAY on a new phone brings it back, nobody else can use it", async () => {
+    const now = T0 + 2_080_000;
+    const slot = await newSlot(now);
+    const [first, second] = await Promise.all([createGuest(), createGuest()]);
+    // A number of its own per run: numbers keep their @ across runs.
+    const phone = `+3519${String(parseInt(RUN.slice(0, 7), 16) % 100_000_000).padStart(8, "0")}`;
+    const hash = hashPhone(phone);
+    const handle = `rita${RUN}`;
+    // First device: proven number (SMS) + chosen @ → the number keeps it.
+    await db.query(`update public.guests set handle = $2, phone_hash = $3, phone_verified_at = now() where id = $1`, [first, handle, hash]);
+    expect(await phoneHandles.linkPhoneHandle(db.getPool(), first, hash)).toBe(handle);
+    expect(await phoneHandles.handleTaken(db.getPool(), handle.toUpperCase(), null)).toBe(true);
+    expect(await phoneHandles.handleTaken(db.getPool(), handle, hash)).toBe(false);
+
+    // A new phone, same number, pays with MB WAY and approves it in the app.
+    await db.query(`update public.guests set phone_hash = $2 where id = $1`, [second, hash]);
+    const req = { slotId: slot, guestId: second, totalCents: 1000, target: { kind: "own" as const, libraryTrackId: takeTrack() }, display: { mode: "anonymous" as const } };
+    const started = await auction.startTopUpBid({ ...req, needCents: 1000, method: "mbway", phone }, now + 1000);
+    const pay = await db.query<{ provider_ref: string }>(`select provider_ref from public.payments where intent_id = $1`, [started.intentId]);
+    const provider = (await getPaymentProvider()) as MockPaymentProvider;
+    await paymentsService.recordWebhook(provider.simulateMbwayConfirmation(pay.rows[0]!.provider_ref), now + 2000);
+    const g = await db.query<{ handle: string | null; phone_verified_at: Date | null }>(`select handle, phone_verified_at from public.guests where id = $1`, [second]);
+    expect(g.rows[0]!.handle).toBe(handle);
+    expect(g.rows[0]!.phone_verified_at).not.toBeNull();
   }, 60_000);
 
   it("end of night: open bids come back and every wallet is refunded to its payment method", async () => {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
+import { handleTaken, linkPhoneHandle } from "@/lib/guests/phone-handle";
 import { placeBid, startTopUpBid, type BidRequest } from "@/lib/auction/service";
 import { ensureTrackBpm } from "@/lib/catalog/service";
 import type { DisplayChoice } from "@/lib/auction/recognition";
@@ -72,11 +73,19 @@ export async function POST(request: Request) {
       ? { mode: "handle", handle: body.display.handle.replace(/^@/, "").toLowerCase() }
       : body.display;
   if (display.mode === "handle") {
+    const me = await getPool().query<{ phone_hash: string | null; phone_verified_at: Date | null }>(
+      `select phone_hash, phone_verified_at from public.guests where id = $1`,
+      [identity.guestId],
+    );
+    // Only a proven number counts as owning an @ (a typed one could be anyone's).
+    const provenHash = me.rows[0]?.phone_verified_at ? me.rows[0].phone_hash : null;
+    if (await handleTaken(getPool(), display.handle, provenHash)) return apiError("handle_taken", 409);
     // The @ is the guest's public name: remember it (and their consent).
     await getPool().query(
       `update public.guests set handle = $2, ranking_optin = true where id = $1`,
       [identity.guestId, display.handle],
     );
+    if (provenHash) await linkPhoneHandle(getPool(), identity.guestId, provenHash);
   }
 
   // A catalog track is priced by its transition: make sure we know its BPM

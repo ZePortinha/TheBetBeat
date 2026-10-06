@@ -32,6 +32,7 @@ import type { PaymentMethod } from "@/lib/domain/types";
 import { guestChannel, publicChannel, staffChannel } from "@/lib/realtime/events";
 import { publishBroadcasts, type OutgoingBroadcast } from "@/lib/realtime/publish";
 import { pushesFromBroadcasts, sendGuestPushes } from "@/lib/notifications/push";
+import { linkPhoneHandle } from "@/lib/guests/phone-handle";
 import { closeOutcome, decideBid, minNextBid } from "./bidding";
 import { parseAuctionConfig, type AuctionConfig } from "./config";
 import { displayLabel, recognitionFor, type DisplayChoice } from "./recognition";
@@ -722,7 +723,8 @@ export async function settleTopUpInTx(
     venue_id: string;
     session_id: string;
     captured_cents: number;
-  }>(`select intent_id, guest_id, venue_id, session_id, captured_cents from public.payments where id = $1`, [paymentId]);
+    method: PaymentMethod;
+  }>(`select intent_id, guest_id, venue_id, session_id, captured_cents, method from public.payments where id = $1`, [paymentId]);
   const pay = payRes.rows[0];
   if (!pay) return { value: { state: "failed" }, publishes: [] };
   const intentRes = await client.query<{
@@ -746,6 +748,16 @@ export async function settleTopUpInTx(
       [intent.id, kind],
     );
     return { value: { state: "failed" }, publishes: toGuests([pay.guest_id], "wallet.changed", {}) };
+  }
+
+  if (pay.method === "mbway") {
+    // Approved in the MB WAY app: the number is proven, and it owns one @.
+    const proven = await client.query<{ phone_hash: string }>(
+      `update public.guests set phone_verified_at = coalesce(phone_verified_at, now())
+        where id = $1 and phone_hash is not null returning phone_hash`,
+      [pay.guest_id],
+    );
+    if (proven.rows[0]) await linkPhoneHandle(client, pay.guest_id, proven.rows[0].phone_hash);
   }
 
   await lockWallet(client, pay.guest_id, pay.venue_id);

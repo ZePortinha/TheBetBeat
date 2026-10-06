@@ -217,7 +217,8 @@
     "expire": "Expire",
     "duplicate": "Duplicate webhook",
     "networkFail": "Network failure",
-    "done": "Sent: {action}"
+    "done": "Sent: {action}",
+    "mockHint": "Test mode: no MB WAY request is sent to the phone. Tap Confirm to simulate approving it in the app."
   },
   "account": {
     "title": "Sign in with phone",
@@ -283,7 +284,8 @@
     "track_fixed": "You already bid with another track in this auction.",
     "bid_not_found": "That bid is no longer active.",
     "insufficient_funds": "Your balance is not enough. Choose how to pay the rest.",
-    "below_track_minimum": "This track starts higher: the transition from what is playing is harder. We updated the minimum."
+    "below_track_minimum": "This track starts higher: the transition from what is playing is harder. We updated the minimum.",
+    "handle_taken": "That @ belongs to another number. If it is yours, sign in with your number in the account to get it back, or pick another."
   },
   "auction": {
     "dockCta": "Bid with a track",

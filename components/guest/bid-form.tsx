@@ -102,17 +102,6 @@ export function useSavedPhoneDigits(): [string, (d: string) => void] {
   return [digits, setDigits];
 }
 
-const HANDLE_KEY = "betbeat:handle";
-
-/** The @ used last time on this phone (empty the first time). */
-function savedHandle(): string {
-  try {
-    return localStorage.getItem(HANDLE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
 export function BidForm({
   token,
   slot,
@@ -152,9 +141,14 @@ export function BidForm({
   const effectiveTotal = Math.max(total, slot.minNextCents, trackFloorCents);
   // "O meu @" is the default: bidding is social. Anonymous and table are one tap away.
   const [display, setDisplay] = React.useState<Display>({ mode: "handle", handle: "" });
+  // My @ (the number's @ once it is proven, on any device).
+  const myHandle = React.useRef("");
   React.useEffect(() => {
-    const handle = savedHandle();
-    if (handle) setDisplay((d) => (d.mode === "handle" && !d.handle ? { mode: "handle", handle } : d));
+    void apiFetch<{ handle: string | null }>("/api/guest/profile").then((res) => {
+      const handle = res.ok ? (res.data.handle ?? "") : "";
+      myHandle.current = handle;
+      if (handle) setDisplay((d) => (d.mode === "handle" && !d.handle ? { mode: "handle", handle } : d));
+    });
   }, []);
   const [method, setMethod] = React.useState<PaymentMethod>(methods[0] ?? "mbway");
   const [phoneDigits, setPhoneDigits] = useSavedPhoneDigits();
@@ -209,13 +203,6 @@ export function BidForm({
     );
     if (toPay > 0) consumeToken();
     setBusy(false);
-    if (res.ok && display.mode === "handle") {
-      try {
-        localStorage.setItem(HANDLE_KEY, display.handle);
-      } catch {
-        // Storage blocked: typed again next time.
-      }
-    }
     if (!res.ok) {
       // 402 = the wallet changed: the form already shows how to pay.
       if (res.status !== 402) setError(errorMessage((k, v) => tErr(k, v), res));
@@ -304,7 +291,7 @@ export function BidForm({
             <button
               type="button"
               className={chip(display.mode === "handle")}
-              onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : savedHandle() })}
+              onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
             >
               {t("appearHandle")}
             </button>

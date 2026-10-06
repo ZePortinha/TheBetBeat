@@ -6,6 +6,7 @@ import { decrypt, encrypt, hashPhone, hashSmsCode } from "@/lib/security/crypto"
 import { checkSmsCode, newSmsCode, SMS_CODE_TTL_MS } from "@/lib/security/otp";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
+import { linkPhoneHandle } from "@/lib/guests/phone-handle";
 import { apiError, clientIp, rateLimitedResponse } from "../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../_lib/auth";
 import { guestListPartyHref } from "../_lib/guest-list";
@@ -139,6 +140,8 @@ export async function POST(request: Request) {
        values ($1, 'guest.phone_verified', 'guest', $2)`,
       [`guest:${guestId}`, guestId],
     );
+    // The number owns one @: this device gets it back (or the number keeps this one).
+    await linkPhoneHandle(pool, guestId, phoneHash);
     return NextResponse.json({
       phone,
       verified: true,

@@ -229,6 +229,8 @@ beforeAll(async () => {
 }, 60_000);
 
 afterAll(async () => {
+  // The test tracks live in the dev club's library: hide them from guests afterwards.
+  await db.query(`update public.library_tracks set blocked = true where venue_id = $1 and title like $2`, [VENUE_ID, `IT ${RUN} %`]);
   // Leave the seeded session usable for dev after the run.
   await db.query(
     `update public.sessions
