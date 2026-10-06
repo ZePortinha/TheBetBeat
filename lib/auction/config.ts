@@ -64,6 +64,19 @@ export interface AuctionConfig {
   keepBalanceAllowed: boolean;
   /** A balance with no movement for this many days goes back to the payment method. */
   keepBalanceDays: number;
+  /**
+   * Transition assistant (lib/auction/transition): tempo change the DJ
+   * mixes easily / with some work, %, and the starting-price multiplier
+   * per difficulty on the auction's minimum, basis points (10000 = ×1).
+   */
+  transition: {
+    easyMaxPct: number;
+    mediumMaxPct: number;
+    easyBps: number;
+    mediumBps: number;
+    hardBps: number;
+    unknownBps: number;
+  };
   recognition: {
     /** The chosen @ / table shows on the public screen. */
     screenNameCents: number;
@@ -104,6 +117,7 @@ export const DEFAULT_AUCTION_CONFIG: AuctionConfig = {
   refundAfterMin: 15,
   keepBalanceAllowed: false,
   keepBalanceDays: 30,
+  transition: { easyMaxPct: 4, mediumMaxPct: 8, easyBps: 10_000, mediumBps: 15_000, hardBps: 25_000, unknownBps: 15_000 },
   recognition: {
     screenNameCents: 5000,
     announceCents: 15000,
@@ -163,6 +177,10 @@ export const auctionConfigInputSchema = z
     refundAfterMin: num,
     keepBalanceAllowed: z.boolean(),
     keepBalanceDays: num,
+    transition: z
+      .object({ easyMaxPct: num, mediumMaxPct: num, easyBps: num, mediumBps: num, hardBps: num, unknownBps: num })
+      .partial()
+      .strip(),
     recognition: z
       .object({
         screenNameCents: num,
@@ -194,6 +212,24 @@ function special<T extends SpecialSlotConfig>(given: Partial<T> | undefined, d: 
     enabled: given?.enabled ?? d.enabled,
     minPriceCents: int(given?.minPriceCents ?? d.minPriceCents, 0, MAX_CENTS),
     openMinutesBefore: int(given?.openMinutesBefore ?? d.openMinutesBefore, 1, 180),
+  };
+}
+
+function transitionRules(
+  t: Partial<AuctionConfig["transition"]>,
+  d: AuctionConfig["transition"],
+): AuctionConfig["transition"] {
+  const easyMaxPct = Math.min(50, Math.max(0.5, t.easyMaxPct ?? d.easyMaxPct));
+  // Multipliers never lower a price (≥ ×1) and never get easier with difficulty.
+  const easyBps = int(t.easyBps ?? d.easyBps, 10_000, 100_000);
+  const mediumBps = Math.max(easyBps, int(t.mediumBps ?? d.mediumBps, 10_000, 100_000));
+  return {
+    easyMaxPct,
+    mediumMaxPct: Math.min(50, Math.max(easyMaxPct, t.mediumMaxPct ?? d.mediumMaxPct)),
+    easyBps,
+    mediumBps,
+    hardBps: Math.max(mediumBps, int(t.hardBps ?? d.hardBps, 10_000, 100_000)),
+    unknownBps: int(t.unknownBps ?? d.unknownBps, 10_000, 100_000),
   };
 }
 
@@ -252,6 +288,7 @@ export function parseAuctionConfig(input: unknown): AuctionConfig {
     refundAfterMin,
     keepBalanceAllowed: raw.keepBalanceAllowed ?? d.keepBalanceAllowed,
     keepBalanceDays: int(raw.keepBalanceDays ?? d.keepBalanceDays, 1, 365),
+    transition: transitionRules(raw.transition ?? {}, d.transition),
     recognition: {
       screenNameCents,
       announceCents,

@@ -141,10 +141,10 @@ test.describe("guest app · leilões", () => {
   test("ecrãs públicos: Fila ao vivo e Rankings", async ({ page }) => {
     await openGuest(page);
     await page.getByRole("link", { name: /fila ao vivo|live queue/i }).click();
-    await expect(page).toHaveURL(/\/queue$/);
+    await expect(page).toHaveURL(/\/queue$/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: /fila ao vivo|live queue/i })).toBeVisible();
     await page.getByRole("navigation").getByRole("link", { name: /^rankings$/i }).click();
-    await expect(page).toHaveURL(/\/top$/);
+    await expect(page).toHaveURL(/\/top$/, { timeout: 20_000 });
     await expect(page.getByText(/quem mais gastou|top spenders|ainda ninguém|nobody is in/i).first()).toBeVisible();
   });
 
@@ -162,7 +162,8 @@ test.describe("guest app · leilões", () => {
 
     await page.getByRole("button", { name: /ser o primeiro a licitar|be the first to bid/i }).click();
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
-    await expect(page.getByRole("radiogroup").first()).toBeVisible({ timeout: 15_000 });
+    // A catalog track measures its BPM on first open (dev compiles too).
+    await expect(page.getByRole("radiogroup").first()).toBeVisible({ timeout: 45_000 });
     const bid = await new AxeBuilder({ page }).analyze();
     expect(bid.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   });

@@ -222,6 +222,51 @@ describe("bidding on the server clock", () => {
   }, 60_000);
 });
 
+describe("transitions and the full catalog", () => {
+  it("a hard transition out of what is playing starts higher", async () => {
+    const now = T0 + 45_000;
+    await db.query(
+      `insert into public.session_tracks (session_id, title, artist, bpm, source, started_at)
+       values ($1, 'AU ${RUN} Playing', 'AU ${RUN} Artist', 124, 'dj', to_timestamp($2 / 1000.0))`,
+      [SESSION_ID, now],
+    );
+    const fast = await db.query<{ id: string }>(
+      `insert into public.library_tracks (venue_id, title, artist, genre, bpm, duration_sec)
+       values ($1, 'AU ${RUN} Fast', 'AU ${RUN} Artist', 'techno', 150, 200) returning id`,
+      [VENUE_ID],
+    );
+    const slot = await newSlot(now);
+    const a = await createGuest();
+    // 124 → 150 BPM is 21% (beyond the pitch range): ×2.5 on the 5 € minimum.
+    const low = await bid(a, slot, 500, now + 1000, { kind: "own", libraryTrackId: fast.rows[0]!.id });
+    expect(low).toMatchObject({ ok: false, error: "below_track_minimum", minCents: 1250 });
+    expect(await bid(a, slot, 1250, now + 2000, { kind: "own", libraryTrackId: fast.rows[0]!.id })).toMatchObject({ ok: true });
+    const row = await db.query<{ transition: string }>(`select transition from public.auction_bids where slot_id = $1`, [slot]);
+    expect(row.rows[0]!.transition).toBe("hard");
+  }, 60_000);
+
+  it("catalog tracks can be bid on only when the night opens the full catalog", async () => {
+    const now = T0 + 47_000;
+    const track = await db.query<{ id: string }>(
+      `insert into public.tracks (provider, provider_track_id, title, artist, bpm, bpm_source)
+       values ('test', $1, 'AU ${RUN} Catalog', 'AU ${RUN} Artist', 125, 'catalog') returning id`,
+      [`au-${RUN}`],
+    );
+    const slot = await newSlot(now);
+    const a = await createGuest();
+    const target = { kind: "own" as const, libraryTrackId: track.rows[0]!.id };
+    await db.query(`update public.sessions set catalog_mode = 'library' where id = $1`, [SESSION_ID]);
+    expect(await bid(a, slot, 500, now + 1000, target)).toMatchObject({ ok: false, error: "track_not_found" });
+    await db.query(`update public.sessions set catalog_mode = 'library_plus_catalog' where id = $1`, [SESSION_ID]);
+    expect(await bid(a, slot, 500, now + 2000, target)).toMatchObject({ ok: true });
+    const row = await db.query<{ catalog_track_id: string | null; library_track_id: string | null }>(
+      `select catalog_track_id, library_track_id from public.auction_bids where slot_id = $1`,
+      [slot],
+    );
+    expect(row.rows[0]).toEqual({ catalog_track_id: track.rows[0]!.id, library_track_id: null });
+  }, 60_000);
+});
+
 describe("after the close", () => {
   it("locks the winner, the DJ plays it, and the money is spent and split", async () => {
     const now = T0 + 50_000;

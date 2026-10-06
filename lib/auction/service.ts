@@ -35,6 +35,7 @@ import { closeOutcome, decideBid, minNextBid } from "./bidding";
 import { parseAuctionConfig, type AuctionConfig } from "./config";
 import { displayLabel, recognitionFor, type DisplayChoice } from "./recognition";
 import { planNight } from "./schedule";
+import { assessTransition, startingPriceCents } from "./transition";
 
 type Db = Pick<PoolClient, "query">;
 
@@ -74,6 +75,7 @@ export interface BidRow {
   venue_id: string;
   owner_guest_id: string;
   library_track_id: string | null;
+  catalog_track_id: string | null;
   track_title: string;
   track_artist: string;
   track_genre: string | null;
@@ -92,6 +94,8 @@ export interface Night {
   status: string;
   /** The DJ's "pausar pedidos" switch: no new bids while off. */
   requestsOpen: boolean;
+  /** "Biblioteca + catálogo": guests may bid with any catalog track. */
+  catalogOpen: boolean;
   startsAtMs: number;
   endsAtMs: number;
   config: AuctionConfig;
@@ -115,6 +119,7 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     venue_id: string;
     status: string;
     requests_open: boolean;
+    catalog_mode: string;
     starts_at: Date;
     ends_at: Date;
     auction_config: unknown;
@@ -122,7 +127,7 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     session_config: unknown;
     venue_share_bps: number;
   }>(
-    `select s.id, s.venue_id, s.status, s.requests_open, s.starts_at, s.ends_at, s.auction_config,
+    `select s.id, s.venue_id, s.status, s.requests_open, s.catalog_mode, s.starts_at, s.ends_at, s.auction_config,
             v.settings -> 'auction' as venue_auction,
             coalesce(ss.config, '{}'::jsonb) as session_config,
             coalesce(ss.venue_share_bps, 5000) as venue_share_bps
@@ -139,6 +144,7 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     venueId: row.venue_id,
     status: row.status,
     requestsOpen: row.requests_open,
+    catalogOpen: row.catalog_mode === "library_plus_catalog",
     startsAtMs: row.starts_at.getTime(),
     endsAtMs: row.ends_at.getTime(),
     config: safeAuctionConfig(row.auction_config ?? row.venue_auction ?? {}),
@@ -377,11 +383,49 @@ export type BidError =
   | "track_fixed"
   | "bid_not_found"
   | "requests_closed"
+  | "below_track_minimum"
   | "insufficient_funds";
 
 export type PlaceResult =
   | { ok: true; bidId: string; totalCents: number; closesAt: string; extended: boolean }
-  | { ok: false; error: BidError; needCents?: number };
+  | { ok: false; error: BidError; needCents?: number; minCents?: number };
+
+interface BidTrack {
+  id: string;
+  library: boolean;
+  title: string;
+  artist: string;
+  genre: string | null;
+  bpm: string | null;
+  camelot_key: string | null;
+  duration_sec: number | null;
+}
+
+/** The club's library first; the full catalog when the DJ opened it tonight. */
+async function trackForBid(client: PoolClient, trackId: string, venueId: string, catalogOpen: boolean): Promise<BidTrack | null> {
+  const lib = await client.query<BidTrack>(
+    `select id, true as library, title, artist, genre, bpm, camelot_key, duration_sec
+       from public.library_tracks where id = $1 and venue_id = $2 and not blocked`,
+    [trackId, venueId],
+  );
+  if (lib.rows[0] || !catalogOpen) return lib.rows[0] ?? null;
+  const cat = await client.query<BidTrack>(
+    `select id, false as library, title, artist, genre, bpm, camelot_key, duration_sec
+       from public.tracks where id = $1`,
+    [trackId],
+  );
+  return cat.rows[0] ?? null;
+}
+
+/** Tempo and key of the track playing now (null before the first one). */
+async function nowPlayingTempo(db: Db, sessionId: string): Promise<{ bpm: number | null; camelotKey: string | null } | null> {
+  const res = await db.query<{ bpm: string | null; camelot_key: string | null }>(
+    `select bpm, camelot_key from public.session_tracks where session_id = $1 order by started_at desc limit 1`,
+    [sessionId],
+  );
+  const row = res.rows[0];
+  return row ? { bpm: row.bpm === null ? null : Number(row.bpm), camelotKey: row.camelot_key } : null;
+}
 
 async function lockSlot(client: PoolClient, slotId: string): Promise<SlotRow | null> {
   const res = await client.query<SlotRow>(`select * from public.auction_slots where id = $1 for update`, [slotId]);
@@ -408,8 +452,13 @@ async function placeInTx(
   req: BidRequest,
   now: number,
 ): Promise<{ value: PlaceResult; publishes: OutgoingBroadcast[] }> {
-  const fail = (error: BidError, needCents?: number) => ({
-    value: { ok: false as const, error, ...(needCents !== undefined ? { needCents } : {}) },
+  const fail = (error: BidError, needCents?: number, minCents?: number) => ({
+    value: {
+      ok: false as const,
+      error,
+      ...(needCents !== undefined ? { needCents } : {}),
+      ...(minCents !== undefined ? { minCents } : {}),
+    },
     publishes: [],
   });
 
@@ -445,31 +494,26 @@ async function placeInTx(
       [slot.id, req.guestId],
     );
     bid = own.rows[0] ?? null;
-    if (bid && bid.library_track_id !== req.target.libraryTrackId) return fail("track_fixed");
+    if (bid && (bid.library_track_id ?? bid.catalog_track_id) !== req.target.libraryTrackId) return fail("track_fixed");
     if (!bid) {
-      const track = await client.query<{
-        id: string;
-        title: string;
-        artist: string;
-        genre: string | null;
-        bpm: string | null;
-        camelot_key: string | null;
-        duration_sec: number | null;
-      }>(
-        `select id, title, artist, genre, bpm, camelot_key, duration_sec
-           from public.library_tracks where id = $1 and venue_id = $2 and not blocked`,
-        [req.target.libraryTrackId, slot.venue_id],
-      );
-      const t = track.rows[0];
+      const t = await trackForBid(client, req.target.libraryTrackId, slot.venue_id, night.catalogOpen);
       if (!t) return fail("track_not_found");
+      // Harder transitions out of what is playing now start higher.
+      const transition = assessTransition(
+        { bpm: t.bpm === null ? null : Number(t.bpm), camelotKey: t.camelot_key },
+        await nowPlayingTempo(client, slot.session_id),
+        night.config.transition,
+      );
+      const floor = startingPriceCents(slot.min_price_cents, transition.multiplierBps);
+      if (req.totalCents < floor) return fail("below_track_minimum", undefined, floor);
       const inserted = await client.query<BidRow>(
         `insert into public.auction_bids
-           (slot_id, session_id, venue_id, owner_guest_id, library_track_id, track_title, track_artist,
-            track_genre, track_bpm, track_key, track_duration_sec, total_cents, display_mode, display_label, status)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, $12, $13, 'outbid')
+           (slot_id, session_id, venue_id, owner_guest_id, library_track_id, catalog_track_id, track_title, track_artist,
+            track_genre, track_bpm, track_key, track_duration_sec, total_cents, display_mode, display_label, status, transition)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 0, $13, $14, 'outbid', $15)
          returning *`,
-        [slot.id, slot.session_id, slot.venue_id, req.guestId, t.id, t.title, t.artist, t.genre, t.bpm,
-          t.camelot_key, t.duration_sec, req.display.mode, label],
+        [slot.id, slot.session_id, slot.venue_id, req.guestId, t.library ? t.id : null, t.library ? null : t.id,
+          t.title, t.artist, t.genre, t.bpm, t.camelot_key, t.duration_sec, req.display.mode, label, transition.level],
       );
       bid = inserted.rows[0] as BidRow;
     }
@@ -577,14 +621,20 @@ export async function startTopUpBid(input: TopUpInput, now: number): Promise<Top
   const slot = slotRes.rows[0];
   if (!slot) return { intentId: "", state: "failed", expiresAt: null };
 
+  // The track id is the club library's or the catalog's (public.tracks).
+  const ownId = input.target.kind === "own" ? input.target.libraryTrackId : null;
+  const inLibrary = ownId
+    ? ((await getPool().query(`select 1 from public.library_tracks where id = $1`, [ownId])).rowCount ?? 0) > 0
+    : false;
   const intentRes = await getPool().query<{ id: string }>(
     `insert into public.auction_intents
-       (slot_id, guest_id, library_track_id, backed_bid_id, target_total_cents, display_mode, display_label)
-     values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+       (slot_id, guest_id, library_track_id, catalog_track_id, backed_bid_id, target_total_cents, display_mode, display_label)
+     values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
     [
       input.slotId,
       input.guestId,
-      input.target.kind === "own" ? input.target.libraryTrackId : null,
+      ownId && inLibrary ? ownId : null,
+      ownId && !inLibrary ? ownId : null,
       input.target.kind === "back" ? input.target.bidId : null,
       input.totalCents,
       input.display.mode,
@@ -664,6 +714,7 @@ export async function settleTopUpInTx(
     slot_id: string;
     status: string;
     library_track_id: string | null;
+    catalog_track_id: string | null;
     backed_bid_id: string | null;
     target_total_cents: number;
     display_mode: DisplayChoice["mode"];
@@ -712,7 +763,7 @@ export async function settleTopUpInTx(
       totalCents: intent.target_total_cents,
       target: intent.backed_bid_id
         ? { kind: "back", bidId: intent.backed_bid_id }
-        : { kind: "own", libraryTrackId: intent.library_track_id ?? "" },
+        : { kind: "own", libraryTrackId: intent.library_track_id ?? intent.catalog_track_id ?? "" },
       display,
     },
     now,
@@ -1144,6 +1195,8 @@ export interface PublicAuctionState {
   recentWinners: PublicWinner[];
   /** Who spent the most tonight (played winners), amounts public. */
   ranking: Array<{ label: string | null; spentCents: number }>;
+  /** What is playing now, for the transition assistant. */
+  nowPlaying: { title: string; artist: string; bpm: number | null; camelotKey: string | null } | null;
   rules: {
     quickBidStepsCents: [number, number, number];
     minIncrementCents: number;
@@ -1153,6 +1206,7 @@ export interface PublicAuctionState {
     showAmountOnScreen: boolean;
     keepBalanceAllowed: boolean;
     keepBalanceDays: number;
+    transition: AuctionConfig["transition"];
   };
 }
 
@@ -1186,6 +1240,12 @@ function winnerDto(
   };
 }
 
+/** What is playing now, as the transition assistant reads it. */
+function nowPlayingDto(row: { title: string; artist: string; bpm: string | null; camelot_key: string | null }) {
+  const { title, artist, camelot_key: tone } = row;
+  return { title, artist, bpm: row.bpm === null ? null : Number(row.bpm), camelotKey: tone };
+}
+
 /** Everything public about tonight's auctions (app, queue, rankings, venue screen). */
 export async function publicAuctionState(sessionId: string, now: number): Promise<PublicAuctionState | null> {
   const pool = getPool();
@@ -1193,7 +1253,7 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
   if (!night) return null;
   const { config } = night;
 
-  const [openRes, nextRes, winnersRes, rankingRes] = await Promise.all([
+  const [openRes, nextRes, winnersRes, rankingRes, nowRes] = await Promise.all([
     pool.query<SlotRow & { bids: number; top_id: string | null; top_total: number | null; top_title: string | null; top_artist: string | null; top_label: string | null; backers: number | null }>(
       `select s.*, coalesce(c.n, 0)::int as bids,
               b.id as top_id, b.total_cents as top_total, b.track_title as top_title,
@@ -1246,7 +1306,13 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
         limit 10`,
       [sessionId],
     ),
+    pool.query<{ title: string; artist: string; bpm: string | null; camelot_key: string | null }>(
+      `select title, artist, bpm, camelot_key from public.session_tracks
+        where session_id = $1 order by started_at desc limit 1`,
+      [sessionId],
+    ),
   ]);
+  const now0 = nowRes.rows[0];
 
   const winners = winnersRes.rows.map((r) => winnerDto(r, config));
   const nextRow = nextRes.rows[0];
@@ -1287,6 +1353,7 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
     upNext: winners.find((w) => w.playStatus === "locked" || w.playStatus === "accepted") ?? null,
     recentWinners: winners.filter((w) => w.playStatus === "played" || w.playStatus === "playing").slice(0, 5),
     ranking: rankingRes.rows.map((r) => ({ label: r.label, spentCents: Number(r.spent) })),
+    nowPlaying: now0 ? nowPlayingDto(now0) : null,
     rules: {
       quickBidStepsCents: config.quickBidStepsCents,
       minIncrementCents: config.minIncrementCents,
@@ -1296,6 +1363,7 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
       showAmountOnScreen: config.recognition.showAmountOnScreen,
       keepBalanceAllowed: config.keepBalanceAllowed,
       keepBalanceDays: config.keepBalanceDays,
+      transition: config.transition,
     },
   };
 }
@@ -1417,7 +1485,7 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
       won: boolean;
     }>(
       `select s.id as slot_id, b.id as bid_id, s.kind, s.closes_at, b.track_title, b.track_artist,
-              b.owner_guest_id = $2 as owner, b.library_track_id,
+              b.owner_guest_id = $2 as owner, coalesce(b.library_track_id, b.catalog_track_id) as library_track_id,
               coalesce((select sum(amount_cents) from public.auction_contributions
                          where bid_id = b.id and guest_id = $2 and returned_at is null), 0)::bigint as my_cents,
               b.total_cents, b.status as bid_status, s.status as slot_status, s.play_status,

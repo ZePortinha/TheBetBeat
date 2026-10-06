@@ -130,10 +130,13 @@ export async function POST(request: Request) {
   }
   if (!providerRef) return apiError("payment_not_found", 404);
 
-  const provider = await getPaymentProvider();
-  if (!(provider instanceof MockPaymentProvider)) {
+  // A capability check, not instanceof: dev hot reload can load the mock
+  // class twice, and the shared provider may come from the other copy.
+  const candidate = await getPaymentProvider();
+  if (!("simulateMbwayConfirmation" in candidate)) {
     return apiError("not_mock_provider", 409);
   }
+  const provider = candidate as MockPaymentProvider;
 
   const deliveries: Array<{ status: number; body: unknown }> = [];
   try {

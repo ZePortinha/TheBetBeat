@@ -28,8 +28,8 @@ export type BidTargetInput =
 type Display = { mode: "anonymous" } | { mode: "handle"; handle: string } | { mode: "table"; table: string };
 
 /** The three quick totals: +steps over the top, lifted to the minimum. */
-export function quickTotals(slot: PublicSlot, steps: readonly number[]): number[] {
-  const floor = slot.minNextCents;
+export function quickTotals(slot: PublicSlot, steps: readonly number[], trackFloorCents = 0): number[] {
+  const floor = Math.max(slot.minNextCents, trackFloorCents);
   const top = slot.top?.totalCents ?? null;
   const totals =
     top === null
@@ -46,6 +46,7 @@ export function BidForm({
   currentBidTotal,
   walletCents,
   methods,
+  trackFloorCents = 0,
   initialTotal,
   onDone,
 }: {
@@ -58,6 +59,8 @@ export function BidForm({
   walletCents: number;
   /** What the server can charge right now (production with ifthenpay: MB WAY only). */
   methods: PaymentMethod[];
+  /** This track's starting price for its transition (new own bids only). */
+  trackFloorCents?: number;
   initialTotal?: number;
   onDone: () => void;
 }) {
@@ -66,12 +69,12 @@ export function BidForm({
   const tErr = useTranslations("guest.errors");
   const { turnstileToken, consumeToken } = useGuest();
 
-  const totals = quickTotals(slot, rules.quickBidStepsCents);
+  const totals = quickTotals(slot, rules.quickBidStepsCents, trackFloorCents);
   const [total, setTotal] = React.useState(() =>
     initialTotal && initialTotal >= slot.minNextCents ? initialTotal : (totals[0] ?? slot.minNextCents),
   );
   // Someone raised meanwhile: never sit below the new minimum.
-  const effectiveTotal = Math.max(total, slot.minNextCents);
+  const effectiveTotal = Math.max(total, slot.minNextCents, trackFloorCents);
   const [display, setDisplay] = React.useState<Display>({ mode: "anonymous" });
   const [method, setMethod] = React.useState<PaymentMethod>(methods[0] ?? "mbway");
   const [phoneDigits, setPhoneDigits] = React.useState("");
@@ -193,7 +196,7 @@ export function BidForm({
       <div>
         <p className="label mb-2 text-text-secondary">{t("yourBid")}</p>
         <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("yourBid")}>
-          {quickTotals(slot, rules.quickBidStepsCents).map((amount) => (
+          {totals.map((amount) => (
             <Pressable
               key={amount}
               role="radio"

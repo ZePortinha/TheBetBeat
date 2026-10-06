@@ -217,6 +217,15 @@ export default async function AuctionsPage({
             <p className="text-xs text-text-tertiary">{t("dj.keepBalanceHint")}</p>
           </Card>
 
+          <Card title={t("transition.title")} hint={t("transition.hint")}>
+            <Num name="trEasyPct" value={config.transition.easyMaxPct} step={0.5} label={t("transition.easyPct")} />
+            <Num name="trMediumPct" value={config.transition.mediumMaxPct} step={0.5} label={t("transition.mediumPct")} />
+            <Num name="trEasyX" value={config.transition.easyBps / 10_000} step={0.1} label={t("transition.easyX")} />
+            <Num name="trMediumX" value={config.transition.mediumBps / 10_000} step={0.1} label={t("transition.mediumX")} />
+            <Num name="trHardX" value={config.transition.hardBps / 10_000} step={0.1} label={t("transition.hardX")} />
+            <Num name="trUnknownX" value={config.transition.unknownBps / 10_000} step={0.1} label={t("transition.unknownX")} />
+          </Card>
+
           <Card title={t("cap.title")} hint={t("cap.hint")}>
             <Num name="songsPerHour" value={config.songsPerHour} label={t("cap.songsPerHour")} />
             <Num name="sharePct" value={config.maxAuctionShareBps / 100} step={0.5} label={t("cap.sharePct")} />

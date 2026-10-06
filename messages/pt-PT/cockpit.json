@@ -283,6 +283,12 @@
       "first_peak": "Pico da noite",
       "last_song": "Última música"
     },
-    "error": "Não foi possível. Atualiza e tenta outra vez."
+    "error": "Não foi possível. Atualiza e tenta outra vez.",
+    "transition": {
+      "easy": "transição fácil",
+      "medium": "transição média",
+      "hard": "transição difícil",
+      "unknown": "BPM desconhecido"
+    }
   }
 }

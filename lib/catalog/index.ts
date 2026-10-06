@@ -31,6 +31,11 @@ export async function getCatalogProvider(): Promise<CatalogProvider> {
 
   const { env } = await import("@/lib/security/env");
   switch (env.CATALOG_PROVIDER) {
+    case "deezer": {
+      const { DeezerCatalogProvider } = await import("./deezer");
+      cachedProvider = new DeezerCatalogProvider();
+      break;
+    }
     case "mock":
     default: {
       const { MockCatalogProvider } = await import("./mock");

@@ -20,7 +20,8 @@ export async function middleware(request: NextRequest) {
     `frame-src https://challenges.cloudflare.com`,
     // Cockpit service worker (public/sw-cockpit.js) — same origin only.
     `worker-src 'self'`,
-    `img-src 'self' data: blob:`,
+    // Catalog covers (Deezer's image CDN).
+    `img-src 'self' data: blob: https://cdn-images.dzcdn.net https://e-cdns-images.dzcdn.net`,
     `font-src 'self'`,
     `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} ${
       (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace("http", "ws")

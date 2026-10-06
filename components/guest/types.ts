@@ -55,17 +55,31 @@ export interface SearchTrackDto {
   genre: string | null;
   bpm: number | null;
   camelotKey: string | null;
+  coverUrl: string | null;
+  source: "library" | "catalog";
   fitLabel: FitLabel;
-  fromPriceCents: number;
+  /** Transition out of what is playing now. */
+  transition: "easy" | "medium" | "hard" | "unknown";
   available: boolean;
-  reason?: "blocked" | "recently_played" | "already_requested";
+  reason?: "blocked" | "recently_played";
 }
 
 export interface SearchResponseDto {
   sections: Array<{
-    key: "results" | "fits" | "popular" | "recent";
+    key: "results" | "catalog" | "trending" | "fits" | "popular" | "recent";
     tracks: SearchTrackDto[];
   }>;
+  /** The full catalog has more results (next page). */
+  hasMore?: boolean;
+  albums?: AlbumDto[];
+}
+
+export interface AlbumDto {
+  providerAlbumId: string;
+  title: string;
+  artist: string;
+  coverUrl: string | null;
+  trackCount: number | null;
 }
 
 export interface QuoteTierDto {

@@ -33,17 +33,30 @@
     "placeholder": "Search by title or artist",
     "sectionResults": "Results",
     "sectionFits": "Fits the set",
-    "sectionPopular": "Most requested today",
+    "sectionPopular": "Most bid on today",
     "sectionRecent": "Recent",
     "empty": "We couldn't find anything with that name.",
     "emptyHint": "Try another title or the artist's name.",
-    "from": "from {price}",
     "unavailable": {
       "blocked": "Unavailable in this set",
-      "recently_played": "Played recently",
-      "already_requested": "Already requested"
+      "recently_played": "Played recently"
     },
-    "bid": "Bid"
+    "bid": "Bid",
+    "sectionCatalog": "Full catalog",
+    "sectionTrending": "Trending now",
+    "catalogCredit": "Music catalog: Deezer",
+    "transition": {
+      "easy": "Easy · {bpm} BPM",
+      "medium": "Medium · {bpm} BPM",
+      "hard": "Hard · {bpm} BPM",
+      "unknown": "Measuring BPM"
+    },
+    "showMore": "Show more songs",
+    "sectionAlbums": "Albums",
+    "albumTracks": "{count, plural, one {# song} other {# songs}}",
+    "album": "Album",
+    "albumMissing": "This album is not available",
+    "albumMissingHint": "Go back to search and pick another."
   },
   "tabs": {
     "label": "Party navigation",
@@ -278,7 +291,8 @@
     "above_maximum": "That amount is above the maximum per bid.",
     "track_fixed": "You already bid with another track in this auction.",
     "bid_not_found": "That bid is no longer active.",
-    "insufficient_funds": "Your balance is not enough. Choose how to pay the rest."
+    "insufficient_funds": "Your balance is not enough. Choose how to pay the rest.",
+    "below_track_minimum": "This track starts higher: the transition from what is playing is harder. We updated the minimum."
   },
   "auction": {
     "dockCta": "Bid with a track",
@@ -360,6 +374,26 @@
     "refundAtEnd": "Refund it",
     "keepForNext": "Keep for another night",
     "walletKeptHint": "It stays in the app for another night at this club. If you do not use it within {days} days, we refund it to your payment method.",
-    "closing": "Closing the auction…"
+    "closing": "Closing the auction…",
+    "assistant": {
+      "title": "Transition assistant",
+      "playing": "Playing: {title} · {bpm} BPM",
+      "nothingPlaying": "Nothing is playing yet: any track can open the night.",
+      "unknownBpm": "We could not measure this track’s BPM: it counts as a medium transition.",
+      "unknownPlaying": "We do not know the BPM of what is playing: it counts as an easy transition.",
+      "delta": "{delta}% tempo difference.",
+      "half": "Comes in at half time: {delta}% difference.",
+      "double": "Comes in at double time: {delta}% difference.",
+      "keyMatch": "Keys match.",
+      "keyClash": "Keys clash: harder.",
+      "levels": {
+        "easy": "Easy transition",
+        "medium": "Medium transition",
+        "hard": "Hard transition",
+        "unknown": "Unknown BPM"
+      },
+      "startingPrice": "Starting price: {amount}.",
+      "why": "Hard transitions cost more: they take the DJ more work."
+    }
   }
 }

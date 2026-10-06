@@ -44,11 +44,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       track_artist: string | null;
       display_label: string | null;
       total_cents: number | null;
+      track_bpm: string | null;
+      transition: string | null;
     }>(
       `select s.id, s.kind, s.phase, s.opens_at, s.closes_at, s.status, s.outcome, s.play_status,
               s.min_price_cents, s.recognition, s.announce, s.announced_at, s.closed_at,
               exists (select 1 from public.auction_bids b where b.slot_id = s.id and b.status = 'leading') as has_bids,
-              w.track_title, w.track_artist, w.display_label, w.total_cents
+              w.track_title, w.track_artist, w.display_label, w.total_cents, w.track_bpm, w.transition
          from public.auction_slots s
          left join public.auction_bids w on w.id = s.winning_bid_id
         where s.session_id = $1
@@ -77,7 +79,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       closedAt: s.closed_at ? s.closed_at.toISOString() : null,
       // The DJ sees the chosen name even under the screen tier (to call it out).
       winner: s.track_title
-        ? { trackTitle: s.track_title, trackArtist: s.track_artist, label: s.display_label, totalCents: s.total_cents }
+        ? {
+            trackTitle: s.track_title,
+            trackArtist: s.track_artist,
+            label: s.display_label,
+            totalCents: s.total_cents,
+            bpm: s.track_bpm === null ? null : Number(s.track_bpm),
+            transition: s.transition,
+          }
         : null,
     })),
   });

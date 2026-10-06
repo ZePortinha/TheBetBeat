@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { placeBid, startTopUpBid, type BidRequest } from "@/lib/auction/service";
+import { ensureTrackBpm } from "@/lib/catalog/service";
 import type { DisplayChoice } from "@/lib/auction/recognition";
 import { encrypt, hashPhone } from "@/lib/security/crypto";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
@@ -76,6 +77,13 @@ export async function POST(request: Request) {
       `update public.guests set handle = $2, ranking_optin = true where id = $1`,
       [identity.guestId, display.handle],
     );
+  }
+
+  // A catalog track is priced by its transition: make sure we know its BPM
+  // first (provider, else measured from the preview — outside any lock).
+  if (body.target.kind === "own") {
+    const catalog = await getPool().query(`select 1 from public.tracks where id = $1`, [body.target.trackId]);
+    if ((catalog.rowCount ?? 0) > 0) await ensureTrackBpm(body.target.trackId).catch(() => null);
   }
 
   const req: BidRequest = {

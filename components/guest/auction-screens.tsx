@@ -12,7 +12,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Crown, Gavel, Sparkles, Trophy, Wallet } from "lucide-react";
+import { AudioWaveform, Crown, Gavel, Sparkles, Trophy, Wallet } from "lucide-react";
 import type { PublicSlot, PublicWinner } from "@/lib/auction/service";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
 import { WinCelebration } from "./win-celebration";
 import { clockTime, countdown, inFinalStretch, useAuction, type AuctionState } from "./use-auction";
+import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
 
 type Me = NonNullable<AuctionState["me"]>;
 type SheetState = { slot: PublicSlot; target: BidTargetInput; current: number; title: string } | null;
@@ -440,7 +441,7 @@ export function BidScreen({
 }: {
   token: string;
   sessionId: string;
-  track: { id: string; title: string; artist: string };
+  track: { id: string; title: string; artist: string; bpm: number | null; camelotKey: string | null; coverUrl: string | null };
 }) {
   const t = useTranslations("guest.auction");
   const locale = useLocale();
@@ -452,16 +453,31 @@ export function BidScreen({
   if (!state || !ready) return <Skeleton height={320} rounded="card" />;
   const slot = state.open.find((s) => s.id === slotId) ?? state.open[0] ?? null;
   const mine = slot ? state.me?.bids.find((b) => b.slotId === slot.id && b.owner) : undefined;
+  // Same rules as the server (lib/auction/transition): harder transitions start higher.
+  const assessment = assessTransition(track, state.nowPlaying, state.rules.transition);
+  const trackFloorCents = slot && !mine ? startingPriceCents(slot.minPriceCents, assessment.multiplierBps) : 0;
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-4">
-        <Disc seed={track.title} className="size-[5.5rem] shrink-0" />
+        {track.coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- catalog covers come from the provider's CDN
+          <img src={track.coverUrl} alt="" className="size-[5.5rem] shrink-0 rounded-card object-cover" />
+        ) : (
+          <Disc seed={track.title} className="size-[5.5rem] shrink-0" />
+        )}
         <div className="min-w-0">
           <p className="label truncate text-accent-400">{track.artist}</p>
           <p className="truncate text-2xl font-bold text-text-primary">{track.title}</p>
         </div>
       </div>
+
+      <TransitionAssistant
+        bpm={track.bpm}
+        nowPlaying={state.nowPlaying}
+        assessment={assessment}
+        startingCents={slot ? startingPriceCents(slot.minPriceCents, assessment.multiplierBps) : null}
+      />
 
       {!slot ? (
         <EmptyState
@@ -522,12 +538,82 @@ export function BidScreen({
               currentBidTotal={mine?.status === "leading" ? mine.totalCents : 0}
               walletCents={state.me?.walletCents ?? 0}
               methods={state.paymentMethods}
+              trackFloorCents={trackFloorCents}
               onDone={() => router.push(`/s/${token}`)}
             />
           )}
         </>
       )}
     </div>
+  );
+}
+
+const LEVEL_TONE = {
+  easy: "border-green-500/35 bg-green-500/10 text-green-500",
+  medium: "border-amber-500/35 bg-amber-500/10 text-amber-500",
+  hard: "border-ember-500/35 bg-ember-500/10 text-ember-500",
+  unknown: "border-line-strong bg-surface-2 text-text-secondary",
+} as const;
+
+/**
+ * "Assistente de transição": the track's BPM against what is playing, how
+ * hard the mix is, and what that does to the starting price.
+ */
+function TransitionAssistant({
+  bpm,
+  nowPlaying,
+  assessment,
+  startingCents,
+}: {
+  bpm: number | null;
+  nowPlaying: AuctionState["nowPlaying"];
+  assessment: TransitionAssessment;
+  startingCents: number | null;
+}) {
+  const t = useTranslations("guest.auction.assistant");
+  const fmtBpm = (v: number) => String(Math.round(v * 10) / 10).replace(".", ",");
+  const detail = assessment.nothingPlaying
+    ? t("nothingPlaying")
+    : bpm === null
+      ? t("unknownBpm")
+      : nowPlaying?.bpm == null
+        ? t("unknownPlaying")
+        : assessment.mode === "half"
+          ? t("half", { delta: String(assessment.deltaPct).replace(".", ",") })
+          : assessment.mode === "double"
+            ? t("double", { delta: String(assessment.deltaPct).replace(".", ",") })
+            : t("delta", { delta: String(assessment.deltaPct).replace(".", ",") });
+  return (
+    <section className="rounded-card border border-line-subtle bg-surface-1 p-4" aria-label={t("title")}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="label flex items-center gap-1.5 text-text-primary">
+          <AudioWaveform size={14} className="text-accent-400" aria-hidden />
+          {t("title")}
+        </p>
+        <span className={cx("rounded-chip border px-2 py-0.5 text-xs font-semibold", LEVEL_TONE[assessment.level])}>
+          {t(`levels.${assessment.level}`)}
+        </span>
+      </div>
+      <div className="mt-3 flex items-baseline gap-2">
+        <p className="tnum text-3xl font-bold text-text-primary">{bpm === null ? "—" : fmtBpm(bpm)}</p>
+        <p className="text-sm text-text-secondary">BPM</p>
+      </div>
+      {nowPlaying ? (
+        <p className="mt-1 truncate text-sm text-text-secondary">
+          {t("playing", { title: nowPlaying.title, bpm: nowPlaying.bpm === null ? "—" : fmtBpm(nowPlaying.bpm) })}
+        </p>
+      ) : null}
+      <p className="mt-2 text-sm text-text-secondary">
+        {detail}
+        {assessment.keyMatch === true ? ` ${t("keyMatch")}` : assessment.keyMatch === false ? ` ${t("keyClash")}` : ""}
+      </p>
+      {startingCents !== null ? (
+        <p className="mt-2 text-sm text-text-primary">
+          {t("startingPrice", { amount: formatEurosDisplay(startingCents) })}
+          {assessment.multiplierBps > 10_000 ? <span className="text-text-tertiary"> {t("why")}</span> : null}
+        </p>
+      ) : null}
+    </section>
   );
 }
 

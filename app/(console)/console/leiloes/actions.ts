@@ -58,6 +58,14 @@ export async function saveAuctionConfigAction(formData: FormData): Promise<void>
       refundAfterMin: n("refundAfterMin"),
       keepBalanceAllowed: on("keepBalance"),
       keepBalanceDays: n("keepBalanceDays"),
+      transition: {
+        easyMaxPct: n("trEasyPct"),
+        mediumMaxPct: n("trMediumPct"),
+        easyBps: Math.round(n("trEasyX") * 10_000),
+        mediumBps: Math.round(n("trMediumX") * 10_000),
+        hardBps: Math.round(n("trHardX") * 10_000),
+        unknownBps: Math.round(n("trUnknownX") * 10_000),
+      },
       recognition: {
         screenNameCents: cents("nameEur"),
         announceCents: cents("micEur"),

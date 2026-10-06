@@ -39,7 +39,8 @@ const serverEnvSchema = z.object({
   TWILIO_FROM: z.string().optional(),
   EMAIL_PROVIDER: z.enum(["mock"]).default("mock"),
   INVOICING_PROVIDER: z.enum(["mock"]).default("mock"),
-  CATALOG_PROVIDER: z.enum(["mock"]).default("mock"),
+  // "deezer" = the real full catalog (public API, no key).
+  CATALOG_PROVIDER: z.enum(["mock", "deezer"]).default("mock"),
   SENTRY_DSN: z.string().optional().or(z.literal("")),
   NEXT_PUBLIC_POSTHOG_KEY: z.string().optional().or(z.literal("")),
   NEXT_PUBLIC_POSTHOG_HOST: z.string().optional().or(z.literal("")),

@@ -10,10 +10,12 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Search, SearchX } from "lucide-react";
+import { ChevronRight, Search, SearchX } from "lucide-react";
+import { Pressable } from "@/components/ui/pressable";
 import { TrackRow } from "@/components/ui/track-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
 import { PartyHeading, PartyTopBar } from "./party-chrome";
@@ -21,8 +23,12 @@ import type { SearchResponseDto, SearchTrackDto } from "./types";
 
 const DEBOUNCE_MS = 200;
 
+export const TRANSITION_CHIP = { easy: "fits", medium: "possible", hard: "off_style", unknown: null } as const;
+
 const SECTION_LABEL_KEY = {
   results: "sectionResults",
+  catalog: "sectionCatalog",
+  trending: "sectionTrending",
   fits: "sectionFits",
   popular: "sectionPopular",
   recent: "sectionRecent",
@@ -30,13 +36,14 @@ const SECTION_LABEL_KEY = {
 
 export function SearchScreen({ token }: { token: string }) {
   const t = useTranslations("guest.search");
-  const tFit = useTranslations("common.fit");
   const router = useRouter();
   const { ready } = useGuest();
 
   const [query, setQuery] = React.useState("");
   const [data, setData] = React.useState<SearchResponseDto | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [page, setPage] = React.useState(0);
+  const [loadingMore, setLoadingMore] = React.useState(false);
 
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestSeq = React.useRef(0);
@@ -49,6 +56,7 @@ export function SearchScreen({ token }: { token: string }) {
       const res = await apiFetch<SearchResponseDto>(`/api/guest/search?${qs}`);
       if (seq !== requestSeq.current) return; // a newer query superseded us
       if (res.ok) setData(res.data);
+      setPage(0);
       setLoading(false);
     },
     [token],
@@ -64,6 +72,32 @@ export function SearchScreen({ token }: { token: string }) {
     setQuery(value); // instant visual feedback — debounce only the fetch
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void runSearch(value.trim()), DEBOUNCE_MS);
+  }
+
+  /** "Mostrar mais": the next page of the full catalog, appended. */
+  async function loadMore() {
+    const q = query.trim();
+    if (!q || loadingMore) return;
+    setLoadingMore(true);
+    const seq = requestSeq.current;
+    const qs = new URLSearchParams({ token, q, page: String(page + 1) });
+    const res = await apiFetch<SearchResponseDto>(`/api/guest/search?${qs}`);
+    setLoadingMore(false);
+    if (!res.ok || seq !== requestSeq.current) return;
+    const more = res.data.sections.find((s) => s.key === "catalog")?.tracks ?? [];
+    setPage((p) => p + 1);
+    setData((prev) => {
+      if (!prev) return prev;
+      const seen = new Set(prev.sections.flatMap((s) => s.tracks.map((tr) => tr.id)));
+      const fresh = more.filter((tr) => !seen.has(tr.id));
+      const hasCatalog = prev.sections.some((s) => s.key === "catalog");
+      return {
+        hasMore: res.data.hasMore ?? false,
+        sections: hasCatalog
+          ? prev.sections.map((s) => (s.key === "catalog" ? { ...s, tracks: [...s.tracks, ...fresh] } : s))
+          : [...prev.sections, { key: "catalog", tracks: fresh }],
+      };
+    });
   }
 
   const sections = data?.sections ?? [];
@@ -105,7 +139,35 @@ export function SearchScreen({ token }: { token: string }) {
       ) : noResults ? (
         <EmptyState icon={SearchX} title={t("empty")} hint={t("emptyHint")} />
       ) : (
-        sections.map((section) => (
+        <>
+          {data?.albums && data.albums.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <p className="label text-text-tertiary">{t("sectionAlbums")}</p>
+              {data.albums.map((album) => (
+                <Pressable
+                  key={album.providerAlbumId}
+                  onPress={() => router.push(`/s/${token}/album/${album.providerAlbumId}`)}
+                  className="flex min-h-16 w-full items-center gap-3 rounded-cover px-4 py-2 text-left data-pressed:bg-surface-2"
+                >
+                  {album.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- catalog covers come from the provider's CDN
+                    <img src={album.coverUrl} alt="" className="size-12 shrink-0 rounded-chip object-cover" />
+                  ) : (
+                    <span aria-hidden className="size-12 shrink-0 rounded-chip bg-surface-3" />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-base font-semibold text-text-primary">{album.title}</span>
+                    <span className="block truncate text-sm text-text-secondary">
+                      {album.artist}
+                      {album.trackCount ? ` · ${t("albumTracks", { count: album.trackCount })}` : ""}
+                    </span>
+                  </span>
+                  <ChevronRight size={20} strokeWidth={1.75} className="shrink-0 text-text-tertiary" aria-hidden />
+                </Pressable>
+              ))}
+            </section>
+          ) : null}
+          {sections.map((section) => (
           <section key={section.key} className="flex flex-col gap-2">
             <p className="label text-text-tertiary">
               {t(SECTION_LABEL_KEY[section.key])}
@@ -114,7 +176,7 @@ export function SearchScreen({ token }: { token: string }) {
               <SearchRow
                 key={`${section.key}:${track.id}`}
                 track={track}
-                fitText={tFit(track.fitLabel)}
+                fitText={t(`transition.${track.transition}`, { bpm: track.bpm === null ? "" : Math.round(track.bpm) })}
                 fromText={t("bid")}
                 unavailableText={
                   track.reason ? t(`unavailable.${track.reason}`) : undefined
@@ -123,13 +185,22 @@ export function SearchScreen({ token }: { token: string }) {
               />
             ))}
           </section>
-        ))
+          ))}
+        </>
       )}
+      {data?.hasMore && query.trim() ? (
+        <Button variant="secondary" fullWidth loading={loadingMore} onPress={() => void loadMore()}>
+          {t("showMore")}
+        </Button>
+      ) : null}
+      {sections.some((s) => s.key === "catalog" || s.key === "trending") ? (
+        <p className="pt-2 text-center text-xs text-text-tertiary">{t("catalogCredit")}</p>
+      ) : null}
     </main>
   );
 }
 
-function SearchRow({
+export function SearchRow({
   track,
   fitText,
   fromText,
@@ -146,7 +217,9 @@ function SearchRow({
     <TrackRow
       title={track.title}
       artist={track.artist}
-      fit={track.fitLabel}
+      coverUrl={track.coverUrl}
+      // The chip is the transition assistant: green easy, amber medium, red hard.
+      fit={TRANSITION_CHIP[track.transition]}
       fitText={fitText}
       available={track.available}
       {...(unavailableText ? { unavailableReason: unavailableText } : {})}

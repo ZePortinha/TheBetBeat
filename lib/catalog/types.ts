@@ -15,8 +15,23 @@ export interface CatalogTrack {
   previewUrl: string | null;
 }
 
+export interface CatalogAlbum {
+  providerAlbumId: string;
+  title: string;
+  artist: string;
+  coverUrl: string | null;
+  trackCount: number | null;
+}
+
 export interface CatalogProvider {
   readonly name: string;
-  search(query: string, limit?: number): Promise<CatalogTrack[]>;
+  /** One page of results (`offset` = how many to skip). */
+  search(query: string, limit?: number, offset?: number): Promise<CatalogTrack[]>;
   getTrack(providerTrackId: string): Promise<CatalogTrack | null>;
+  /** What people play most right now (when the provider has charts). */
+  trending?(limit?: number): Promise<CatalogTrack[]>;
+  /** Albums by name ("take care" → Drake's Take Care). */
+  searchAlbums?(query: string, limit?: number): Promise<CatalogAlbum[]>;
+  /** An album and every song on it, in order. */
+  album?(providerAlbumId: string): Promise<{ album: CatalogAlbum; tracks: CatalogTrack[] } | null>;
 }

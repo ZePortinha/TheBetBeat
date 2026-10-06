@@ -30,6 +30,7 @@ import {
 } from "@/lib/domain/service";
 import { parsePaymentPurpose, reconcilePendingMbway } from "@/lib/payments/service";
 import { issuePendingAuctionInvoices, tickAuctions } from "@/lib/auction/service";
+import { measureWantedBpms } from "@/lib/catalog/service";
 
 export const DEADLINE_WATCHDOG_QUEUE = "deadline-watchdog";
 
@@ -266,6 +267,9 @@ async function scanSessionsToClose(
 /** Real MB WAY (ifthenpay): poll pending payments in case a callback is lost. */
 const MBWAY_POLL_MS = 15_000;
 let lastMbwayPoll = 0;
+/** Catalog tracks guests saw without a BPM: measured a few at a time. */
+const BPM_POLL_MS = 2_000;
+let lastBpmPoll = 0;
 
 export async function scanDeadlines(
   now: number,
@@ -289,6 +293,15 @@ export async function scanDeadlines(
   } catch (error) {
     result.errors += 1;
     logScanError("auctions", "invoices", error);
+  }
+  if (now - lastBpmPoll >= BPM_POLL_MS) {
+    lastBpmPoll = now;
+    try {
+      await measureWantedBpms(3, now);
+    } catch (error) {
+      result.errors += 1;
+      logScanError("catalog", "bpm", error);
+    }
   }
   if (now - lastMbwayPoll >= MBWAY_POLL_MS) {
     lastMbwayPoll = now;

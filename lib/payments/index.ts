@@ -25,31 +25,35 @@ export {
 } from "./mock";
 export { buildMockWebhook, signWebhookBody, verifySignedWebhook } from "./webhooks";
 
-let cached: PaymentProvider | null = null;
+// On globalThis: dev hot reload re-evaluates modules per route, and two
+// copies of the mock would not see each other's payments.
+// The promise is stored, so two first calls at once share one instance.
+const holder = globalThis as typeof globalThis & { __betbeatPaymentProvider?: Promise<PaymentProvider> };
 
 /** Process-wide singleton so the mock's intent Map survives across routes. */
-export async function getPaymentProvider(): Promise<PaymentProvider> {
-  if (cached) return cached;
+export function getPaymentProvider(): Promise<PaymentProvider> {
+  holder.__betbeatPaymentProvider ??= createProvider();
+  return holder.__betbeatPaymentProvider;
+}
 
+async function createProvider(): Promise<PaymentProvider> {
   const { env } = await import("@/lib/security/env");
   switch (env.PAYMENT_PROVIDER) {
     case "mock": {
-      cached = new MockPaymentProvider({
+      return new MockPaymentProvider({
         webhookSecret: env.PAYMENT_WEBHOOK_SECRET,
       });
-      return cached;
     }
     // Real MB WAY through ifthenpay. Cards/wallets stay on the mock in
     // development and are unavailable in production until a card gateway.
     case "ifthenpay": {
       const { IfthenpayProvider } = await import("./ifthenpay");
-      cached = new IfthenpayProvider({
+      return new IfthenpayProvider({
         mbWayKey: env.IFTHENPAY_MBWAY_KEY!,
         backofficeKey: env.IFTHENPAY_BACKOFFICE_KEY!,
         fallback:
           env.NODE_ENV === "production" ? null : new MockPaymentProvider({ webhookSecret: env.PAYMENT_WEBHOOK_SECRET }),
       });
-      return cached;
     }
     default: {
       const exhausted: never = env.PAYMENT_PROVIDER;

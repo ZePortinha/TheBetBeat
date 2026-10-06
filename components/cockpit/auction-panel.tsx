@@ -41,7 +41,15 @@ export interface CockpitSlot {
   announce: boolean;
   announced: boolean;
   closedAt: string | null;
-  winner: { trackTitle: string; trackArtist: string; label: string | null; totalCents: number } | null;
+  winner: {
+    trackTitle: string;
+    trackArtist: string;
+    label: string | null;
+    totalCents: number;
+    bpm: number | null;
+    /** Transition out of what was playing when the bid was made. */
+    transition: "easy" | "medium" | "hard" | "unknown" | null;
+  } | null;
 }
 
 type CockpitAuctionState = PublicAuctionState & { slots: CockpitSlot[] };
@@ -149,6 +157,13 @@ export function AuctionNext({ a }: { a: CockpitAuction }) {
         <p className="label text-text-tertiary">{slot.playStatus === "playing" ? t("nowPlayingWinner") : t("upNextTitle")}</p>
         <p className="mt-2 truncate text-xl font-bold text-text-primary">{w.trackTitle}</p>
         <p className="truncate text-base text-text-secondary">{w.trackArtist}</p>
+        {w.bpm !== null || w.transition ? (
+          <p className="tnum mt-1 text-sm text-text-secondary">
+            {w.bpm !== null ? `${Math.round(w.bpm)} BPM` : ""}
+            {w.bpm !== null && w.transition ? " · " : ""}
+            {w.transition ? t(`transition.${w.transition}`) : ""}
+          </p>
+        ) : null}
         <div className="mt-2 flex items-baseline justify-between gap-3">
           <span className="truncate text-sm text-text-secondary">{w.label ?? t("anonymous")}</span>
           <span className="tnum text-2xl font-bold text-accent-400">{formatEurosDisplay(w.totalCents)}</span>

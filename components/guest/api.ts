@@ -72,6 +72,7 @@ const KNOWN_ERROR_CODES = new Set([
   "track_fixed",
   "bid_not_found",
   "insufficient_funds",
+  "below_track_minimum",
 ]);
 
 /**

@@ -705,6 +705,16 @@
         "played": "Tocou",
         "refunded": "Devolvido"
       }
+    },
+    "transition": {
+      "title": "Transições e preço de partida",
+      "hint": "O assistente compara o BPM da faixa com o que está a tocar (meio tempo e tempo duplo contam). Transições mais difíceis começam mais caras: o mínimo do leilão vezes o multiplicador.",
+      "easyPct": "Fácil até (% de andamento)",
+      "mediumPct": "Média até (% de andamento)",
+      "easyX": "Multiplicador fácil (×)",
+      "mediumX": "Multiplicador média (×)",
+      "hardX": "Multiplicador difícil (×)",
+      "unknownX": "Multiplicador BPM desconhecido (×)"
     }
   }
 }

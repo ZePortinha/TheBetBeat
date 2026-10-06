@@ -33,17 +33,30 @@
     "placeholder": "Procura por título ou artista",
     "sectionResults": "Resultados",
     "sectionFits": "Encaixa no set",
-    "sectionPopular": "Mais pedidas hoje",
+    "sectionPopular": "Mais licitadas hoje",
     "sectionRecent": "Recentes",
     "empty": "Não encontrámos nada com esse nome.",
     "emptyHint": "Tenta outro título ou o nome do artista.",
-    "from": "desde {price}",
     "unavailable": {
       "blocked": "Indisponível neste set",
-      "recently_played": "Tocou há pouco",
-      "already_requested": "Já pedida"
+      "recently_played": "Tocou há pouco"
     },
-    "bid": "Licitar"
+    "bid": "Licitar",
+    "sectionCatalog": "Todo o catálogo",
+    "sectionTrending": "Em alta agora",
+    "catalogCredit": "Catálogo de música: Deezer",
+    "transition": {
+      "easy": "Fácil · {bpm} BPM",
+      "medium": "Média · {bpm} BPM",
+      "hard": "Difícil · {bpm} BPM",
+      "unknown": "A medir o BPM"
+    },
+    "showMore": "Mostrar mais músicas",
+    "sectionAlbums": "Álbuns",
+    "albumTracks": "{count, plural, one {# música} other {# músicas}}",
+    "album": "Álbum",
+    "albumMissing": "Este álbum não está disponível",
+    "albumMissingHint": "Volta à pesquisa e escolhe outro."
   },
   "tabs": {
     "label": "Navegação da festa",
@@ -278,7 +291,8 @@
     "above_maximum": "Esse valor ultrapassa o máximo por licitação.",
     "track_fixed": "Já licitaste com outra faixa neste leilão.",
     "bid_not_found": "Essa licitação já não está ativa.",
-    "insufficient_funds": "O saldo não chega. Escolhe como pagar o resto."
+    "insufficient_funds": "O saldo não chega. Escolhe como pagar o resto.",
+    "below_track_minimum": "O preço de partida desta faixa é mais alto: a transição a partir do que está a tocar é mais difícil. Atualizámos o mínimo."
   },
   "auction": {
     "dockCta": "Licitar com uma faixa",
@@ -360,6 +374,26 @@
     "refundAtEnd": "Devolver",
     "keepForNext": "Guardar para outra noite",
     "walletKeptHint": "Fica guardado na app para outra noite nesta casa. Se não o usares em {days} dias, devolvemos ao teu meio de pagamento.",
-    "closing": "A fechar o leilão…"
+    "closing": "A fechar o leilão…",
+    "assistant": {
+      "title": "Assistente de transição",
+      "playing": "A tocar: {title} · {bpm} BPM",
+      "nothingPlaying": "Ainda não está nada a tocar: qualquer faixa pode abrir a noite.",
+      "unknownBpm": "Não conseguimos medir o BPM desta faixa: conta como transição média.",
+      "unknownPlaying": "Não sabemos o BPM do que está a tocar: conta como transição fácil.",
+      "delta": "Diferença de {delta}% no andamento.",
+      "half": "Entra a meio tempo: diferença de {delta}%.",
+      "double": "Entra a tempo duplo: diferença de {delta}%.",
+      "keyMatch": "Tons compatíveis.",
+      "keyClash": "Tons em choque: mais difícil.",
+      "levels": {
+        "easy": "Transição fácil",
+        "medium": "Transição média",
+        "hard": "Transição difícil",
+        "unknown": "BPM desconhecido"
+      },
+      "startingPrice": "Preço de partida: {amount}.",
+      "why": "Transições difíceis custam mais: dão mais trabalho ao DJ."
+    }
   }
 }
