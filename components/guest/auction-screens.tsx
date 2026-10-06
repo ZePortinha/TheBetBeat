@@ -545,11 +545,18 @@ export function AuctionOverlays() {
     }
   }, [flashingKey, state]);
   const won = celebrate ? state?.me?.bids.find((b) => b.slotId === celebrate) : undefined;
+  const wonCover = [state?.upNext, ...(state?.recentWinners ?? [])].find((w) => w?.slotId === celebrate)?.coverUrl ?? null;
   return (
     <>
       {flashing.length > 0 ? <div aria-hidden className="auction-flash-frame" /> : null}
       {celebrate && won ? (
-        <WinCelebration trackTitle={won.trackTitle} trackArtist={won.trackArtist} totalCents={won.totalCents} onClose={dismissCelebration} />
+        <WinCelebration
+          trackTitle={won.trackTitle}
+          trackArtist={won.trackArtist}
+          totalCents={won.totalCents}
+          coverUrl={wonCover}
+          onClose={dismissCelebration}
+        />
       ) : null}
     </>
   );
