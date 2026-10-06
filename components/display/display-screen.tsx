@@ -23,7 +23,7 @@ import { Disc } from "@/components/ui/disc";
 import { LiveBadge } from "@/components/ui/live-badge";
 import { QRBlock } from "@/components/ui/qr-block";
 import { publicChannel } from "@/lib/realtime/events";
-import { useRealtimeChannel } from "@/lib/realtime/client";
+import { PUBLIC_HINT_MS, useRealtimeChannel } from "@/lib/realtime/client";
 import type { DisplayStateDto } from "@/app/api/display/_lib/state";
 import { countdown, inFinalStretch } from "@/components/guest/use-auction";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
@@ -76,7 +76,7 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
   // Realtime: any public session event → debounced refetch of the DTO.
   const connection = useRealtimeChannel(
     publicChannel(sessionId),
-    { private: false },
+    { private: false, minIntervalMs: PUBLIC_HINT_MS },
     () => {
       if (refetchTimer.current) return;
       refetchTimer.current = setTimeout(() => {
