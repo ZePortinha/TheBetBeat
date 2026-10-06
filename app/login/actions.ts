@@ -40,8 +40,10 @@ export async function loginAction(
   ].some((r) => !r.ok);
   if (limited) return { error: "rate_limited" };
 
-  if (parsed.data.turnstileToken) {
-    const human = await verifyTurnstile(parsed.data.turnstileToken, ip);
+  // The form renders the widget; production refuses a sign-in without it.
+  const token = parsed.data.turnstileToken;
+  if (token || process.env.NODE_ENV === "production") {
+    const human = await verifyTurnstile(token ?? "", ip);
     if (!human) return { error: "bot" };
   }
 
