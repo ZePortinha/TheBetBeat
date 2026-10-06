@@ -83,6 +83,9 @@ export async function POST(request: Request) {
     if (!rateLimit(`sms-verify:${guestId}`, LIMITS.smsVerify.limit, LIMITS.smsVerify.windowMs).ok) {
       return rateLimitedResponse();
     }
+    // Each guess takes its attempt atomically BEFORE the comparison: a
+    // burst of parallel guesses cannot all read "0 attempts" and get more
+    // than SMS_CODE_MAX_ATTEMPTS tries at the code.
     const res = await pool.query<{
       id: string;
       code_hash: string;
@@ -90,11 +93,14 @@ export async function POST(request: Request) {
       expires_at: Date;
       consumed_at: Date | null;
     }>(
-      `select id, code_hash, attempts, expires_at, consumed_at
-         from public.guest_phone_codes
-        where guest_id = $1 and phone_hash = $2
-        order by created_at desc
-        limit 1`,
+      `update public.guest_phone_codes c
+          set attempts = c.attempts + 1
+        where c.id = (
+          select id from public.guest_phone_codes
+           where guest_id = $1 and phone_hash = $2
+           order by created_at desc
+           limit 1)
+        returning c.id, c.code_hash, c.attempts - 1 as attempts, c.expires_at, c.consumed_at`,
       [guestId, phoneHash],
     );
     const row = res.rows[0];
@@ -110,13 +116,7 @@ export async function POST(request: Request) {
       hashSmsCode(code, guestId, phoneHash),
       Date.now(),
     );
-    if (check === "mismatch") {
-      await pool.query(
-        `update public.guest_phone_codes set attempts = attempts + 1 where id = $1`,
-        [row.id],
-      );
-      return apiError("code_invalid", 422);
-    }
+    if (check === "mismatch") return apiError("code_invalid", 422);
     if (check !== "ok") {
       return apiError(check === "expired" ? "code_expired" : "code_attempts", 422);
     }

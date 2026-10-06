@@ -39,6 +39,7 @@ const SERVER_ONLY_WRITE = new Set([
   "push_subscriptions",
   "phone_handles",
   "psp_operations",
+  "rate_limits",
 ]);
 
 /** Tables anon (no session at all) may never touch. */
@@ -51,6 +52,7 @@ const NO_ANON = new Set([
   "push_subscriptions",
   "phone_handles",
   "psp_operations",
+  "rate_limits",
 ]);
 
 /**

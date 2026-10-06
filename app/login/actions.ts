@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { clientIpFrom } from "@/lib/security/client-ip";
 import { safeNextPath } from "@/lib/security/redirect";
 import { rateLimit, LIMITS } from "@/lib/security/rate-limit";
+import { rateLimitDurable } from "@/lib/security/rate-limit-pg";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { publicEnv } from "@/lib/security/public-env";
 
@@ -40,6 +41,12 @@ export async function loginAction(
     rateLimit(`login-account:${account}`, LIMITS.login.limit, LIMITS.login.windowMs),
   ].some((r) => !r.ok);
   if (limited) return { error: "rate_limited" };
+  // Counted in the database too, so several app instances share one count.
+  const durable = await Promise.all([
+    rateLimitDurable(`login:${ip}`, LIMITS.login.limit, LIMITS.login.windowMs),
+    rateLimitDurable(`login-account:${account}`, LIMITS.login.limit, LIMITS.login.windowMs),
+  ]);
+  if (durable.some((r) => !r.ok)) return { error: "rate_limited" };
 
   // The form renders the widget; production refuses a sign-in without it.
   // With Supabase CAPTCHA on, Auth verifies the (single-use) token itself.
