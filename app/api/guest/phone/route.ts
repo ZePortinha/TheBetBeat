@@ -154,7 +154,7 @@ export async function POST(request: Request) {
   const limited = [
     rateLimit(`sms:${guestId}`, LIMITS.smsCode.limit, LIMITS.smsCode.windowMs),
     rateLimit(`sms:${phoneHash}`, LIMITS.smsCode.limit, LIMITS.smsCode.windowMs),
-    rateLimit(`sms-ip:${clientIp(request)}`, LIMITS.login.limit, LIMITS.login.windowMs),
+    rateLimit(`sms-ip:${clientIp(request)}`, LIMITS.smsIp.limit, LIMITS.smsIp.windowMs),
   ].some((r) => !r.ok);
   if (limited) return rateLimitedResponse();
 
