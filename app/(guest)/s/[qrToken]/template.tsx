@@ -1,8 +1,20 @@
+"use client";
+
+import * as React from "react";
+
+/** Set after the first party screen has mounted: later mounts are navigations. */
+let navigated = false;
+
 /**
- * Every party screen arrives the same way: a short rise and fade, so
- * switching tabs reads as one continuous app instead of a hard cut.
- * CSS only (no hydration wait), transform + opacity, under 250 ms.
+ * Party screens arrive with a short rise and fade when switching tabs, so
+ * the app reads as one continuous surface instead of hard cuts. Not on the
+ * first load: the page paints at once (LCP) and the markup matches the
+ * server's. CSS only, transform + opacity, under 250 ms.
  */
 export default function PartyTemplate({ children }: { children: React.ReactNode }) {
-  return <div className="page-enter">{children}</div>;
+  const [enter] = React.useState(() => navigated);
+  React.useEffect(() => {
+    navigated = true;
+  }, []);
+  return <div className={enter ? "page-enter" : undefined}>{children}</div>;
 }

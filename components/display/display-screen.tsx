@@ -27,6 +27,7 @@ import { useRealtimeChannel } from "@/lib/realtime/client";
 import type { DisplayStateDto } from "@/app/api/display/_lib/state";
 import { countdown, inFinalStretch } from "@/components/guest/use-auction";
 import { FinalStretchFrame } from "@/components/ui/final-stretch-frame";
+import { GavelStrike } from "@/components/ui/gavel-strike";
 import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { Crossfade } from "./crossfade";
@@ -249,6 +250,9 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
                     }
                     style={{ ...displayFont, fontSize: "clamp(2.5rem, 9vmin, var(--text-80))", fontWeight: 800 }}
                   />
+                  {Date.parse(open.closesAt) <= serverNow ? (
+                    <GavelStrike className="shrink-0 self-center text-[clamp(2rem,7vmin,4.5rem)] text-accent-400" />
+                  ) : null}
                   <p className="min-w-0 truncate" style={{ fontSize: "clamp(1.25rem, 3.4vmin, var(--text-40))", fontWeight: 700 }}>
                     {open.top ? (
                       <>

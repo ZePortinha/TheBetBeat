@@ -16,6 +16,7 @@
  */
 
 import * as React from "react";
+import { useAnimate, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -28,13 +29,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pressable, cx } from "@/components/ui/pressable";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
+import { FinalStretchFrame } from "@/components/ui/final-stretch-frame";
+import { GavelStrike } from "@/components/ui/gavel-strike";
+import { TickingCountdown } from "@/components/ui/ticking-countdown";
+import { durations } from "@/lib/motion";
 import { apiFetch } from "./api";
 import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
-import { FinalStretchFrame } from "@/components/ui/final-stretch-frame";
-import { GavelStrike } from "@/components/ui/gavel-strike";
-import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { WinCelebration } from "./win-celebration";
 import { clockTime, countdown, inFinalStretch, useAuction, type AuctionState } from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
@@ -145,9 +147,25 @@ function AuctionCard({
   const mine = state.me?.bids.find((b) => b.slotId === slot.id && b.owner);
   const leading = mine?.status === "leading";
   const top = slot.top;
+  const reduced = useReducedMotion() ?? false;
+  const [card, animate] = useAnimate<HTMLElement>();
+  const wasLeading = React.useRef(leading);
+
+  // Losing the lead shakes the card once (the iOS "no"); taking it lifts it.
+  React.useEffect(() => {
+    const before = wasLeading.current;
+    wasLeading.current = leading;
+    if (reduced || !card.current || before === leading || !mine) return;
+    if (before && !leading) {
+      animate(card.current, { x: [0, -10, 9, -6, 4, 0] }, { duration: 0.45, ease: "easeOut" });
+    } else if (!before && leading) {
+      animate(card.current, { scale: [1, 1.02, 1] }, { duration: durations.slow, ease: "easeInOut" });
+    }
+  }, [leading, mine, reduced, animate, card]);
 
   return (
     <article
+      ref={card}
       className={cx(
         "rounded-sheet border border-accent-500/40 bg-surface-1 p-5 shadow-glow-accent",
         finalStretch && "auction-flash-card",

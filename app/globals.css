@@ -370,7 +370,6 @@ body:has(.guest-type) {
 }
 .auction-flash-text {
   color: var(--color-accent-400);
-  text-shadow: 0 0 24px rgba(255, 69, 58, 0.45);
 }
 .auction-flash-card {
   border-color: var(--color-accent-500);
@@ -448,4 +447,9 @@ html[data-intro="seen"] .boot-intro {
   .page-enter {
     animation: page-enter-reduced 0.15s ease-out both;
   }
+}
+
+/* Toasts sit above the guest tab bar (and its raised gavel) instead of covering it. */
+body:has([data-guest-dock]) .toast-stack {
+  padding-bottom: calc(var(--dock-h) + 1.75rem);
 }

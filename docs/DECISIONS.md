@@ -547,3 +547,7 @@ Product owner asked for better animation quality on the logo, the auction ending
 - Winner: a bottom scrim keeps the amount, track and hint readable over the confetti and rays.
 - Party screens arrive with a 240 ms rise + fade (`template.tsx`, CSS only).
 - The intro's nonce'd inline script carries `suppressHydrationWarning` (browsers hide nonce attributes after load, which React reported as a mismatch).
+- Losing the lead shakes the auction card once (the iOS "no"); taking it lifts it slightly. The leader's amount rolls like the countdown.
+- The venue display also shows the gavel strike at 0:00.
+- Party-screen entrance plays only on navigation, not on the first load (keeps LCP and the server markup intact).
+- Toasts sit above the guest tab bar and its raised gavel (`body:has([data-guest-dock])`); before, "Foste ultrapassado" covered the Leilão button for 4 s.

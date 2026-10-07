@@ -25,14 +25,13 @@ export function GavelStrike({ buzz = false, className }: { buzz?: boolean; class
 
   return (
     <span aria-hidden className={["relative inline-flex size-[1em] items-center justify-center", className].filter(Boolean).join(" ")}>
-      {reduced ? null : (
-        <motion.span
-          className="absolute inset-[-10%] rounded-full border-2 border-accent-500"
-          initial={{ scale: 0.3, opacity: 0 }}
-          animate={{ scale: [0.3, 1.6], opacity: [0.9, 0] }}
-          transition={{ delay: 0.2, duration: durations.slow, ease: "easeOut" }}
-        />
-      )}
+      {/* Same markup with and without reduced motion (no hydration mismatch). */}
+      <motion.span
+        className="absolute inset-[-10%] rounded-full border-2 border-accent-500"
+        initial={{ scale: 0.3, opacity: 0 }}
+        animate={reduced ? { opacity: 0 } : { scale: [0.3, 1.6], opacity: [0.9, 0] }}
+        transition={{ delay: 0.2, duration: durations.slow, ease: "easeOut" }}
+      />
       <motion.span
         className="inline-flex origin-bottom-right"
         initial={reduced ? false : { rotate: -55, y: "-0.1em" }}
