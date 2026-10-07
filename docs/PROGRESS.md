@@ -38,9 +38,11 @@ public reads, coalesced realtime hints, forced change of temporary staff
 passwords, cockpit caches cleared at sign-in, Turnstile on staff sign-in
 (and Supabase Auth CAPTCHA ready behind `NEXT_PUBLIC_SUPABASE_CAPTCHA`),
 /api body caps, race-free SMS code attempts, sign-in limits in Postgres
-(migration 0015). Green: typecheck, lint,
+(migration 0015), indexes for the busiest payment/refund/ledger lookups
+(migration 0016), and integration tests for parallel bids, parallel duplicate
+webhooks and DJ accept/reject races. Green: typecheck, lint,
 `pnpm test` (479), db:audit and the RLS/domain/auction/worker/journal
-integration suites on a plain Postgres 16 with a Supabase stub.
+integration suites (49 tests) on a plain Postgres 16 with a Supabase stub.
 Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
 `pnpm test:e2e`; restart Supabase (config.toml: min password 12).
 
