@@ -15,7 +15,7 @@
  * live session, so run it LAST (or `pnpm db:reset` afterwards).
  */
 import { expect, test } from "@playwright/test";
-import { auctionState, bidViaApi, closeAuction, loginStaff, openAuction, SEED } from "./fixtures";
+import { auctionState, bidViaApi, closeAuction, forgetMicAnnouncements, loginStaff, openAuction, SEED } from "./fixtures";
 
 const IPAD_ONLY = "iPad viewport only";
 
@@ -84,6 +84,8 @@ test.describe("cockpit · leilões", () => {
   });
 
   test("150 € ou mais: alerta para anunciar ao microfone", async ({ page, request }) => {
+    // At most 3 mic announcements an hour: earlier runs must not use them up.
+    await forgetMicAnnouncements(request);
     await winnerWaiting(request, 15_000, "e2e_mic");
     const alert = page.getByRole("alert").filter({ hasText: "Anunciar ao microfone" });
     await expect(alert).toBeVisible({ timeout: 15_000 });
