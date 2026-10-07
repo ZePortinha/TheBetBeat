@@ -69,7 +69,8 @@ export default async function RootLayout({
       <head>
         {/* Before first paint: the boot intro plays once per tab, not on
             every reload or when "/" hands over to a party page. */}
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: INTRO_SEEN_SCRIPT }} />
+        {/* Browsers hide the nonce attribute after load: not a real mismatch. */}
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: INTRO_SEEN_SCRIPT }} />
       </head>
       <body>
         {/* data-vaul-drawer-wrapper lets sheets push the page back (B10.4). */}

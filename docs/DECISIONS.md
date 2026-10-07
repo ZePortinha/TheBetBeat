@@ -535,3 +535,15 @@ Measured in a cloud session without Docker: Postgres 16 with stubbed `auth`/`rea
 - /casas copy caught up with the auction-first guest app (2026-10-06): the hero, step 2 and the guarantee no longer describe the old "Na Fila / Em Breve / A Seguir" tiers; they describe bidding and the balance refund, in the same words the guest app uses.
 - Storybook stories used real artists and track titles; replaced with the fictional seed names (A2.5).
 - List cover images load lazily; the MFA QR alt text moved to translations.
+
+## 2026-10-07 - Big moments: intro, last 30 s, gavel, winner
+
+Product owner asked for better animation quality on the logo, the auction ending and the win. Reviewed frame by frame on `/dev/motion` (dev-only stage; `?scene=intro|final|win`).
+
+- Countdowns (guest card, teaser, strip, venue display, "next opens") roll digit by digit like a mechanical clock (`TickingCountdown`, springDefault); only changed digits move. The leader's amount rolls the same way. The looping `animate-pulse` on the last minute is gone (B10.6: no loops except live indicators).
+- Last 30 s: the edge glow beats once per second, on the second the digits roll, driven per tick with Web Animations on opacity (`FinalStretchFrame`). The old 1 s box-shadow keyframes repainted the whole viewport every frame and drifted out of step with the clock. Last 10 s: each beat is the BetBeat lub-dub. The digits tick (scale 1.08 → 1) on the beat; cards just run hot (static red border + glow) instead of flashing. Last 5 s of an auction I am in: a 12 ms haptic tick per second. Never more than two pulses a second (under the 3 Hz flash limit). Reduced motion: steady red edge, digits cross-fade.
+- Closing: the gavel strikes (springMomentum: a blow may overshoot) with a ring from the point of impact and one 40 ms buzz for guests in the auction, timed to the impact.
+- Logo intro: on leaving, the mark comes towards the viewer (scale 1.9) and dissolves as the black lifts, instead of a flat fade. The CSS safety fallback moved to 2.8 s so it no longer cuts the exit.
+- Winner: a bottom scrim keeps the amount, track and hint readable over the confetti and rays.
+- Party screens arrive with a 240 ms rise + fade (`template.tsx`, CSS only).
+- The intro's nonce'd inline script carries `suppressHydrationWarning` (browsers hide nonce attributes after load, which React reported as a mismatch).
