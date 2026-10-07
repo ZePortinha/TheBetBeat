@@ -26,11 +26,19 @@ export type AuctionState = PublicAuctionState & { me: MyAuctionState | null; pay
 const POLL_MS = 3000;
 /** The final stretch of an auction: the screen flashes red ↔ white. */
 export const FINAL_STRETCH_MS = 30_000;
+/** Final 2 minutes: urgent warning and button highlight. */
+export const FINAL_TWO_MINUTES_MS = 120_000;
 
 /** True while an auction is in its last 30 seconds. */
 export function inFinalStretch(closesAtIso: string, serverNow: number): boolean {
   const left = Date.parse(closesAtIso) - serverNow;
   return left > 0 && left <= FINAL_STRETCH_MS;
+}
+
+/** True while an auction is in its last 2 minutes. */
+export function inFinalTwoMinutes(closesAtIso: string, serverNow: number): boolean {
+  const left = Date.parse(closesAtIso) - serverNow;
+  return left > 0 && left <= FINAL_TWO_MINUTES_MS;
 }
 
 function useAuctionSource(token: string, sessionId: string) {

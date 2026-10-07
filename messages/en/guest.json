@@ -295,6 +295,7 @@
     "special": "Special",
     "closesAt": "Closes at {time}",
     "lastMinute": "Last minute",
+    "finalTwoMinutes": "Last 2 minutes!",
     "leader": "In the lead",
     "backers": "{count, plural, one {# backer} other {# backers}}",
     "noBids": "No bids yet. Starts at {amount}.",

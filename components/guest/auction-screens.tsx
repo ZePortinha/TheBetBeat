@@ -33,7 +33,7 @@ import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
 import { WinCelebration } from "./win-celebration";
-import { clockTime, countdown, inFinalStretch, useAuction, type AuctionState } from "./use-auction";
+import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, useAuction, type AuctionState } from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
 
 type SheetState = { slot: PublicSlot; target: BidTargetInput; current: number; title: string } | null;
@@ -136,6 +136,7 @@ function AuctionCard({
   const left = Date.parse(slot.closesAt) - serverNow;
   const lastMinute = left <= state.rules.lastMinuteWarningSec * 1000;
   const finalStretch = inFinalStretch(slot.closesAt, serverNow);
+  const twoMinutesLeft = inFinalTwoMinutes(slot.closesAt, serverNow) && !finalStretch;
   const ended = left <= 0;
   const mine = state.me?.bids.find((b) => b.slotId === slot.id && b.owner);
   const leading = mine?.status === "leading";
@@ -169,6 +170,13 @@ function AuctionCard({
       <p className={cx("mt-1 text-sm", lastMinute ? "font-semibold text-ember-500" : "text-text-secondary")}>
         {ended ? t("closing") : lastMinute ? t("lastMinute") : t("closesAt", { time: clockTime(slot.closesAt, locale) })}
       </p>
+
+      {twoMinutesLeft ? (
+        <div className="mt-3 rounded-card bg-amber-500/20 border border-amber-500/50 px-4 py-3 flex items-center gap-2">
+          <span className="inline-block size-2 rounded-full bg-amber-500 motion-safe:animate-pulse" aria-hidden />
+          <p className="font-semibold text-amber-500">{t("finalTwoMinutes")}</p>
+        </div>
+      ) : null}
 
       {top ? (
         <LeaderSpotlight top={top} mine={leading} />

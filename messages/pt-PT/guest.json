@@ -295,6 +295,7 @@
     "special": "Especial",
     "closesAt": "Fecha às {time}",
     "lastMinute": "Último minuto",
+    "finalTwoMinutes": "Últimos 2 minutos!",
     "leader": "Vai à frente",
     "backers": "{count, plural, one {# apoiante} other {# apoiantes}}",
     "noBids": "Ainda sem licitações. Começa em {amount}.",
