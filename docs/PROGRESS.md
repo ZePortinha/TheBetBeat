@@ -65,6 +65,13 @@ answered by a fictional stub (no network to api.deezer.com there).
   the outbid toast covering the winner screen's "Fechar"; the 150 € mic test
   failing on a second run within the hour (3 announcements/hour cap); the end-set
   test reading the wallet through the guest API after the night ended.
+- `SUPABASE_TEST=1 pnpm test`: 146 integration tests green, twice in a row,
+  with `pnpm worker` STOPPED (a running worker picks up the suite's failed
+  refunds and auctions and makes those tests fail). The suite also writes
+  fictional "AU …" tracks into the seeded night: `pnpm db:reset` before
+  looking at the screens. `pnpm db:audit` green.
+- MVP flow walked end to end with screenshots (enter by QR, bid, outbid,
+  raise, Vencedor, DJ accepts and plays, Ranking).
 
 ## To verify locally (needs `supabase start` + `pnpm db:reset` + `pnpm dev` + `pnpm worker`)
 
