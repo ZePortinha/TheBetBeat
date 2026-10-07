@@ -13,6 +13,7 @@ import { BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
+import { cx } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatEurosDisplay, formatLisbonTime } from "./format";
 import type { CockpitStats } from "./types";
@@ -213,7 +214,12 @@ export function StatsScreen({ sessionId, footer }: { sessionId: string | null; f
         </Card>
 
         <Card title={t("acceptance")}>
-          <p className="tnum text-[length:var(--text-40)] font-bold text-accent-400">
+          <p
+            className={cx(
+              "tnum text-[length:var(--text-40)] font-bold",
+              acceptancePct === null ? "text-text-tertiary" : "text-accent-400",
+            )}
+          >
             {acceptancePct === null ? "—" : `${acceptancePct}%`}
           </p>
           <p className="mt-1 text-sm text-text-secondary">

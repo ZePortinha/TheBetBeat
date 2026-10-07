@@ -551,3 +551,13 @@ Product owner asked for better animation quality on the logo, the auction ending
 - The venue display also shows the gavel strike at 0:00.
 - Party-screen entrance plays only on navigation, not on the first load (keeps LCP and the server markup intact).
 - Toasts sit above the guest tab bar and its raised gavel (`body:has([data-guest-dock])`); before, "Foste ultrapassado" covered the Leilão button for 4 s.
+
+## 2026-10-07 - Second polish pass: cockpit and console
+
+- One `BrandMark` (the icon's concentric beats) replaces the "BB" text in the cockpit rail and sits next to the console wordmark.
+- Cockpit auction board: countdown and leader amount roll like the guest and venue screens (no beat; the DJ needs calm, not urgency).
+- A missing value ("—") is never painted in the money color: console `Stat` and the cockpit acceptance tile show it in tertiary.
+- Console "Receita por hora" says "Sem receita neste período." instead of an empty plot; averages use pt-PT decimals ("2,5"); time inputs no longer clip.
+- Console and MFA fields get the same focus ring as the staff login (accent border + 4 px soft ring); before, the only keyboard cue was a 1 px border change.
+- Cockpit "Payout" reads "Liquidação" (the brief's glossary, already used by the console).
+- Deferred: loading `@supabase/supabase-js` (66 kB gzip, in every guest first load) on demand. It touches `lib/realtime/client.ts` and `guest-providers.tsx`, which PR #1 rewrites; do it after PR #1 lands.

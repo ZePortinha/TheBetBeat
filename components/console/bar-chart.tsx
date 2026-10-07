@@ -13,18 +13,27 @@ export interface Bar {
 export function BarChart({
   bars,
   title,
+  emptyLabel,
   height = 160,
 }: {
   bars: Bar[];
   title: string;
+  /** Shown over the empty plot when every bar is zero. */
+  emptyLabel?: string;
   height?: number;
 }) {
+  const empty = bars.every((b) => b.value === 0);
   const max = Math.max(1, ...bars.map((b) => b.value));
   const barWidth = 100 / Math.max(1, bars.length);
   const plotH = height - 24;
 
   return (
-    <figure role="img" aria-label={title} className="w-full">
+    <figure role="img" aria-label={empty && emptyLabel ? `${title}. ${emptyLabel}` : title} className="relative w-full">
+      {empty && emptyLabel ? (
+        <p aria-hidden className="absolute inset-x-0 top-20 text-center text-sm text-text-secondary">
+          {emptyLabel}
+        </p>
+      ) : null}
       <svg
         viewBox={`0 0 100 ${height}`}
         preserveAspectRatio="none"

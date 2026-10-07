@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
 import { Activity, BarChart3, Settings } from "lucide-react";
 import { durations, easeStandard } from "@/lib/motion";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { cx } from "@/components/ui/pressable";
 import { GOLD_FLASH_EVENT } from "./sounds";
 import { queuedCount } from "./offline-queue";
@@ -123,13 +124,7 @@ export function CockpitShell({ children }: { children: React.ReactNode }) {
         aria-label={t("a11y.mainNav")}
         className="flex w-[84px] shrink-0 flex-col items-stretch gap-2 border-r border-line-subtle bg-bg-raised px-2 py-3 print:hidden"
       >
-        <span
-          className="mb-2 px-1 text-center text-sm font-bold text-accent-400"
-          style={{ fontFamily: "var(--font-display)" }}
-          aria-hidden
-        >
-          BB
-        </span>
+        <BrandMark className="mx-auto mb-2 size-9" />
         {NAV.map(({ href, key, Icon }) => {
           const active =
             href === "/cockpit" ? pathname === "/cockpit" : pathname.startsWith(href);

@@ -115,7 +115,7 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
         <input
           className="w-full rounded-button border border-line-subtle bg-surface-3 px-4
             py-3 text-center text-xl tracking-[0.3em] text-text-primary tnum
-            focus:border-accent-500 focus:outline-none"
+            focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25"
           inputMode="numeric"
           autoComplete="one-time-code"
           pattern="[0-9]{6}"

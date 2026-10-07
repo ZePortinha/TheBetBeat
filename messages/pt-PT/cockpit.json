@@ -119,7 +119,7 @@
     "topTracks": "Faixas vencedoras",
     "noTracks": "Ainda sem vencedores",
     "requestsLabel": "{count, plural, one {# vitória} other {# vitórias}}",
-    "payout": "Payout",
+    "payout": "Liquidação",
     "payoutNone": "Disponível depois de terminar o set",
     "payoutStatus": {
       "pending": "Pendente",
