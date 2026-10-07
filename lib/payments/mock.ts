@@ -325,6 +325,10 @@ export class MockPaymentProvider implements PaymentProvider {
         `mock: ${MOCK_MBWAY_NEVER_CONFIRM_PHONE} never confirms (simulation hook)`,
       );
     }
+    // Already captured: re-send the webhook, as a PSP retries a lost delivery.
+    if (intent.method === "mbway" && intent.status === "captured") {
+      return this.makeEvent(intent, "payment.confirmed", intent.capturedCents);
+    }
     if (intent.method !== "mbway" || intent.status !== "pending") {
       throw new Error(
         `mock: cannot confirm intent in status '${intent.status}'`,

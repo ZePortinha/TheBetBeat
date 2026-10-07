@@ -34,9 +34,9 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-async function deliver(rawBody: string, signature: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const res = await fetch(`${base.replace(/\/$/, "")}/api/webhooks/payments`, {
+// Same server that got the click: NEXT_PUBLIC_APP_URL may be a tunnel that is down.
+async function deliver(origin: string, rawBody: string, signature: string) {
+  const res = await fetch(new URL("/api/webhooks/payments", origin), {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -138,33 +138,34 @@ export async function POST(request: Request) {
   }
   const provider = candidate as MockPaymentProvider;
 
+  const origin = new URL(request.url).origin;
   const deliveries: Array<{ status: number; body: unknown }> = [];
   try {
     switch (parsed.data.action) {
       case "confirm": {
         const event = provider.simulateMbwayConfirmation(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(origin, rawBody, signature));
         break;
       }
       case "decline": {
         const event = provider.simulateMbwayDecline(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(origin, rawBody, signature));
         break;
       }
       case "expire": {
         const event = provider.simulateMbwayExpiry(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(origin, rawBody, signature));
         break;
       }
       case "duplicate": {
         // Same event delivered twice: the second MUST be a no-op (B4.3).
         const event = provider.simulateMbwayConfirmation(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(origin, rawBody, signature));
+        deliveries.push(await deliver(origin, rawBody, signature));
         break;
       }
       case "network_fail": {
@@ -181,7 +182,7 @@ export async function POST(request: Request) {
         const badSignature = createHmac("sha256", "wrong-secret-for-simulated-drop")
           .update(rawBody, "utf8")
           .digest("hex");
-        deliveries.push(await deliver(rawBody, badSignature));
+        deliveries.push(await deliver(origin, rawBody, badSignature));
         break;
       }
     }

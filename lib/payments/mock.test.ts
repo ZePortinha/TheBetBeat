@@ -116,6 +116,14 @@ describe("charge (MB WAY)", () => {
     expect((await psp.getStatus(res.providerRef)).status).toBe("expired");
   });
 
+  it("confirming again re-sends the same event (a lost webhook can be redelivered)", async () => {
+    const res = await psp.charge(mbwayInput({ amountCents: 900 }));
+    const first = psp.simulateMbwayConfirmation(res.providerRef);
+    const again = psp.simulateMbwayConfirmation(res.providerRef);
+    expect(again).toEqual(first);
+    expect(again.amountCents).toBe(900);
+  });
+
   it("is idempotent: a repeated key returns the same pending intent", async () => {
     const input = mbwayInput({ idempotencyKey: "charge_once" });
     const first = await psp.charge(input);

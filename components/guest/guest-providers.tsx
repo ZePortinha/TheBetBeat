@@ -89,7 +89,7 @@ export function GuestProviders({
         await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
         const { data: anon, error } = await supabase.auth.signInAnonymously();
         if (error) {
-          console.error("[guest] anonymous sign-in failed");
+          console.error(`[guest] anonymous sign-in failed: ${error.message}`);
           return;
         }
         user = anon.user;

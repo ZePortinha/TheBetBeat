@@ -7,6 +7,8 @@ export default defineConfig({
   workers: 1,
   reporter: [["html", { open: "never" }], ["list"]],
   timeout: 60_000,
+  // `pnpm dev` compiles each route on first visit: the first navigation can take >5 s.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     trace: "retain-on-failure",
