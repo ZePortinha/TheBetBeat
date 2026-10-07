@@ -147,6 +147,7 @@ export interface SearchTrack {
   title: string;
   artist: string;
   available: boolean;
+  source: "library" | "catalog";
 }
 
 export async function searchTracks(
@@ -165,6 +166,24 @@ export async function searchTracks(
   return data.sections.flatMap((s) => s.tracks);
 }
 
+/**
+ * A song any bid will accept: from the club's library (catalog songs need
+ * the DJ to keep the catalog open) and not played a moment ago. On a long-
+ * lived dev DB the curated sections can all be "just played"; a search
+ * reaches the rest of the library.
+ */
+export async function pickBiddableTrack(
+  request: APIRequestContext,
+  guest: AnonymousGuest,
+  token: string,
+): Promise<string> {
+  for (const q of ["", "a", "e", "o"]) {
+    const found = (await searchTracks(request, guest, token, q)).find((t) => t.available && t.source === "library");
+    if (found) return found.id;
+  }
+  throw new Error("No library song can take a bid right now — is the DB seeded?");
+}
+
 /* ------------------------------------------------------------------ */
 /* Slot auctions (dev-only driver: /api/dev/auction)                   */
 /* ------------------------------------------------------------------ */
@@ -176,6 +195,12 @@ export async function openAuction(request: APIRequestContext, closesInSec = 240)
   });
   if (!res.ok()) throw new Error(`dev auction open failed (${res.status()})`);
   return ((await res.json()) as { slotId: string }).slotId;
+}
+
+/** Earlier mic announcements leave the rolling hour, so the per-hour cap does not apply to the next win. */
+export async function forgetMicAnnouncements(request: APIRequestContext, sessionId = SEED.sessionId): Promise<void> {
+  const res = await request.post("/api/dev/auction", { data: { action: "forget-mic", sessionId } });
+  if (!res.ok()) throw new Error(`dev forget-mic failed (${res.status()})`);
 }
 
 /** Ends that auction now and runs one worker tick (winner locked or no winner). */
@@ -207,8 +232,7 @@ export async function bidViaApi(
 ): Promise<ApiBid> {
   const token = opts.token ?? tokenFromGuestPath(await getGuestPath(request));
   const guest = opts.guest ?? (await signInAnonymousGuest(request));
-  const trackId =
-    opts.trackId ?? (await searchTracks(request, guest, token)).filter((t) => t.available).at(-1)?.id ?? "";
+  const trackId = opts.trackId ?? (await pickBiddableTrack(request, guest, token));
   const res = await request.post("/api/guest/auction/bid", {
     headers: { authorization: `Bearer ${guest.accessToken}` },
     data: {
@@ -223,6 +247,23 @@ export async function bidViaApi(
   });
   if (!res.ok()) throw new Error(`bid failed (${res.status()}): ${await res.text()}`);
   return { guest, trackId };
+}
+
+/**
+ * A guest's wallet entries (service role): readable after the night ended,
+ * when the guest API has no live session to answer for.
+ */
+export async function walletEntries(
+  request: APIRequestContext,
+  guestId: string,
+): Promise<Array<{ amount_cents: number; reason: string }>> {
+  const { url, serviceKey } = supabaseEnv();
+  if (!serviceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY missing in .env.local");
+  const res = await request.get(`${url}/rest/v1/wallet_entries?guest_id=eq.${guestId}&select=amount_cents,reason`, {
+    headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}` },
+  });
+  if (!res.ok()) throw new Error(`wallet read failed (${res.status()})`);
+  return (await res.json()) as Array<{ amount_cents: number; reason: string }>;
 }
 
 /** The public auction state (+ the guest's own part when signed in). */

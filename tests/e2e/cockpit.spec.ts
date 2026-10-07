@@ -15,7 +15,16 @@
  * live session, so run it LAST (or `pnpm db:reset` afterwards).
  */
 import { expect, test } from "@playwright/test";
-import { auctionState, bidViaApi, closeAuction, loginStaff, openAuction, SEED } from "./fixtures";
+import {
+  auctionState,
+  bidViaApi,
+  closeAuction,
+  forgetMicAnnouncements,
+  loginStaff,
+  openAuction,
+  SEED,
+  walletEntries,
+} from "./fixtures";
 
 const IPAD_ONLY = "iPad viewport only";
 
@@ -84,6 +93,8 @@ test.describe("cockpit · leilões", () => {
   });
 
   test("150 € ou mais: alerta para anunciar ao microfone", async ({ page, request }) => {
+    // At most 3 mic announcements an hour: earlier runs must not use them up.
+    await forgetMicAnnouncements(request);
     await winnerWaiting(request, 15_000, "e2e_mic");
     const alert = page.getByRole("alert").filter({ hasText: "Anunciar ao microfone" });
     await expect(alert).toBeVisible({ timeout: 15_000 });
@@ -155,7 +166,10 @@ test.describe("cockpit · leilões", () => {
     await expect(page.getByTestId("end-set-summary")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Set terminado").first()).toBeVisible();
     // The open bid came back and the balance went back to the card.
-    expect((await auctionState(request, guest)).me?.walletCents ?? 0).toBe(0);
+    // (The guest API answers only for a live night: read the wallet entries.)
+    const entries = await walletEntries(request, guest.guestId);
+    expect(entries.reduce((sum, e) => sum + e.amount_cents, 0)).toBe(0);
+    expect(entries.filter((e) => e.reason === "refund").reduce((sum, e) => sum - e.amount_cents, 0)).toBe(500);
     const ended = await page.request.get(`/api/cockpit/state?sessionId=${SEED.sessionId}`);
     expect(((await ended.json()) as { session: { status: string } }).session.status).toBe("ended");
   });

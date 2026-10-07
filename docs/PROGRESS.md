@@ -49,6 +49,34 @@ that does not need a database was finished and verified:
 - Steps 4–8 still pending: `pnpm simulate` strict < 1 s latency, screenshots + B10.6 checklist,
   QR decode, subagent reviews.
 
+## E2E verification (cloud session, 2026-10-07)
+
+Local Supabase + `pnpm dev` + `pnpm worker`, Chromium for every project (the
+phone project's WebKit is not installed in the cloud image), the Deezer catalog
+answered by a fictional stub (no network to api.deezer.com there).
+
+- `pnpm typecheck`, `pnpm lint`, `pnpm test` (452) green.
+- `pnpm test:e2e`: 56 passed, 104 skipped by project gating; a second and third
+  run on the same DB, without `db:reset`, also green. Gated `E2E_END_SET=1`
+  tests ("manter premido" on iPad, "Terminar sessão" in the console) pass on a
+  fresh DB.
+- Fixed: `track_not_found` (search listed catalog songs under "Populares" while
+  the catalog was closed, and the fixture bid on the last song of any section);
+  the outbid toast covering the winner screen's "Fechar"; the 150 € mic test
+  failing on a second run within the hour (3 announcements/hour cap); the end-set
+  test reading the wallet through the guest API after the night ended.
+- `SUPABASE_TEST=1 pnpm test`: 146 integration tests green, twice in a row,
+  with `pnpm worker` STOPPED (a running worker picks up the suite's failed
+  refunds and auctions and makes those tests fail). The suite also writes
+  fictional "AU …" tracks into the seeded night: `pnpm db:reset` before
+  looking at the screens. `pnpm db:audit` green.
+- MVP flow walked end to end with screenshots (enter by QR, bid, outbid,
+  raise, Vencedor, DJ accepts and plays, Ranking).
+- New `tests/e2e/flows.spec.ts` (phone): entering from "Eventos em direto",
+  finding a song by typing and bidding on it, backing the leading song. It
+  found a bug, fixed: a guest without an @ yet could not back a song (the
+  hidden "Como apareces" left the button disabled). Suite now 59 passed.
+
 ## To verify locally (needs `supabase start` + `pnpm db:reset` + `pnpm dev` + `pnpm worker`)
 
 In this order; fix selectors/labels as needed, then record results here:
