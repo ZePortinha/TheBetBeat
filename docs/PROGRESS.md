@@ -72,6 +72,10 @@ answered by a fictional stub (no network to api.deezer.com there).
   looking at the screens. `pnpm db:audit` green.
 - MVP flow walked end to end with screenshots (enter by QR, bid, outbid,
   raise, Vencedor, DJ accepts and plays, Ranking).
+- New `tests/e2e/flows.spec.ts` (phone): entering from "Eventos em direto",
+  finding a song by typing and bidding on it, backing the leading song. It
+  found a bug, fixed: a guest without an @ yet could not back a song (the
+  hidden "Como apareces" left the button disabled). Suite now 59 passed.
 
 ## To verify locally (needs `supabase start` + `pnpm db:reset` + `pnpm dev` + `pnpm worker`)
 
