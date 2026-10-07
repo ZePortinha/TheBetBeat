@@ -221,7 +221,7 @@ beforeAll(async () => {
   const inserted = await db.query<{ id: string }>(
     `insert into public.library_tracks (venue_id, title, artist, genre, bpm, camelot_key, duration_sec)
      select $1, 'IT ${RUN} Track ' || n, 'IT ${RUN} Artist', 'house', 122 + (n % 4), '9A', 180
-       from generate_series(1, 14) as n
+       from generate_series(1, 24) as n
      returning id`,
     [VENUE_ID],
   );
@@ -383,6 +383,63 @@ describe("refunds are exactly-once (B4.4)", () => {
     const row = await requestRowOf(requestId);
     expect(row.close_reason).toBe("rejected_by_dj");
     expect(row.refunded_cents).toBe(amountCents);
+  }, 60_000);
+
+  it("the same confirmation delivered five times in parallel captures once", async () => {
+    const now = T0 + 95_000;
+    const guestId = await createGuest();
+    const quote = await makeQuote(guestId, takeTrack(), now);
+    const created = await domainService.createRequestAndStartPayment(
+      { quoteId: quote.quoteId, guestId, tier: "QUEUE", amountCents: quote.prices.QUEUE, method: "mbway", phone: takePhone() },
+      now,
+    );
+    if (!created.ok || !created.payment.providerRef) throw new Error("payment not started");
+    const provider = (await getPaymentProvider()) as MockPaymentProvider;
+    const event = provider.simulateMbwayConfirmation(created.payment.providerRef);
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, (_, i) => paymentsService.recordWebhook(event, now + 1000 + i)),
+    );
+    expect(results.filter((r) => r.handled && !r.duplicate)).toHaveLength(1);
+
+    const captures = await db.query<{ n: string }>(
+      `select count(*)::bigint as n from public.ledger_entries
+        where request_id = $1 and account = $2 and amount_cents > 0`,
+      [created.requestId, ACCOUNTS.pspClearing],
+    );
+    expect(Number(captures.rows[0]!.n)).toBe(1);
+    expect((await requestRowOf(created.requestId)).status).toBe("paid");
+  }, 60_000);
+
+  it("two DJs tapping accept and reject at once: one wins, refunds stay exactly-once", async () => {
+    const now = T0 + 90_000;
+    const guestId = await createGuest();
+    const { requestId, amountCents } = await createPaidRequest(guestId, "QUEUE", now);
+
+    const results = await Promise.all([
+      domainService.djAccept(requestId, "staff:test-dj", now + 1000),
+      domainService.djReject(requestId, "off_style", "staff:test-dj-2", now + 1000),
+      domainService.djReject(requestId, "off_style", "staff:test-dj-3", now + 1000),
+    ]);
+    const winners = results.filter((r) => r.ok);
+    expect(winners).toHaveLength(1);
+
+    const refunds = await db.query<{ amount_cents: number }>(
+      `select amount_cents from public.refunds where request_id = $1`,
+      [requestId],
+    );
+    const events = await db.query<{ n: string }>(
+      `select count(*)::bigint as n from public.request_events where request_id = $1 and from_status = 'paid'`,
+      [requestId],
+    );
+    const row = await requestRowOf(requestId);
+    if (row.status === "accepted") {
+      expect(refunds.rows).toEqual([]);
+    } else {
+      expect(row.status).toBe("refunded");
+      expect(refunds.rows).toEqual([{ amount_cents: amountCents }]);
+    }
+    expect(Number(events.rows[0]!.n)).toBe(1);
   }, 60_000);
 
   it("SLA demotion refunds exactly the difference to the quoted QUEUE price", async () => {
