@@ -2,7 +2,7 @@
  * MockPaymentProvider + signed webhooks (BRIEF B4.3, B4.4).
  * Pure unit tests: fixed injected clock, no env, no I/O.
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MBWAY_DEFAULT_TIMEOUT_MS,
   MOCK_MBWAY_FAIL_PHONE,
@@ -122,6 +122,34 @@ describe("charge (MB WAY)", () => {
     const again = psp.simulateMbwayConfirmation(res.providerRef);
     expect(again).toEqual(first);
     expect(again.amountCents).toBe(900);
+  });
+
+  describe("auto-confirm (phone demos)", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("approves MB WAY by itself after the delay and hands over the event", async () => {
+      vi.useFakeTimers();
+      const confirmed: WebhookEvent[] = [];
+      const auto = new MockPaymentProvider({
+        webhookSecret: SECRET,
+        now: () => nowMs,
+        mbwayAutoConfirmMs: 3000,
+        onAutoConfirm: (event) => confirmed.push(event),
+      });
+      const res = await auto.charge(mbwayInput({ amountCents: 700 }));
+      vi.advanceTimersByTime(2999);
+      expect(confirmed).toHaveLength(0);
+      vi.advanceTimersByTime(1);
+      expect(confirmed).toEqual([expect.objectContaining({ type: "payment.confirmed", providerRef: res.providerRef, amountCents: 700 })]);
+      expect((await auto.getStatus(res.providerRef)).status).toBe("captured");
+    });
+
+    it("stays off unless configured", async () => {
+      vi.useFakeTimers();
+      const res = await psp.charge(mbwayInput());
+      vi.advanceTimersByTime(MBWAY_DEFAULT_TIMEOUT_MS - 1);
+      expect((await psp.getStatus(res.providerRef)).status).toBe("pending");
+    });
   });
 
   it("is idempotent: a repeated key returns the same pending intent", async () => {

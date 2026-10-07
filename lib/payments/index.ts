@@ -42,6 +42,10 @@ async function createProvider(): Promise<PaymentProvider> {
     case "mock": {
       return new MockPaymentProvider({
         webhookSecret: env.PAYMENT_WEBHOOK_SECRET,
+        // Phone testing: MB WAY approves itself, no simulator buttons needed.
+        mbwayAutoConfirmMs: env.MOCK_MBWAY_AUTO_CONFIRM_MS,
+        onAutoConfirm: (event) =>
+          void import("./service").then(({ recordWebhook }) => recordWebhook(event, Date.now())),
       });
     }
     // Real MB WAY through ifthenpay. Cards/wallets stay on the mock in

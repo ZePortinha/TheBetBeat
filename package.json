@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:db": "tsx scripts/test-stack.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "db:reset": "supabase db reset",

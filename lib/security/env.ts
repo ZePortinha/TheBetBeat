@@ -27,6 +27,8 @@ const serverEnvSchema = z.object({
   TURNSTILE_SECRET_KEY: z.string().min(1),
   PAYMENT_PROVIDER: z.enum(["mock", "ifthenpay"]).default("mock"),
   PAYMENT_WEBHOOK_SECRET: z.string().min(16),
+  // Simulator only: approve every MB WAY push after N ms (phone demos).
+  MOCK_MBWAY_AUTO_CONFIRM_MS: z.coerce.number().int().min(0).max(60_000).optional(),
   // ifthenpay (real MB WAY) — required when PAYMENT_PROVIDER=ifthenpay.
   IFTHENPAY_MBWAY_KEY: z.string().optional(),
   IFTHENPAY_BACKOFFICE_KEY: z.string().optional(),
@@ -59,6 +61,9 @@ const serverEnvSchema = z.object({
   };
   need(v.PAYMENT_PROVIDER === "ifthenpay", ["IFTHENPAY_MBWAY_KEY", "IFTHENPAY_BACKOFFICE_KEY", "IFTHENPAY_ANTI_PHISHING_KEY"]);
   need(v.SMS_PROVIDER === "twilio", ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM"]);
+  if (v.MOCK_MBWAY_AUTO_CONFIRM_MS !== undefined && v.PAYMENT_PROVIDER !== "mock") {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MOCK_MBWAY_AUTO_CONFIRM_MS"], message: "only with PAYMENT_PROVIDER=mock" });
+  }
   need(Boolean(v.VAPID_PUBLIC_KEY || v.VAPID_PRIVATE_KEY), ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"]);
   if (v.IFTHENPAY_ANTI_PHISHING_KEY !== undefined && v.IFTHENPAY_ANTI_PHISHING_KEY.length > 0 && v.IFTHENPAY_ANTI_PHISHING_KEY.length < 16) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["IFTHENPAY_ANTI_PHISHING_KEY"], message: "use at least 16 random characters" });

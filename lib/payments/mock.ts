@@ -77,6 +77,13 @@ export interface MockPaymentProviderOptions {
   now?: () => number;
   /** MB WAY push timeout override (default 4 min). */
   mbwayTimeoutMs?: number;
+  /**
+   * Demo/phone testing: approve every MB WAY push after this delay, as if
+   * the guest tapped "approve" in the app, and hand the event to
+   * `onAutoConfirm`. Off unless set (env MOCK_MBWAY_AUTO_CONFIRM_MS).
+   */
+  mbwayAutoConfirmMs?: number;
+  onAutoConfirm?: (event: WebhookEvent) => void;
 }
 
 function assertCents(amountCents: number, label: string): void {
@@ -97,11 +104,13 @@ export class MockPaymentProvider implements PaymentProvider {
   private readonly webhookSecret: string;
   private readonly now: () => number;
   private readonly mbwayTimeoutMs: number;
+  private readonly autoConfirm: Pick<MockPaymentProviderOptions, "mbwayAutoConfirmMs" | "onAutoConfirm">;
 
   constructor(options: MockPaymentProviderOptions) {
     this.webhookSecret = options.webhookSecret;
     this.now = options.now ?? (() => Date.now());
     this.mbwayTimeoutMs = options.mbwayTimeoutMs ?? MBWAY_DEFAULT_TIMEOUT_MS;
+    this.autoConfirm = { mbwayAutoConfirmMs: options.mbwayAutoConfirmMs, onAutoConfirm: options.onAutoConfirm };
   }
 
   // ── PaymentProvider ────────────────────────────────────────────────────
@@ -177,6 +186,7 @@ export class MockPaymentProvider implements PaymentProvider {
       phone: input.phone,
     };
     this.intents.set(providerRef, intent);
+    this.scheduleAutoConfirm(providerRef);
 
     const result: PaymentIntentResult = {
       providerRef,
@@ -315,6 +325,19 @@ export class MockPaymentProvider implements PaymentProvider {
   // real PSP would deliver. Event ids are deterministic per (intent, type):
   // a duplicate delivery of the same event carries the same id, so the app's
   // webhook route can dedupe.
+
+  private scheduleAutoConfirm(providerRef: string): void {
+    const { mbwayAutoConfirmMs: ms, onAutoConfirm } = this.autoConfirm;
+    if (ms === undefined || !onAutoConfirm) return;
+    const timer = setTimeout(() => {
+      try {
+        onAutoConfirm(this.simulateMbwayConfirmation(providerRef));
+      } catch {
+        // Already settled (declined, expired, never-confirm test phone).
+      }
+    }, ms);
+    timer.unref?.();
+  }
 
   /** Guest approved the MB WAY push → payment.confirmed. */
   simulateMbwayConfirmation(providerRef: string): WebhookEvent {
