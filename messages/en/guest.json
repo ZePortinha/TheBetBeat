@@ -368,6 +368,10 @@
     "keepForNext": "Keep for another night",
     "walletKeptHint": "It stays in the app for another night at this club. If you do not use it within {days} days, we refund it to your payment method.",
     "closing": "Closing the auction…",
+    "extended": "Extended +{seconds} s",
+    "closedTitle": "Auction closed",
+    "closedWinner": "Winner: {name}",
+    "closedYourMoney": "Your money is already in your balance.",
     "assistant": {
       "title": "Transition assistant",
       "playing": "Playing: {title} · {bpm} BPM",

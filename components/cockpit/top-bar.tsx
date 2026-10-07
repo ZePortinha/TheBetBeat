@@ -12,6 +12,7 @@ import { motion } from "motion/react";
 import { Wifi, WifiOff } from "lucide-react";
 import { springDefault } from "@/lib/motion";
 import type { RealtimeConnectionState } from "@/lib/realtime/client";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { cx, Pressable } from "@/components/ui/pressable";
 import { PriceTag } from "@/components/ui/price-tag";
 import { formatEurosDisplay, formatLisbonTime } from "./format";
@@ -123,6 +124,7 @@ export function TopBar({
 
   return (
     <header className="material z-40 flex h-16 shrink-0 items-center gap-4 border-b border-line-strong px-4">
+      <BrandMark className="size-6" />
       <h1 className="min-w-0 shrink truncate text-xl font-bold tracking-[-0.01em]">
         {sessionName}
       </h1>

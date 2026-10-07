@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
+import { BrandLockup } from "@/components/ui/brand-mark";
 import { Disc } from "@/components/ui/disc";
 import { LiveBadge } from "@/components/ui/live-badge";
 import { QRBlock } from "@/components/ui/qr-block";
@@ -45,6 +46,7 @@ const displayFont: CSSProperties = { fontFamily: "var(--font-display)" };
 
 export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps) {
   const t = useTranslations("display");
+  const tc = useTranslations("common");
   const [state, setState] = useState<DisplayStateDto>(initial);
   // Auction countdowns run on the server clock (offset), ticking each second.
   const [offsetMs, setOffsetMs] = useState(0);
@@ -360,13 +362,12 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
         </div>
       </aside>
 
-      {/* Subtle wordmark */}
+      {/* Subtle lockup (static: only the crossfade moves on this screen) */}
       <span
-        className="pointer-events-none absolute bottom-[2vmin] right-[2.5vmin] text-text-tertiary"
-        style={{ ...displayFont, fontSize: "clamp(0.75rem, 1.6vmin, 1rem)", fontWeight: 600 }}
+        className="pointer-events-none absolute bottom-[2vmin] right-[2.5vmin] opacity-70"
         aria-hidden="true"
       >
-        BetBeat
+        <BrandLockup name={tc("appName")} size="sm" />
       </span>
     </main>
   );

@@ -368,6 +368,10 @@
     "keepForNext": "Guardar para outra noite",
     "walletKeptHint": "Fica guardado na app para outra noite nesta casa. Se não o usares em {days} dias, devolvemos ao teu meio de pagamento.",
     "closing": "A fechar o leilão…",
+    "extended": "Prolongado +{seconds} s",
+    "closedTitle": "Leilão fechado",
+    "closedWinner": "Vencedor: {name}",
+    "closedYourMoney": "O teu dinheiro já está no teu saldo.",
     "assistant": {
       "title": "Assistente de transição",
       "playing": "A tocar: {title} · {bpm} BPM",

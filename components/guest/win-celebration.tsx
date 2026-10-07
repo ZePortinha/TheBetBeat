@@ -1,37 +1,45 @@
 "use client";
 
 /**
- * "Vencedor" — the moment a guest's bid wins, built to be filmed: the 3D
+ * "Vencedor": the moment a guest's bid wins, built to be filmed. The 3D
  * stage (win-scene: flash, the vinyl with their album art, champagne,
- * confetti, bloom) behind the title flipping in letter by letter in gold
- * and the amount counting up. three.js loads only now. Reduced motion: a
- * still, calm version of the same screen.
+ * confetti, bloom) behind the title materializing in one sweep of gold,
+ * the amount counting up and a scrim that keeps the words legible over
+ * the confetti. The haptic fires with the flash (same frame). three.js is
+ * fetched ahead while the guest leads (AuctionOverlays), so the moment
+ * lands on time. Reduced motion: a still, calm version of the same screen.
  */
 
 import * as React from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { animate, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { Crown, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { toast } from "@/components/ui/toast";
+import { springDefault } from "@/lib/motion";
 
-function useCountUp(target: number, ms: number, run: boolean): number {
-  const [value, setValue] = React.useState(run ? 0 : target);
+/** Counts up whole euros straight into the DOM (no React render per frame), lands on the exact amount. */
+function CountUp({ cents, delay, run }: { cents: number; delay: number; run: boolean }) {
+  const ref = React.useRef<HTMLSpanElement>(null);
   React.useEffect(() => {
-    if (!run) return;
-    const start = performance.now();
-    let raf = 0;
-    const step = (now: number) => {
-      const k = Math.min(1, (now - start) / ms);
-      setValue(Math.round(target * (1 - Math.pow(1 - k, 3))));
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [target, ms, run]);
-  return value;
+    const el = ref.current;
+    if (!run || !el) return;
+    const controls = animate(0, cents, {
+      duration: 1.2,
+      delay,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => {
+        el.textContent = formatEurosDisplay(v >= cents ? cents : Math.floor(v / 100) * 100);
+      },
+    });
+    return () => controls.stop();
+  }, [cents, delay, run]);
+  return <span ref={ref}>{formatEurosDisplay(run ? 0 : cents)}</span>;
 }
+
+// Celebration: a strong double tap then a long swell.
+const WIN_HAPTIC = [40, 40, 40, 40, 220];
 
 /**
  * "Partilhar no Instagram": the story image (1080×1920) into the phone's
@@ -75,8 +83,9 @@ export function WinCelebration({
   const t = useTranslations("guest.auction");
   const reduced = useReducedMotion() ?? false;
   const stage = React.useRef<HTMLDivElement>(null);
-  const amount = useCountUp(totalCents, 1100, !reduced);
   const [sharing, setSharing] = React.useState(false);
+  // Leaving: taps go straight through to the page underneath.
+  const present = useIsPresent();
 
   async function share() {
     setSharing(true);
@@ -91,13 +100,21 @@ export function WinCelebration({
   }
 
   React.useEffect(() => {
-    if (reduced || !stage.current) return;
+    if (reduced || !stage.current) {
+      navigator.vibrate?.(WIN_HAPTIC);
+      return;
+    }
     let stop: (() => void) | null = null;
     let cancelled = false;
     const el = stage.current;
-    void import("./win-scene").then(({ startWinScene }) => {
-      if (!cancelled) stop = startWinScene(el, { coverUrl: coverUrl ?? null });
-    });
+    void import("./win-scene")
+      .then(({ startWinScene }) => {
+        if (cancelled) return;
+        // Harmony: the buzz and the scene's flash start on the same frame.
+        navigator.vibrate?.(WIN_HAPTIC);
+        stop = startWinScene(el, { coverUrl: coverUrl ?? null });
+      })
+      .catch(() => navigator.vibrate?.(WIN_HAPTIC));
     return () => {
       cancelled = true;
       stop?.();
@@ -107,59 +124,72 @@ export function WinCelebration({
   const title = t("winTitle");
 
   return (
-    <div
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 overflow-hidden bg-bg-base text-center"
+      className={`fixed inset-0 z-50 overflow-hidden bg-bg-base text-center${present ? "" : " pointer-events-none"}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 1.03 }}
+      transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
     >
       {/* Reduced motion: a warm still pool. Otherwise the 3D stage paints the whole room. */}
       <div aria-hidden className="ambient-center absolute inset-0" />
       <div ref={stage} aria-hidden className="absolute inset-0" />
+      {/* Legibility: the lower half darkens under the words, the stage stays bright above. */}
+      <div aria-hidden className="absolute inset-x-0 bottom-0 h-[58%] bg-linear-to-t from-bg-base via-bg-base/80 to-transparent" />
 
-      <div className="relative flex h-full flex-col items-center justify-end gap-5 px-6 pb-[max(env(safe-area-inset-bottom),28px)] [text-shadow:0_2px_18px_rgba(0,0,0,0.85)]">
+      <div className="relative flex h-full flex-col items-center justify-end gap-6 px-6 pb-[max(env(safe-area-inset-bottom),28px)] [text-shadow:0_2px_14px_rgba(0,0,0,0.7)]">
         <div className="flex flex-col items-center">
-          <p className="label flex items-center gap-1.5 text-amber-500">
+          <motion.p
+            className="label flex items-center gap-1.5 text-amber-500"
+            initial={reduced ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springDefault, delay: 0.25 }}
+          >
             <Crown size={16} aria-hidden />
             {t("winEyebrow")}
-          </p>
-          <h1 className="mt-2 flex text-5xl font-bold [perspective:600px]" aria-label={title}>
-            {[...title].map((ch, i) => (
-              <motion.span
-                key={i}
-                aria-hidden
-                className="leader-name-mine inline-block"
-                initial={reduced ? false : { rotateX: -100, y: 30, opacity: 0 }}
-                animate={{ rotateX: 0, y: 0, opacity: 1 }}
-                transition={{ type: "spring", bounce: 0.45, duration: 0.7, delay: 0.45 + i * 0.05 }}
-              >
-                {ch === " " ? " " : ch}
-              </motion.span>
-            ))}
-          </h1>
-          <motion.p
-            className="tnum mt-3 text-5xl font-bold text-text-primary"
-            initial={reduced ? false : { scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", bounce: 0.5, duration: 0.6, delay: 0.7 }}
+          </motion.p>
+          {/* One word, one gradient: it materializes (scale + focus) and the gold keeps shining. */}
+          <motion.h1
+            className="leader-name-mine mt-2 pb-1 text-6xl font-bold leading-[1.05] tracking-[-0.03em]"
+            initial={reduced ? false : { opacity: 0, scale: 0.8, filter: "blur(14px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            transition={{
+              scale: { type: "spring", bounce: 0.25, duration: 0.8, delay: 0.35 },
+              opacity: { duration: 0.3, delay: 0.35 },
+              filter: { duration: 0.5, delay: 0.35 },
+            }}
           >
-            {formatEurosDisplay(amount)}
+            {title}
+          </motion.h1>
+          <motion.p
+            className="tnum mt-2 text-5xl font-bold text-text-primary"
+            initial={reduced ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springDefault, delay: 0.65 }}
+          >
+            <span className="sr-only">{formatEurosDisplay(totalCents)}</span>
+            <span aria-hidden>
+              <CountUp cents={totalCents} delay={0.7} run={!reduced} />
+            </span>
           </motion.p>
           <motion.div
             initial={reduced ? false : { y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.4, delay: 1.1 }}
+            transition={{ ...springDefault, delay: 1.05 }}
           >
-            <p className="mt-3 text-xl font-semibold text-text-primary">{trackTitle}</p>
+            <p className="mt-4 text-xl font-semibold text-text-primary">{trackTitle}</p>
             <p className="text-base text-text-secondary">{trackArtist}</p>
-            <p className="mt-3 text-sm text-text-secondary">{t("winHint")}</p>
+            <p className="mx-auto mt-3 max-w-xs text-sm text-text-secondary">{t("winHint")}</p>
           </motion.div>
         </div>
         <motion.div
-          className="flex w-full max-w-xs flex-col gap-2"
-          initial={reduced ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 1.4 }}
+          className="flex w-full max-w-xs flex-col gap-2 [text-shadow:none]"
+          initial={reduced ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springDefault, delay: 1.3 }}
         >
           <Button size="lg" fullWidth loading={sharing} onPress={() => void share()}>
             <Instagram size={20} aria-hidden />
@@ -170,6 +200,6 @@ export function WinCelebration({
           </Button>
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

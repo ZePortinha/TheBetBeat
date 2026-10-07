@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, type CSSProperties } from "react";
 import { durations, easeStandard } from "@/lib/motion";
 
-export type PriceTagSize = "md" | "lg" | "display";
+export type PriceTagSize = "md" | "lg" | "display" | "inherit";
 
 /** Editorial serif applies only to monetary values ≥ 28px (B10.3). */
 export const EDITORIAL_MIN_PX = 28;
@@ -36,8 +36,9 @@ export function formatEurosDisplay(cents: number): string {
   return `${sign}${body}${NBSP}€`;
 }
 
-/** Size recipes (type scale + tracking-by-size, B10.3). */
+/** Size recipes (type scale + tracking-by-size, B10.3); "inherit" takes them from className. */
 const SIZE_STYLES: Record<PriceTagSize, CSSProperties> = {
+  inherit: {},
   md: {
     fontSize: "var(--text-20)",
     letterSpacing: "var(--tracking-body)",

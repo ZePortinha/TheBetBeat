@@ -8,8 +8,9 @@
  *    away, "A seguir" and the last 3 winners.
  *  - AuctionContextBar: which auction the guest is choosing a track for.
  *  - WalletPill: the balance, small, top right, only when there is one.
- *  - AuctionOverlays: last-30-s flash, buzz and the winner celebration on
- *    every tab.
+ *  - AuctionOverlays: last-30-s flash (faster in the last 10 s), buzz, the
+ *    gavel coming down when an auction closes, and the winner celebration
+ *    on every tab.
  *  - BidScreen: a track from search → bid on the chosen auction.
  *  - RankingPodium: the top 3 on a podium, everyone else below, quieter.
  *  - MyBids: my bids tonight.
@@ -19,21 +20,33 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { AudioWaveform, Crown, Gavel, Sparkles, Trophy, Wallet } from "lucide-react";
 import type { PublicSlot, PublicWinner, UpcomingSlot } from "@/lib/auction/service";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Disc } from "@/components/ui/disc";
 import { EmptyState } from "@/components/ui/empty-state";
+import { NumericText } from "@/components/ui/numeric-text";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pressable, cx } from "@/components/ui/pressable";
-import { formatEurosDisplay } from "@/components/ui/price-tag";
+import { PriceTag, formatEurosDisplay } from "@/components/ui/price-tag";
+import { durations, easeStandard, springDefault, springMove, springSheet } from "@/lib/motion";
 import { apiFetch } from "./api";
 import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
 import { WinCelebration } from "./win-celebration";
-import { clockTime, countdown, inFinalStretch, useAuction, type AuctionState } from "./use-auction";
+import {
+  FINAL_STRETCH_MS,
+  clockTime,
+  countdown,
+  inFinalStretch,
+  isUrgent,
+  useAuction,
+  type AuctionState,
+  type ClosedAuction,
+} from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
 
 type SheetState = { slot: PublicSlot; target: BidTargetInput; current: number; title: string } | null;
@@ -70,13 +83,29 @@ function Cover({ url, seed, className }: { url: string | null; seed: string; cla
  */
 function LeaderSpotlight({ top, mine }: { top: NonNullable<PublicSlot["top"]>; mine: boolean }) {
   const t = useTranslations("guest.auction");
+  const reduced = useReducedMotion() ?? false;
+  // A raise (or a new backer) on the same bid: the amount rolls and the frame flares once.
+  const firstCents = React.useRef(top.totalCents).current;
   return (
     <div
       className={cx(
-        "mt-4 rounded-card bg-surface-2 p-4",
+        "relative rounded-card bg-surface-2 p-4",
         mine ? "leader-mine ring-2 ring-amber-500" : "ring-1 ring-line-strong",
       )}
     >
+      {top.totalCents !== firstCents && !reduced ? (
+        <motion.span
+          key={top.totalCents}
+          aria-hidden
+          className={cx(
+            "pointer-events-none absolute inset-0 rounded-card ring-2",
+            mine ? "ring-amber-500" : "ring-accent-400 shadow-glow-accent",
+          )}
+          initial={{ opacity: 1, scale: 1 }}
+          animate={{ opacity: 0, scale: 1.035 }}
+          transition={{ duration: 0.9, ease: [0.2, 0, 0, 1] }}
+        />
+      ) : null}
       <p className={cx("label flex items-center gap-1.5", mine ? "text-amber-500" : "text-text-secondary")}>
         <Crown size={16} aria-hidden />
         {mine ? t("youLead") : t("leader")}
@@ -100,7 +129,7 @@ function LeaderSpotlight({ top, mine }: { top: NonNullable<PublicSlot["top"]>; m
           <p className="truncate text-sm text-text-secondary">{top.trackArtist}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="tnum text-3xl font-bold text-accent-400">{formatEurosDisplay(top.totalCents)}</p>
+          <PriceTag cents={top.totalCents} size="inherit" className="text-3xl font-bold" />
           <p className="text-xs text-text-tertiary">{t("backers", { count: top.backers })}</p>
         </div>
       </div>
@@ -116,6 +145,43 @@ function slotName(slot: { kind: string; opensAt: string }, t: (key: string, v?: 
 /* ------------------------------------------------------------------ */
 /* Leilão tab                                                          */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Time left in the final stretch: a bar that empties at the server's pace.
+ * A CSS animation started with a negative delay (no per-frame React work);
+ * remounted by its key when a soft close moves the deadline.
+ */
+function StretchBar({ leftMs, className }: { leftMs: number; className?: string }) {
+  const [delay] = React.useState(() => -(FINAL_STRETCH_MS - Math.max(0, leftMs)));
+  return (
+    <div aria-hidden className={cx("h-1 overflow-hidden rounded-full bg-text-primary/10", className)}>
+      <div
+        className="stretch-bar h-full w-full rounded-full"
+        style={{
+          background: "var(--gradient-heat)",
+          animationDuration: `${FINAL_STRETCH_MS}ms`,
+          animationDelay: `${delay}ms`,
+        }}
+      />
+    </div>
+  );
+}
+
+/** A bid in the last seconds pushed the close back: say so, briefly. */
+function useExtension(closesAt: string): { seconds: number; key: number } | null {
+  const [extension, setExtension] = React.useState<{ seconds: number; key: number } | null>(null);
+  const last = React.useRef(closesAt);
+  React.useEffect(() => {
+    const before = Date.parse(last.current);
+    const after = Date.parse(closesAt);
+    last.current = closesAt;
+    if (!(after > before)) return;
+    setExtension({ seconds: Math.round((after - before) / 1000), key: after });
+    const id = setTimeout(() => setExtension(null), 2600);
+    return () => clearTimeout(id);
+  }, [closesAt]);
+  return extension;
+}
 
 /** The selected live auction: countdown, who leads, and what I can do. */
 function AuctionCard({
@@ -133,19 +199,23 @@ function AuctionCard({
 }) {
   const t = useTranslations("guest.auction");
   const locale = useLocale();
+  const reduced = useReducedMotion() ?? false;
   const left = Date.parse(slot.closesAt) - serverNow;
   const lastMinute = left <= state.rules.lastMinuteWarningSec * 1000;
   const finalStretch = inFinalStretch(slot.closesAt, serverNow);
+  const urgent = isUrgent(slot.closesAt, serverNow);
   const ended = left <= 0;
   const mine = state.me?.bids.find((b) => b.slotId === slot.id && b.owner);
   const leading = mine?.status === "leading";
   const top = slot.top;
+  const extension = useExtension(slot.closesAt);
 
   return (
     <article
       className={cx(
         "rounded-sheet border border-accent-500/40 bg-surface-1 p-5 shadow-glow-accent",
         finalStretch && "auction-flash-card",
+        urgent && "is-urgent",
       )}
       aria-label={t("openTitle")}
     >
@@ -157,26 +227,56 @@ function AuctionCard({
         {slot.kind !== "regular" ? <SpecialChip /> : null}
       </div>
 
-      <p
-        className={cx(
-          "tnum mt-3 text-5xl font-bold",
-          finalStretch ? "auction-flash-text" : lastMinute ? "text-ember-500 motion-safe:animate-pulse" : "text-text-primary",
-        )}
-        aria-live="off"
-      >
-        {countdown(slot.closesAt, serverNow)}
-      </p>
-      <p className={cx("mt-1 text-sm", lastMinute ? "font-semibold text-ember-500" : "text-text-secondary")}>
+      <div className="mt-3 flex items-center gap-3">
+        <NumericText
+          value={countdown(slot.closesAt, serverNow)}
+          countsDown
+          className={cx(
+            "text-5xl font-bold",
+            finalStretch ? cx("auction-flash-text", urgent && "is-urgent") : lastMinute ? "text-ember-500" : "text-text-primary",
+          )}
+        />
+        <AnimatePresence>
+          {extension ? (
+            <motion.span
+              key={extension.key}
+              className="rounded-full bg-amber-500/15 px-2.5 py-1 text-sm font-semibold text-amber-500 ring-1 ring-amber-500/40"
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, y: -10 }}
+              transition={{ ...springDefault, opacity: { duration: durations.fast } }}
+            >
+              {t("extended", { seconds: extension.seconds })}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+      </div>
+      {finalStretch ? <StretchBar key={slot.closesAt} leftMs={left} className="mt-3" /> : null}
+      <p className={cx("mt-2 text-sm", lastMinute ? "font-semibold text-ember-500" : "text-text-secondary")}>
         {ended ? t("closing") : lastMinute ? t("lastMinute") : t("closesAt", { time: clockTime(slot.closesAt, locale) })}
       </p>
 
-      {top ? (
-        <LeaderSpotlight top={top} mine={leading} />
-      ) : (
-        <p className="mt-4 rounded-card bg-surface-2 px-4 py-6 text-center text-base text-text-secondary">
-          {t("noBids", { amount: formatEurosDisplay(slot.minPriceCents) })}
-        </p>
-      )}
+      {/* A new leader slides in over the old one; the first bid replaces the empty state. */}
+      <div className="relative mt-4">
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.div
+            key={top ? top.bidId : "empty"}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
+            // The old leader clears first, so the two names never ghost over each other.
+            transition={{ ...springMove, opacity: { duration: durations.base, delay: reduced ? 0 : 0.08, ease: [...easeStandard] } }}
+          >
+            {top ? (
+              <LeaderSpotlight top={top} mine={leading} />
+            ) : (
+              <p className="rounded-card bg-surface-2 px-4 py-6 text-center text-base text-text-secondary">
+                {t("noBids", { amount: formatEurosDisplay(slot.minPriceCents) })}
+              </p>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {mine && !leading ? <p className="mt-3 text-sm font-semibold text-ember-500">{t("youOutbid")}</p> : null}
 
@@ -238,7 +338,7 @@ function SlotPicker({ slots, selectedId, serverNow, onPick }: { slots: PublicSlo
           )}
         >
           <span className="truncate text-sm font-semibold text-text-primary">{slotName(s, t, locale)}</span>
-          <span className="tnum text-xs text-text-secondary">{countdown(s.closesAt, serverNow)}</span>
+          <NumericText value={countdown(s.closesAt, serverNow)} countsDown className="text-xs text-text-secondary" />
         </button>
       ))}
     </div>
@@ -293,6 +393,7 @@ export function AuctionScreen({ token }: { token: string }) {
 
       {selected ? (
         <AuctionCard
+          key={selected.id}
           slot={selected}
           state={state}
           serverNow={serverNow}
@@ -366,9 +467,10 @@ export function AuctionContextBar({ token }: { token: string }) {
     <Link
       href={`/s/${token}/auction`}
       className={cx(
-        "flex min-h-14 items-center gap-3 rounded-card border px-4 py-2",
+        "flex min-h-14 items-center gap-3 rounded-card border px-4 py-2 transition-transform duration-100 active:scale-[0.99]",
         slot ? "border-accent-500/40 bg-surface-1" : "border-line-subtle bg-surface-1",
         slot && inFinalStretch(slot.closesAt, serverNow) && "auction-flash-card",
+        slot && isUrgent(slot.closesAt, serverNow) && "is-urgent",
       )}
     >
       <Gavel size={20} className="shrink-0 text-accent-400" aria-hidden />
@@ -386,7 +488,9 @@ export function AuctionContextBar({ token }: { token: string }) {
               : t("noAuctionHint")}
         </span>
       </span>
-      {slot ? <span className="tnum shrink-0 text-xl font-bold text-text-primary">{countdown(slot.closesAt, serverNow)}</span> : null}
+      {slot ? (
+        <NumericText value={countdown(slot.closesAt, serverNow)} countsDown className="shrink-0 text-xl font-bold text-text-primary" />
+      ) : null}
     </Link>
   );
 }
@@ -418,17 +522,22 @@ export function AuctionTeaser({ token }: { token: string }) {
             {t("nextOpens", { time: clockTime(state.next.opensAt, locale), amount: formatEurosDisplay(state.next.minPriceCents) })}
           </span>
         </span>
-        <span className="tnum shrink-0 text-lg font-bold text-text-primary">{countdown(state.next.opensAt, serverNow)}</span>
+        <NumericText value={countdown(state.next.opensAt, serverNow)} countsDown className="shrink-0 text-lg font-bold text-text-primary" />
       </Link>
     );
   }
 
   const mine = state.me?.bids.find((b) => b.slotId === slot.id && b.owner);
   const finalStretch = inFinalStretch(slot.closesAt, serverNow);
+  const urgent = isUrgent(slot.closesAt, serverNow);
   return (
     <section
       aria-label={t("liveTeaser")}
-      className={cx("rounded-card border border-accent-500/40 bg-surface-1 p-4", finalStretch && "auction-flash-card")}
+      className={cx(
+        "rounded-card border border-accent-500/40 bg-surface-1 p-4",
+        finalStretch && "auction-flash-card",
+        urgent && "is-urgent",
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -447,10 +556,16 @@ export function AuctionTeaser({ token }: { token: string }) {
             </p>
           ) : null}
         </div>
-        <p className={cx("tnum shrink-0 text-3xl font-bold", finalStretch ? "auction-flash-text" : "text-text-primary")}>
-          {countdown(slot.closesAt, serverNow)}
-        </p>
+        <NumericText
+          value={countdown(slot.closesAt, serverNow)}
+          countsDown
+          className={cx(
+            "shrink-0 text-3xl font-bold",
+            finalStretch ? cx("auction-flash-text", urgent && "is-urgent") : "text-text-primary",
+          )}
+        />
       </div>
+      {finalStretch ? <StretchBar key={slot.closesAt} leftMs={Date.parse(slot.closesAt) - serverNow} className="mt-3" /> : null}
       <div className="mt-3 grid grid-cols-2 gap-2">
         {mine ? (
           <Button size="md" className="col-span-2" onPress={() => router.push(`/s/${token}/auction`)}>
@@ -501,6 +616,23 @@ function WinnerRow({ w, highlight }: { w: PublicWinner; highlight?: boolean }) {
   );
 }
 
+/** A row that enters from above and pushes the others down (layout spring). */
+const ListItem = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>(function ListItem({ children }, ref) {
+  const reduced = useReducedMotion() ?? false;
+  return (
+    <motion.div
+      ref={ref}
+      layout={!reduced}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.97 }}
+      transition={{ ...springMove, opacity: { duration: durations.base } }}
+    >
+      {children}
+    </motion.div>
+  );
+});
+
 /** "A seguir" and only the last 3 winners: the home stays short. */
 export function NightWinners() {
   const t = useTranslations("guest.auction");
@@ -512,15 +644,25 @@ export function NightWinners() {
       {state.upNext ? (
         <section aria-label={t("upNext")} className="flex flex-col gap-2">
           <p className="label text-text-primary">{t("upNext")}</p>
-          <WinnerRow w={state.upNext} highlight />
+          <div className="relative">
+            <AnimatePresence initial={false} mode="popLayout">
+              <ListItem key={state.upNext.slotId}>
+                <WinnerRow w={state.upNext} highlight />
+              </ListItem>
+            </AnimatePresence>
+          </div>
         </section>
       ) : null}
       {last.length > 0 ? (
-        <section aria-label={t("recentWinners")} className="flex flex-col gap-2">
+        <section aria-label={t("recentWinners")} className="relative flex flex-col gap-2">
           <p className="label text-text-tertiary">{t("recentWinners")}</p>
-          {last.map((w) => (
-            <WinnerRow key={w.slotId} w={w} />
-          ))}
+          <AnimatePresence initial={false} mode="popLayout">
+            {last.map((w) => (
+              <ListItem key={w.slotId}>
+                <WinnerRow w={w} />
+              </ListItem>
+            ))}
+          </AnimatePresence>
         </section>
       ) : null}
     </>
@@ -531,34 +673,139 @@ export function NightWinners() {
 /* Every tab                                                           */
 /* ------------------------------------------------------------------ */
 
-/** Last 30 s flash (and one buzz if I am in it), the winner celebration. */
+/**
+ * The gavel comes down: an auction just closed and someone else won it.
+ * Drops in from the top like a notification (and leaves the same way),
+ * the gavel strikes once, it goes by itself after 5 s or on a tap.
+ */
+function ClosedBanner({ closed, onDone }: { closed: ClosedAuction; onDone: () => void }) {
+  const t = useTranslations("guest.auction");
+  const reduced = useReducedMotion() ?? false;
+  const present = useIsPresent();
+  const done = React.useRef(onDone);
+  done.current = onDone;
+  React.useEffect(() => {
+    const id = setTimeout(() => done.current(), 5000);
+    return () => clearTimeout(id);
+  }, [closed.slotId]);
+  return (
+    <motion.div
+      role="status"
+      className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[max(env(safe-area-inset-top),0.75rem)]"
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: "-110%" }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, y: "-110%" }}
+      transition={{ y: springSheet, opacity: { duration: durations.fast } }}
+    >
+      <button
+        type="button"
+        onClick={onDone}
+        className={cx(
+          "closed-banner flex w-full max-w-md items-center gap-3 rounded-[1.375rem] p-3 pr-3.5 text-left ring-1 ring-line-strong transition-transform duration-100 active:scale-[0.98]",
+          present ? "pointer-events-auto" : "pointer-events-none",
+        )}
+      >
+        <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-500 text-text-on-accent">
+          <motion.span
+            className="flex"
+            style={{ originX: 0.25, originY: 0.8 }}
+            initial={reduced ? false : { rotate: -50 }}
+            animate={{ rotate: [-50, 14, 0] }}
+            transition={{ duration: 0.5, times: [0, 0.45, 1], ease: ["easeIn", "easeOut"], delay: 0.18 }}
+          >
+            <Gavel size={22} strokeWidth={2} aria-hidden />
+          </motion.span>
+          {reduced ? null : (
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-full ring-2 ring-accent-400"
+              initial={{ scale: 1, opacity: 0 }}
+              animate={{ scale: [1, 1.8], opacity: [0.9, 0] }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
+            />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-semibold text-accent-400">{t("closedTitle")}</span>
+          <span className="block truncate text-base font-semibold text-text-primary">
+            {t("closedWinner", { name: closed.by ?? t("anonymousBidder") })}
+          </span>
+          <span className="block truncate text-sm text-text-secondary">
+            {closed.trackTitle} - {closed.trackArtist}
+          </span>
+          {closed.hadBid ? <span className="block truncate text-xs text-text-tertiary">{t("closedYourMoney")}</span> : null}
+        </span>
+        <span className="flex shrink-0 flex-col items-end gap-1.5">
+          <Cover url={closed.coverUrl} seed={closed.trackTitle} className="size-10" />
+          <span className="tnum text-base font-bold text-accent-400">{formatEurosDisplay(closed.totalCents)}</span>
+        </span>
+      </button>
+    </motion.div>
+  );
+}
+
+/**
+ * On every tab: the last-30-s flash (twice as fast in the last 10 s, with
+ * a buzz at 30 s and 10 s when I am in it), the gavel banner when an
+ * auction closes, and the winner celebration.
+ */
 export function AuctionOverlays() {
-  const { state, serverNow, celebrate, dismissCelebration } = useAuction();
+  const { state, serverNow, celebrate, dismissCelebration, closed, dismissClosed } = useAuction();
+  const reduced = useReducedMotion() ?? false;
   const buzzed = React.useRef(new Set<string>());
   const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
-  const flashingKey = flashing.map((s) => s.id).join(",");
+  const urgentIds = flashing.filter((s) => isUrgent(s.closesAt, serverNow)).map((s) => s.id);
+  // One key per moment: "<slot>:30" when the stretch starts, "<slot>:10" in the last seconds.
+  const momentsKey = [...flashing.map((s) => `${s.id}:30`), ...urgentIds.map((id) => `${id}:10`)].join(",");
   React.useEffect(() => {
-    for (const id of flashingKey ? flashingKey.split(",") : []) {
-      if (buzzed.current.has(id)) continue;
-      buzzed.current.add(id);
-      if (state?.me?.bids.some((b) => b.slotId === id)) navigator.vibrate?.([120, 80, 120]);
+    for (const moment of momentsKey ? momentsKey.split(",") : []) {
+      if (buzzed.current.has(moment)) continue;
+      buzzed.current.add(moment);
+      const [id, at] = moment.split(":");
+      if (!state?.me?.bids.some((b) => b.slotId === id)) continue;
+      navigator.vibrate?.(at === "10" ? [60, 60, 60] : [120, 80, 120]);
     }
-  }, [flashingKey, state]);
+  }, [momentsKey, state]);
+
+  // Leading somewhere: fetch the winner's 3D stage now, so it lands on the beat.
+  const leadingAny = state?.me?.bids.some((b) => b.status === "leading") ?? false;
+  React.useEffect(() => {
+    if (leadingAny && !reduced) void import("./win-scene").catch(() => undefined);
+  }, [leadingAny, reduced]);
+
   const won = celebrate ? state?.me?.bids.find((b) => b.slotId === celebrate) : undefined;
   const wonCover = [state?.upNext, ...(state?.recentWinners ?? [])].find((w) => w?.slotId === celebrate)?.coverUrl ?? null;
   return (
     <>
-      {flashing.length > 0 ? <div aria-hidden className="auction-flash-frame" /> : null}
-      {celebrate && won ? (
-        <WinCelebration
-          slotId={won.slotId}
-          trackTitle={won.trackTitle}
-          trackArtist={won.trackArtist}
-          totalCents={won.totalCents}
-          coverUrl={wonCover}
-          onClose={dismissCelebration}
-        />
-      ) : null}
+      <AnimatePresence>
+        {flashing.length > 0 ? (
+          <motion.div
+            key="flash"
+            aria-hidden
+            className={cx("auction-flash-frame", urgentIds.length > 0 && "is-urgent")}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: durations.base }}
+          />
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {closed && !celebrate ? <ClosedBanner key={closed.slotId} closed={closed} onDone={dismissClosed} /> : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {celebrate && won ? (
+          <WinCelebration
+            key={won.slotId}
+            slotId={won.slotId}
+            trackTitle={won.trackTitle}
+            trackArtist={won.trackArtist}
+            totalCents={won.totalCents}
+            coverUrl={wonCover}
+            onClose={dismissCelebration}
+          />
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }
@@ -739,7 +986,7 @@ export function BidScreen({
                 {formatEurosDisplay(slot.top?.totalCents ?? slot.minPriceCents)}
               </p>
             </div>
-            <p className="tnum text-xl font-semibold text-text-primary">{countdown(slot.closesAt, serverNow)}</p>
+            <NumericText value={countdown(slot.closesAt, serverNow)} countsDown className="text-xl font-semibold text-text-primary" />
           </div>
 
           {mine && mine.libraryTrackId !== track.id ? (
@@ -851,31 +1098,61 @@ function initialOf(label: string | null): string {
   return letter ? letter.toUpperCase() : "?";
 }
 
+/** Entrance order: third, second, then the winner's step, crown last. */
+const PODIUM_DELAY = { 1: 0.32, 2: 0.16, 3: 0.04 } as const;
+
 function PodiumStep({ place, label, cents }: { place: 1 | 2 | 3; label: string | null; cents: number }) {
   const t = useTranslations("guest.auction");
+  const reduced = useReducedMotion() ?? false;
   const look = PODIUM[place];
   const name = label ?? t("anonymous");
+  const delay = PODIUM_DELAY[place];
+  const fade = { opacity: { duration: durations.base, delay: reduced ? 0 : delay + 0.12 } };
   return (
     <li className={cx("flex min-w-0 flex-col items-center", look.order)} aria-label={t("place", { place, name, amount: formatEurosDisplay(cents) })}>
-      {place === 1 ? <Crown size={22} className="mb-1 text-amber-500" aria-hidden /> : null}
-      <span aria-hidden className={cx("flex items-center justify-center rounded-full font-bold", look.avatar)}>
-        {initialOf(label)}
-      </span>
-      <p aria-hidden className="mt-2 w-full truncate text-center text-sm font-semibold text-text-primary">
-        {name}
-      </p>
-      <p aria-hidden className={cx("tnum text-center font-bold", look.amount)}>
-        {formatEurosDisplay(cents)}
-      </p>
-      <div
+      {place === 1 ? (
+        <motion.span
+          aria-hidden
+          className="mb-1 text-amber-500"
+          initial={reduced ? { opacity: 0 } : { opacity: 0, y: -10, rotate: -14 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          transition={{ ...springDefault, delay: reduced ? 0 : delay + 0.3, opacity: { duration: durations.fast, delay: reduced ? 0 : delay + 0.3 } }}
+        >
+          <Crown size={22} />
+        </motion.span>
+      ) : null}
+      <motion.span
         aria-hidden
-        className={cx(
-          "mt-2 flex w-full justify-center rounded-t-card border-x border-t pt-2",
-          look.step,
-          place === 1 ? "border-accent-500/50 bg-linear-to-b from-accent-500/40 to-accent-500/5" : "border-line-subtle bg-surface-2",
-        )}
+        className={cx("flex items-center justify-center rounded-full font-bold", look.avatar)}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ ...springDefault, delay: reduced ? 0 : delay + 0.12, ...fade }}
       >
-        <span className="tnum text-2xl font-bold text-text-secondary">{place}</span>
+        {initialOf(label)}
+      </motion.span>
+      <motion.div
+        aria-hidden
+        className="mt-2 w-full min-w-0 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={fade}
+      >
+        <p className="w-full truncate text-sm font-semibold text-text-primary">{name}</p>
+        <p className={cx("tnum font-bold", look.amount)}>{formatEurosDisplay(cents)}</p>
+      </motion.div>
+      {/* The step rises out of the floor. */}
+      <div aria-hidden className={cx("mt-2 w-full overflow-hidden rounded-t-card", look.step)}>
+        <motion.div
+          className={cx(
+            "flex h-full w-full justify-center rounded-t-card border-x border-t pt-2",
+            place === 1 ? "border-accent-500/50 bg-linear-to-b from-accent-500/40 to-accent-500/5" : "border-line-subtle bg-surface-2",
+          )}
+          initial={reduced ? { opacity: 0 } : { y: "100%" }}
+          animate={reduced ? { opacity: 1 } : { y: 0 }}
+          transition={reduced ? { duration: durations.fast } : { ...springMove, delay }}
+        >
+          <span className="tnum text-2xl font-bold text-text-secondary">{place}</span>
+        </motion.div>
       </div>
     </li>
   );

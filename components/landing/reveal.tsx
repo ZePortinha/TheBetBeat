@@ -25,12 +25,14 @@ export function Reveal({
   return (
     <motion.div
       className={className}
-      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
+      // One initial style for everyone (the server cannot know the
+      // preference); reduced motion just skips the movement.
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "0px 0px -8% 0px" }}
       transition={{
         opacity: { duration: durations.base, ease: easeStandard, delay },
-        y: { ...springDefault, delay },
+        y: reduced ? { duration: 0 } : { ...springDefault, delay },
       }}
     >
       {children}

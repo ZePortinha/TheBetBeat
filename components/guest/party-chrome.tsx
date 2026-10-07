@@ -5,7 +5,9 @@
  * the screen heading, and the tab bar "Agora · Leilão · Ranking" with the
  * auction as the raised gavel in the middle (2026-10-06). The party layout
  * mounts PartyChrome once, so the tab bar and the shared auction state
- * persist while switching tabs.
+ * persist while switching tabs. In an auction's last 30 s the gavel wears
+ * a ring that empties with the clock and its label becomes the countdown,
+ * so every tab says why the screen is flashing and one tap gets you there.
  */
 
 import * as React from "react";
@@ -13,9 +15,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AudioLines, Gavel, Trophy, UserRound } from "lucide-react";
+import { BrandMark } from "@/components/ui/brand-mark";
+import { NumericText } from "@/components/ui/numeric-text";
 import { cx } from "@/components/ui/pressable";
 import { AuctionOverlays, WalletPill } from "./auction-screens";
-import { AuctionProvider, useAuction } from "./use-auction";
+import { AuctionProvider, FINAL_STRETCH_MS, countdown, inFinalStretch, isUrgent, useAuction } from "./use-auction";
 
 interface PartyValue {
   token: string;
@@ -39,13 +43,14 @@ function activeTab(pathname: string): Tab {
   return "home";
 }
 
-function TabBar({ token }: { token: string }) {
+export function TabBar({ token }: { token: string }) {
   const t = useTranslations("guest.tabs");
   const pathname = usePathname();
-  const { state } = useAuction();
+  const { state, serverNow } = useAuction();
   const base = `/s/${token}`;
   const active = activeTab(pathname);
   const live = (state?.open.length ?? 0) > 0;
+  const stretch = state?.open.find((s) => inFinalStretch(s.closesAt, serverNow)) ?? null;
 
   const side = (key: "home" | "top", href: string, Icon: typeof Trophy) => (
     <Link
@@ -68,6 +73,7 @@ function TabBar({ token }: { token: string }) {
         {/* The auction: raised, bigger, the gavel. A live dot while one is open. */}
         <Link
           href={`${base}/auction`}
+          aria-label={t("auction")}
           aria-current={active === "auction" ? "page" : undefined}
           className="group relative flex flex-col items-center justify-end gap-1 pb-2"
         >
@@ -78,17 +84,53 @@ function TabBar({ token }: { token: string }) {
             )}
           >
             <Gavel size={30} strokeWidth={2} aria-hidden />
-            {live ? (
+            {stretch ? (
+              <StretchRing key={stretch.closesAt} leftMs={Date.parse(stretch.closesAt) - serverNow} />
+            ) : live ? (
               <span aria-hidden className="absolute right-1.5 top-1.5 size-3 rounded-full bg-text-primary ring-2 ring-accent-500 motion-safe:animate-pulse" />
             ) : null}
           </span>
-          <span className={cx("text-xs font-bold", active === "auction" ? "text-accent-400" : "text-text-primary")}>
-            {t("auction")}
-          </span>
+          {stretch ? (
+            <NumericText
+              value={countdown(stretch.closesAt, serverNow)}
+              countsDown
+              className={cx("text-xs font-bold auction-flash-text", isUrgent(stretch.closesAt, serverNow) && "is-urgent")}
+            />
+          ) : (
+            <span className={cx("text-xs font-bold", active === "auction" ? "text-accent-400" : "text-text-primary")}>
+              {t("auction")}
+            </span>
+          )}
         </Link>
         {side("top", `${base}/top`, Trophy)}
       </div>
     </nav>
+  );
+}
+
+/** Round the gavel: what is left of the last 30 s, emptying at the server's pace. */
+function StretchRing({ leftMs }: { leftMs: number }) {
+  const [delay] = React.useState(() => -(FINAL_STRETCH_MS - Math.max(0, leftMs)));
+  return (
+    // Sits in the black band between the button and the bar (r 34-38 px of an 82 px box).
+    <svg
+      aria-hidden
+      viewBox="0 0 100 100"
+      className="pointer-events-none absolute -left-[7px] -top-[7px] size-[calc(100%+14px)] -rotate-90"
+    >
+      <circle cx="50" cy="50" r="44" fill="none" strokeWidth="3.2" className="stroke-text-primary/15" />
+      <circle
+        cx="50"
+        cy="50"
+        r="44"
+        fill="none"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+        pathLength={1}
+        className="stretch-ring stroke-text-primary"
+        style={{ animationDuration: `${FINAL_STRETCH_MS}ms`, animationDelay: `${delay}ms` }}
+      />
+    </svg>
   );
 }
 
@@ -125,11 +167,12 @@ export function PartyTopBar() {
         href={`/s/${token}`}
         className="flex min-h-11 min-w-0 items-center gap-1.5 text-sm font-semibold"
       >
-        <span className="text-accent-400">{tc("appName")}</span>
+        <BrandMark className="size-[1.0625rem]" />
+        <span className="text-text-primary">{tc("appName")}</span>
         <span aria-hidden className="text-text-tertiary">
           ×
         </span>
-        <span className="truncate text-text-primary">{venueName}</span>
+        <span className="truncate text-text-secondary">{venueName}</span>
       </Link>
       <div className="flex shrink-0 items-center gap-1">
         <WalletPill token={token} />

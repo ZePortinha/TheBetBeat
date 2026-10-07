@@ -15,6 +15,27 @@
 | 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing/catalog credentials unavailable → adapters stay mocked behind interfaces; Sentry/PostHog wiring, load-test run, B12 review pending |
 | 9 — Delivery | docs done | README, `docs/OPERATIONS.md`, `docs/SECURITY.md`, DECISIONS updated. Final `db:audit` result still to paste into SECURITY.md |
 
+## This round (cloud session, no Docker / Supabase - 2026-10-07)
+
+Motion and polish pass (DECISIONS 2026-10-07): brand mark + lockup on every
+surface, new logo intro (once per tab), compositor-only last-30-s pulse with
+a faster last 10 s, emptying bar and gavel-tab ring, iOS-style countdowns,
+soft-close chip, leader swap + rolling amounts, the "Leilão fechado" banner,
+winner moment (prefetched stage, synced haptic, legibility, exit), party
+page fades, podium entrance, landing copy aligned with auctions.
+
+- Checks: `pnpm typecheck`, `pnpm lint`, `pnpm test` (452), `pnpm i18n:check`
+  green.
+- Visual: frames captured with Playwright at 393x852 against `/dev/motion`
+  (real components, fixture state) and `/`, `/casas`, `/login`; normal and
+  reduced motion. Record in `docs/screens/motion-*.png`.
+- Not run here (no Docker): `pnpm test:e2e`. Specs were read against the
+  changes: the intro keeps `data-testid="boot-intro"` and still plays on a
+  fresh context; `.auction-flash-frame` / `.auction-flash-card` keep their
+  names; the gavel link keeps the accessible name "Leilão"; the banner is
+  `role="status"` and is never shown to the winner, so the "Vencedor"
+  dialog and "Fechar" stay unique. Run it locally first next time.
+
 ## This round (cloud session, no Docker / Supabase — 2026-10-02)
 
 Branch `cloud/finish-surfaces` (also pushed to the session branch). Everything

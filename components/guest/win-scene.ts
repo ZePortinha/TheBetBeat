@@ -20,7 +20,8 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 
 const GRAVITY = -9.8 * 0.55;
-const RECORD_Y = 1.45;
+// High enough that the words below never touch the record on a phone.
+const RECORD_Y = 1.7;
 const PAPER = 220;
 const FOIL = 90;
 const DROPS = 900;
@@ -66,13 +67,14 @@ function backdropTexture(): THREE.CanvasTexture {
   return texture(c);
 }
 
-/** Gold god-rays, fading out from the centre. */
+/** Gold god-rays, soft-edged (light through haze, not a sunburst), fading out from the centre. */
 function raysTexture(): THREE.CanvasTexture {
   const [c, ctx] = canvas(1024);
   ctx.translate(512, 512);
-  for (let i = 0; i < 28; i += 1) {
-    ctx.rotate((Math.PI * 2) / 28 + rand(-0.04, 0.04));
-    const w = rand(0.012, 0.045);
+  ctx.filter = "blur(10px)";
+  for (let i = 0; i < 22; i += 1) {
+    ctx.rotate((Math.PI * 2) / 22 + rand(-0.08, 0.08));
+    const w = rand(0.02, 0.07);
     const g = ctx.createLinearGradient(0, 0, 512, 0);
     g.addColorStop(0, "rgba(255,214,120,0.5)");
     g.addColorStop(0.55, "rgba(255,214,120,0.12)");
@@ -590,7 +592,7 @@ export function startWinScene(container: HTMLElement, opts: { coverUrl: string |
     camera.lookAt(0, 0.35, 0);
 
     // Room.
-    (rays.material as THREE.MeshBasicMaterial).opacity = 0.11 * easeOut(t / 1.2);
+    (rays.material as THREE.MeshBasicMaterial).opacity = 0.075 * easeOut(t / 1.2);
     rays.rotation.z = t * 0.06;
 
     // Record: drops in on a spring, spins fast then settles, gentle wobble.

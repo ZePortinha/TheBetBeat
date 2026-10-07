@@ -85,7 +85,7 @@
     "hero": {
       "titleA": "Pede a tua música",
       "titleB": "ao DJ.",
-      "sub": "Escolhe o tema, decide quanto esperas e paga em segundos. Se não tocar, devolvemos tudo.",
+      "sub": "Licita pela próxima faixa da noite e acompanha o leilão ao segundo. Se não tocar, devolvemos tudo.",
       "cta": "Ver como funciona",
       "ctaSecondary": "Para DJs e casas"
     },
@@ -97,8 +97,8 @@
         "body": "Abre no telemóvel. Sem instalar nada, sem registo e sem palavra-passe."
       },
       "choose": {
-        "title": "Escolhe a música e a espera.",
-        "body": "Na Fila, Em Breve ou A Seguir. O preço final e o tempo estimado ficam à vista antes de pagares."
+        "title": "Escolhe a faixa e licita.",
+        "body": "Há leilões ao longo da noite. O valor a bater e o tempo que falta ficam à vista antes de pagares."
       },
       "decide": {
         "title": "O DJ decide.",
@@ -128,7 +128,7 @@
     "guarantee": {
       "title": "Se não tocar,",
       "titleAccent": "devolvemos tudo.",
-      "body": "Reembolso total e automático. Se a espera prometida falhar, devolvemos a diferença."
+      "body": "Reembolso total e automático. Se alguém te ultrapassar, o teu dinheiro volta ao saldo na hora."
     },
     "footer": {
       "rights": "© 2026 BetBeat"

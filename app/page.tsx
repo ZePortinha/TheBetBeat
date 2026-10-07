@@ -5,8 +5,10 @@ import { query } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signToken } from "@/lib/security/tokens";
 import { BootIntro } from "@/components/ui/boot-intro";
+import { BrandLockup } from "@/components/ui/brand-mark";
 import { DevStrip } from "@/components/landing/landing";
 import { QrScanner } from "@/components/landing/qr-scanner";
+import { Reveal } from "@/components/landing/reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +105,7 @@ export default async function Home() {
       <BootIntro />
       <main className="flex flex-col gap-6 px-4 pb-10 pt-5">
         <header className="flex items-center justify-between">
-          <span className="text-lg font-bold text-accent-400">{tc("appName")}</span>
+          <BrandLockup name={tc("appName")} />
           <Link href="/casas" className="text-sm font-semibold text-text-secondary">
             {t("forVenues")}
           </Link>
@@ -127,34 +129,36 @@ export default async function Home() {
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {events.map((e) => (
+              {events.map((e, i) => (
                 <li key={e.id}>
-                  <Link
-                    href={`/s/${encodeURIComponent(signToken({ kind: "session", venueId: e.venue_id, slug: e.id }))}`}
-                    className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 transition-transform duration-100 active:scale-[0.99]"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-base font-semibold text-text-primary">{e.venue_name}</span>
-                      <span className="block truncate text-sm text-text-secondary">
-                        {e.name}
-                        {e.dj_name ? ` · ${e.dj_name}` : ""}
-                      </span>
-                      {e.now_title ? (
-                        <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-text-tertiary">
-                          <Disc3 size={12} aria-hidden className="shrink-0 text-accent-400" />
-                          <span className="truncate">
-                            {e.now_title} · {e.now_artist}
+                  <Reveal delay={Math.min(i, 6) * 0.05}>
+                    <Link
+                      href={`/s/${encodeURIComponent(signToken({ kind: "session", venueId: e.venue_id, slug: e.id }))}`}
+                      className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 transition-transform duration-100 active:scale-[0.99]"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-base font-semibold text-text-primary">{e.venue_name}</span>
+                        <span className="block truncate text-sm text-text-secondary">
+                          {e.name}
+                          {e.dj_name ? ` · ${e.dj_name}` : ""}
+                        </span>
+                        {e.now_title ? (
+                          <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-text-tertiary">
+                            <Disc3 size={12} aria-hidden className="shrink-0 text-accent-400" />
+                            <span className="truncate">
+                              {e.now_title} · {e.now_artist}
+                            </span>
                           </span>
+                        ) : null}
+                      </span>
+                      {e.open_auctions > 0 ? (
+                        <span className="shrink-0 rounded-chip bg-accent-500 px-2 py-1 text-xs font-semibold text-text-on-accent">
+                          {t("auctionLive")}
                         </span>
                       ) : null}
-                    </span>
-                    {e.open_auctions > 0 ? (
-                      <span className="shrink-0 rounded-chip bg-accent-500 px-2 py-1 text-xs font-semibold text-text-on-accent">
-                        {t("auctionLive")}
-                      </span>
-                    ) : null}
-                    <ChevronRight size={20} className="shrink-0 text-text-tertiary" aria-hidden />
-                  </Link>
+                      <ChevronRight size={20} className="shrink-0 text-text-tertiary" aria-hidden />
+                    </Link>
+                  </Reveal>
                 </li>
               ))}
             </ul>

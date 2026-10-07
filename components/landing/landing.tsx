@@ -19,6 +19,7 @@ import {
   Store,
   Timer,
 } from "lucide-react";
+import { BrandLockup, BrandMark } from "@/components/ui/brand-mark";
 import { Disc } from "@/components/ui/disc";
 import { Reveal } from "./reveal";
 
@@ -47,11 +48,8 @@ export async function LandingHeader() {
   return (
     <header className="material-top sticky top-0 z-40">
       <div className={`${wrap} flex h-13 items-center justify-between`}>
-        <Link
-          href="/"
-          className="text-xl font-semibold tracking-[var(--tracking-heading)]"
-        >
-          {tc("appName")}
+        <Link href="/" aria-label={tc("appName")} className="flex min-h-11 items-center">
+          <BrandLockup name={tc("appName")} />
         </Link>
         <nav className="flex items-center gap-7" aria-label={tc("appName")}>
           <a className={link} href="#como">
@@ -90,7 +88,8 @@ export async function Hero() {
 
       <div className={wrap}>
         <Reveal>
-          <p className="text-xl font-semibold tracking-[var(--tracking-heading)] text-accent-400 md:text-2xl">
+          <p className="inline-flex items-center gap-2 text-xl font-semibold tracking-[var(--tracking-heading)] text-accent-400 md:text-2xl">
+            <BrandMark className="size-6 md:size-7" />
             {tc("appName")}
           </p>
         </Reveal>
@@ -277,7 +276,7 @@ export async function Footer() {
     <footer className="border-t border-line-subtle pb-10 pt-8 text-[0.8125rem] text-text-tertiary">
       <div className={`${wrap} flex flex-col gap-4 md:flex-row md:items-center md:justify-between`}>
         <div>
-          <p className="text-base font-semibold text-text-primary">{tc("appName")}</p>
+          <BrandLockup name={tc("appName")} size="sm" />
           <p className="mt-1">{tc("tagline")}</p>
         </div>
         <nav className="flex flex-wrap gap-x-6" aria-label={tc("appName")}>

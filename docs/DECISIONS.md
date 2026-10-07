@@ -518,3 +518,79 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
 - Instagram: the winner screen shares a 1080x1920 story image through the phone's share sheet (where Instagram lives). There is no Instagram web intent, so on desktop the image is saved instead.
+
+## 2026-10-07 - Motion polish: logo intro, auction ending, close, winner
+
+Product owner: improve the logo animation, the transitions and the effects
+when someone wins and when an auction is ending; polish everything so it
+looks professional. Skills: apple-design (all of it), design-taste-frontend
+(guest app and front door). Verified through `/dev/motion` (below) and
+Playwright frame captures in `docs/screens/motion-*.png`.
+
+- **Brand mark** (`components/ui/brand-mark.tsx`): the record from
+  `public/icons/icon.svg` as a component. The centre hole is drawn as a
+  ring, so the page shows through it on any surface; the viewBox is cropped
+  to the mark so it fills its box at 17-22 px. `BrandLockup` (mark + name)
+  replaces the plain red word in the guest top bar, the front door,
+  `/casas`, login/MFA (the mark replaces the record there), the cockpit
+  top bar and the venue screen corner (static there).
+- **Logo intro**: the grooves draw from twelve o'clock in opposite
+  directions, the label lands, two heartbeats send a soft wave and a pulse
+  of red light, the name rises letter by letter, then the splash lifts off
+  (scale up + fade) into the page at 2.0 s. The timeline is CSS keyframes,
+  so it starts with the first paint, before JavaScript; JS only adds the
+  haptics (now landing on the visual beats), tap-to-skip and the exit.
+  **Once per tab** (`sessionStorage` `betbeat:intro`): entering a party
+  from "/" used to play it twice ("/" and the guest layout both mount it);
+  a reload leaves at once. Reduced motion: the still mark fades in and out.
+- **Last 30 s**: the red <-> white pulse is now compositor-only (two static
+  glow layers cross-fading on opacity, frame and card) instead of animated
+  `box-shadow`/`background-color`. In the last 10 s (`.is-urgent`) the
+  period halves to 0.5 s: 2 flashes/s, still under WCAG 2.3.1's 3/s. A heat
+  bar empties under the countdown; the gavel tab wears a ring that empties
+  clockwise and its label becomes the countdown (its accessible name stays
+  "Leilão"), so every tab explains the flashing and is one tap from the
+  auction. Haptics for guests with a bid at 30 s (as before) and at 10 s.
+  The venue screen keeps the 1 s pulse: a large surface in a dark room,
+  kept gentler on purpose.
+- **Countdowns** use `NumericText` (iOS `numericText(countsDown:)`): only
+  the digits that change move, dropping in from above with a touch of blur.
+- **Soft close** made visible: when a late bid pushes the close back, an
+  amber "Prolongado +30 s" chip pops next to the countdown.
+- **Leader changes**: the new leader slides in over the old one (the old
+  clears first so names never ghost); a raise on the same bid rolls the
+  amount (`PriceTag` odometer, B10.6 anim 2, new `size="inherit"`) and
+  flares the frame once.
+- **Auction closed** (new): the client notices an open auction leaving
+  `open` with a winner and shows every guest except the winner a
+  notification-style banner ("Leilão fechado / Vencedor: @x", track, amount,
+  "your money is already in your balance" when they had a bid). The gavel
+  strikes once with an impact ring; it leaves after 5 s or on a tap, by the
+  path it came. `role="status"`, never a dialog. Amounts are public in
+  auctions (2026-10-05).
+- **Winner moment**: three.js is fetched while the guest leads, so the
+  stage lands on time; the haptic now fires on the frame the flash starts
+  (inside the celebration, not on the realtime event). The title
+  materializes as one gold word (scale + focus) instead of flipping letter
+  by letter, which needed a separate gradient per letter; it keeps a small
+  bounce (0.25, was 0.45) as the one celebratory exception to "bounce only
+  after momentum". The amount counts up straight into the DOM (no React
+  render per frame). A scrim keeps the words legible over the confetti; the
+  god-rays are softer (haze, not a sunburst) and the record sits higher.
+  It now has an exit animation, and leaving overlays never catch taps.
+- **Transitions**: party screens fade in on tab changes (template; opacity
+  only, because a transform would break the screens' fixed CTAs; never on
+  the first load, so server HTML is not shipped invisible). The podium
+  builds third, second, then first with the crown last; "A seguir" and the
+  winners reflow with layout springs; the front door's live events reveal
+  in a stagger.
+- **Hydration**: reduced-motion variants now render the same style as the
+  server (the server cannot know the preference); this also fixes the
+  landing's `Reveal` under reduced motion.
+- **Landing copy**: three `/casas` strings still sold the retired tiers
+  ("decide quanto esperas", "Na Fila, Em Breve ou A Seguir", the promised
+  wait refund); aligned with auctions (pt-PT and EN).
+- **`/dev/motion`** (404 in production): the real guest auction components
+  on a fixture state, with buttons for outbid / raise / extend / close,
+  `?s=auction|home|podium|win|closed&left=<s>`. It exists because these
+  moments cannot be reproduced on demand against a live night.

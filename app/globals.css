@@ -116,6 +116,23 @@ body:has(.guest-type) {
   }
 }
 
+/* The "auction closed" banner: a dark notification material. */
+.closed-banner {
+  background: color-mix(in srgb, var(--color-surface-2) 86%, transparent);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  box-shadow:
+    0 20px 50px -14px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .closed-banner {
+    background: var(--color-surface-2);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 /* QR viewfinder: the line sweeps while the camera reads. */
 @media (prefers-reduced-motion: no-preference) {
   .scan-line {
@@ -338,19 +355,98 @@ body:has(.guest-type) {
   scrollbar-color: var(--color-surface-3) transparent;
 }
 
-/* Last 30 s of an auction: the screen pulses red ↔ white. One cycle per
-   second stays well under the 3-flashes-per-second photosensitivity limit
-   (WCAG 2.3.1); reduced motion gets a steady red frame instead. */
-@keyframes auction-frame {
+/* ── Last 30 s of an auction ────────────────────────────────────────
+   The edge of the screen pulses red <-> white once per second, twice per
+   second in the last 10 s (`.is-urgent`). Both stay under the
+   3-flashes-per-second photosensitivity limit (WCAG 2.3.1). Compositor
+   only: two static glow layers cross-fade (opacity), nothing repaints per
+   frame. The live card and the countdown follow the same beat. Reduced
+   motion: a steady red frame, no pulse. */
+.auction-flash-frame,
+.auction-flash-card,
+.auction-flash-text {
+  --flash-period: 1s;
+}
+.is-urgent {
+  --flash-period: 0.5s;
+}
+.auction-flash-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.auction-flash-frame::before,
+.auction-flash-frame::after,
+.auction-flash-card::before,
+.auction-flash-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  will-change: opacity;
+  animation: flash-red var(--flash-period) ease-in-out infinite;
+}
+.auction-flash-frame::before,
+.auction-flash-frame::after {
+  inset: 0;
+}
+.auction-flash-frame::before {
+  box-shadow:
+    inset 0 0 0 5px var(--color-accent-500),
+    inset 0 0 80px 10px color-mix(in srgb, var(--color-accent-500) 60%, transparent);
+}
+.auction-flash-frame::after {
+  box-shadow:
+    inset 0 0 0 5px var(--color-text-on-accent),
+    inset 0 0 64px 4px color-mix(in srgb, var(--color-text-on-accent) 30%, transparent);
+  animation-name: flash-white;
+}
+/* The live card: tinted between its background and its content. */
+.auction-flash-card {
+  position: relative;
+  isolation: isolate;
+}
+.auction-flash-card::before,
+.auction-flash-card::after {
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+}
+.auction-flash-card::before {
+  background: color-mix(in srgb, var(--color-accent-500) 20%, transparent);
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-accent-500),
+    0 0 40px -6px color-mix(in srgb, var(--color-accent-500) 65%, transparent);
+}
+.auction-flash-card::after {
+  background: color-mix(in srgb, var(--color-text-on-accent) 7%, transparent);
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-text-on-accent),
+    0 0 36px -8px color-mix(in srgb, var(--color-text-on-accent) 40%, transparent);
+  animation-name: flash-white;
+}
+.auction-flash-text {
+  animation: flash-text var(--flash-period) ease-in-out infinite;
+}
+@keyframes flash-red {
   0%,
   100% {
-    box-shadow: inset 0 0 0 6px var(--color-accent-500), inset 0 0 56px var(--color-accent-500);
+    opacity: 1;
   }
   50% {
-    box-shadow: inset 0 0 0 6px var(--color-text-on-accent), inset 0 0 56px var(--color-text-on-accent);
+    opacity: 0.2;
   }
 }
-@keyframes auction-flash-text {
+@keyframes flash-white {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes flash-text {
   0%,
   100% {
     color: var(--color-accent-400);
@@ -359,47 +455,60 @@ body:has(.guest-type) {
     color: var(--color-text-on-accent);
   }
 }
-@keyframes auction-flash-card {
-  0%,
-  100% {
-    border-color: var(--color-accent-500);
-    background-color: color-mix(in srgb, var(--color-accent-500) 22%, var(--color-surface-1));
+/* Time left in the last 30 s: a bar (and the ring round the gavel tab)
+   that empties at the server's pace; started with a negative delay. */
+.stretch-bar {
+  transform-origin: left center;
+  animation: stretch-bar linear forwards;
+}
+@keyframes stretch-bar {
+  from {
+    transform: scaleX(1);
   }
-  50% {
-    border-color: var(--color-text-on-accent);
-    background-color: color-mix(in srgb, var(--color-text-on-accent) 10%, var(--color-surface-1));
+  to {
+    transform: scaleX(0);
   }
 }
-.auction-flash-frame {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-  animation: auction-frame 1s ease-in-out infinite;
+.stretch-ring {
+  stroke-dasharray: 1 1;
+  animation: stretch-ring linear forwards;
 }
-.auction-flash-text {
-  animation: auction-flash-text 1s ease-in-out infinite;
-}
-.auction-flash-card {
-  animation: auction-flash-card 1s ease-in-out infinite;
+/* The empty part grows clockwise from twelve, like the iOS timer. */
+@keyframes stretch-ring {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .auction-flash-frame {
+  .auction-flash-frame::before,
+  .auction-flash-card::before {
     animation: none;
-    box-shadow: inset 0 0 0 6px var(--color-accent-500);
+    opacity: 1;
+  }
+  .auction-flash-frame::after,
+  .auction-flash-card::after {
+    animation: none;
+    opacity: 0;
   }
   .auction-flash-text {
     animation: none;
     color: var(--color-accent-400);
   }
-  .auction-flash-card {
-    animation: none;
-    border-color: var(--color-accent-500);
-  }
 }
 
-/* Boot intro: leaves on its own even if JavaScript is slow or fails —
-   the splash can never block the app. JS removes it earlier (or on tap). */
+/* ── Boot intro (components/ui/boot-intro.tsx) ─────────────────────
+   One timeline from the first paint, before JavaScript:
+     0.08  outer groove draws clockwise from twelve o'clock
+     0.18  inner groove draws the other way
+     0.38  the label lands
+     0.85  lub-dub, 1.35 lub-dub (120 BPM): the mark beats, a soft wave
+           leaves the grooves and the room flashes red
+     0.95  the name rises letter by letter
+   JS lifts it off at 2.0 s (or on tap). It leaves on its own even if
+   JavaScript is slow or fails: the splash can never block the app. */
 @keyframes boot-intro-out {
   to {
     opacity: 0;
@@ -407,11 +516,154 @@ body:has(.guest-type) {
   }
 }
 .boot-intro {
-  animation: boot-intro-out 0.35s ease-out 2.4s forwards;
+  animation: boot-intro-out 0.4s ease-out 3.2s forwards;
+}
+.bi-bloom {
+  background: radial-gradient(
+    38rem 30rem at 50% calc(50% - 2.5rem),
+    color-mix(in srgb, var(--color-accent-500) 22%, transparent),
+    color-mix(in srgb, var(--color-accent-500) 6%, transparent) 45%,
+    transparent 70%
+  );
+  opacity: 0;
+  animation: bi-fade-in 0.9s ease-out 0.3s forwards;
+}
+.bi-flash {
+  background: radial-gradient(
+    24rem 20rem at 50% calc(50% - 2.5rem),
+    color-mix(in srgb, var(--color-accent-500) 30%, transparent),
+    transparent 70%
+  );
+  opacity: 0;
+  animation: bi-flash 0.5s ease-out 0.85s 2;
+}
+.bi-groove {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation: bi-draw 0.62s cubic-bezier(0.65, 0, 0.35, 1) 0.08s forwards;
+}
+.bi-groove-ccw {
+  stroke-dashoffset: -1;
+  animation-delay: 0.18s;
+}
+.bi-label {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0.35);
+  opacity: 0;
+  animation: bi-land 0.5s var(--ease-standard) 0.38s forwards;
+}
+.bi-mark {
+  transform-origin: 50% 50%;
+  animation: bi-beat 0.5s cubic-bezier(0.3, 0, 0.3, 1) 0.85s 2;
+}
+.bi-wave {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--color-accent-500);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--color-accent-500) 45%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--color-accent-500) 25%, transparent);
+  transform: scale(0.6);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: bi-wave 1.15s cubic-bezier(0.15, 0.6, 0.3, 1) 0.85s forwards;
+}
+.bi-wave-2 {
+  animation-delay: 1.35s;
+}
+.bi-letter {
+  transform: translateY(110%);
+  opacity: 0;
+  animation: bi-rise 0.6s var(--ease-standard) forwards;
+  animation-delay: calc(0.95s + var(--i, 0) * 32ms);
+}
+@keyframes bi-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes bi-flash {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes bi-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes bi-land {
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+/* lub (strong) then dub (soft), settling between. */
+@keyframes bi-beat {
+  0% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.085);
+  }
+  32% {
+    transform: scale(0.995);
+  }
+  46% {
+    transform: scale(1.04);
+  }
+  66%,
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes bi-wave {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+@keyframes bi-rise {
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .boot-intro {
     animation-duration: 0.2s;
-    animation-delay: 1s;
+    animation-delay: 1.4s;
+  }
+  .bi-groove,
+  .bi-label,
+  .bi-letter,
+  .bi-mark {
+    animation: none;
+    stroke-dashoffset: 0;
+    transform: none;
+  }
+  .bi-label,
+  .bi-letter {
+    opacity: 1;
+  }
+  .bi-wave,
+  .bi-flash {
+    display: none;
+  }
+  .bi-content {
+    animation: bi-fade-in 0.3s ease-out both;
+    opacity: 0;
   }
 }
