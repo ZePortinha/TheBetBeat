@@ -518,3 +518,15 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
 - Instagram: the winner screen shares a 1080x1920 story image through the phone's share sheet (where Instagram lives). There is no Instagram web intent, so on desktop the image is saved instead.
+
+## 2026-10-07 — "Populares" shows only songs a guest can bid on
+
+- **Context:** E2E bids failed with `track_not_found`: "Populares" (tonight's
+  most-bid songs) listed catalog songs even with the catalog closed, and library
+  songs without their `blocked` flag, so both looked available but were refused
+  on bid.
+- **Decision:** catalog songs appear there only while the night's catalog is
+  open; library songs carry `blocked` (shown unavailable). E2E bids pick a song
+  from the club's library, which every catalog mode accepts.
+- **Also:** the dev-only `/api/dev/auction` gains `forget-mic` so the mic test
+  does not depend on how many announcements earlier runs used this hour.

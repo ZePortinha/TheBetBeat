@@ -249,6 +249,23 @@ export async function bidViaApi(
   return { guest, trackId };
 }
 
+/**
+ * A guest's wallet entries (service role): readable after the night ended,
+ * when the guest API has no live session to answer for.
+ */
+export async function walletEntries(
+  request: APIRequestContext,
+  guestId: string,
+): Promise<Array<{ amount_cents: number; reason: string }>> {
+  const { url, serviceKey } = supabaseEnv();
+  if (!serviceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY missing in .env.local");
+  const res = await request.get(`${url}/rest/v1/wallet_entries?guest_id=eq.${guestId}&select=amount_cents,reason`, {
+    headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}` },
+  });
+  if (!res.ok()) throw new Error(`wallet read failed (${res.status()})`);
+  return (await res.json()) as Array<{ amount_cents: number; reason: string }>;
+}
+
 /** The public auction state (+ the guest's own part when signed in). */
 export async function auctionState(
   request: APIRequestContext,
