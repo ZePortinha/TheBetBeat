@@ -42,7 +42,7 @@ passwords, cockpit caches cleared at sign-in, Turnstile on staff sign-in
 (migration 0016), and integration tests for parallel bids, parallel duplicate
 webhooks and DJ accept/reject races. Green: typecheck, lint,
 `pnpm test` (479), db:audit and the RLS/domain/auction/worker/journal
-integration suites (49 tests) on a plain Postgres 16 with a Supabase stub.
+integration suites (47 tests) on a plain Postgres 16 with a Supabase stub.
 Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
 `pnpm test:e2e`; restart Supabase (config.toml: min password 12).
 
