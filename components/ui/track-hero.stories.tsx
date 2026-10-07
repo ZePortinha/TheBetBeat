@@ -43,8 +43,8 @@ function PreviewButton() {
 
 export const Default: Story = {
   args: {
-    title: "Gata Only",
-    artist: "FloyyMenor, Cris MJ",
+    title: "Velvet Drift",
+    artist: "Linha Oito, Kova Ray",
     coverUrl: COVER,
     genre: "Reggaeton",
     bpm: 98,
@@ -61,8 +61,8 @@ export const WithPreviewSlot: Story = {
 
 export const PlaceholderCover: Story = {
   args: {
-    title: "Vida Louca",
-    artist: "Mc Kevin o Chris",
+    title: "Coastal Horizon",
+    artist: "Rui Norte",
     genre: "Funk",
     bpm: 130,
     camelotKey: "4A",
@@ -79,8 +79,8 @@ export const MinimalMeta: Story = {
 
 export const LongTitle: Story = {
   args: {
-    title: "I'm Good (Blue) — Extended Festival Rework 2024 Edition",
-    artist: "David Guetta, Bebe Rexha",
+    title: "Hidden Signal (Extended Festival Rework, Late Night Edition)",
+    artist: "Electric Pulse, Maré Alta",
     coverUrl: COVER,
     genre: "Dance",
     bpm: 128,

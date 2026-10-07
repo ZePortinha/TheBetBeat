@@ -327,6 +327,7 @@
       "played": "Tocaram"
     },
     "revenueByHour": "Receita por hora",
+    "noRevenue": "Sem receita neste período.",
     "refundsByReason": "Reembolsos por motivo",
     "noRefunds": "Sem reembolsos neste período.",
     "refundReason": {

@@ -42,7 +42,9 @@
     "generic": "Something went wrong. Please try again.",
     "withCode": "Something went wrong (ref. {code}). Please try again.",
     "network": "You're offline. Check your connection and try again.",
-    "rateLimited": "Too many requests. Wait {seconds}s."
+    "rateLimited": "Too many requests. Wait {seconds}s.",
+    "pageTitle": "Something went wrong",
+    "pageHint": "Try again. If it keeps happening, go back to the start."
   },
   "auth": {
     "title": "Sign in",
@@ -62,7 +64,8 @@
       "codeLabel": "Code",
       "submit": "Verify",
       "error": "Invalid code. Try again.",
-      "loading": "Preparing…"
+      "loading": "Preparing…",
+      "qrAlt": "QR code for the authenticator app"
     }
   },
   "devIndex": {
@@ -85,7 +88,7 @@
     "hero": {
       "titleA": "Request your song",
       "titleB": "from the DJ.",
-      "sub": "Pick the track, choose how long you will wait and pay in seconds. If it does not play, you get everything back.",
+      "sub": "Pick the track, bid in the open auction and pay in seconds. If it does not play, you get everything back.",
       "cta": "See how it works",
       "ctaSecondary": "For DJs and venues"
     },
@@ -97,8 +100,8 @@
         "body": "Open it on your phone. Nothing to install, no sign-up and no password."
       },
       "choose": {
-        "title": "Pick the song and the wait.",
-        "body": "In the Queue, Coming Up or Up Next. The final price and the estimated time are shown before you pay."
+        "title": "Pick the track and bid.",
+        "body": "Auctions open throughout the night. You see the amount before you pay and, if you are outbid, the money goes back to your balance."
       },
       "decide": {
         "title": "The DJ decides.",
@@ -128,10 +131,26 @@
     "guarantee": {
       "title": "If it does not play,",
       "titleAccent": "you get it all back.",
-      "body": "Full, automatic refund. If the promised wait is missed, we return the difference."
+      "body": "Full, automatic refund. If you are outbid in an auction, the amount goes back to your balance."
     },
     "footer": {
-      "rights": "© 2026 BetBeat"
+      "rights": "© 2026 BetBeat",
+      "nav": "Footer links"
     }
+  },
+  "meta": {
+    "description": "Request your song from the party DJ. Pick the track, bid in the open auction and, if it does not play, you get everything back.",
+    "ogAlt": "BetBeat: request your song from the DJ",
+    "venuesTitle": "For DJs and venues",
+    "venuesDescription": "BetBeat for clubs and DJs: guests pay to request songs, the DJ always decides what plays and anything that does not play is refunded automatically.",
+    "staffLogin": "Sign in",
+    "mfa": "Two-step verification",
+    "partyLogin": "Join the party",
+    "notFoundTitle": "Page not found"
+  },
+  "notFound": {
+    "title": "This page does not exist",
+    "hint": "The link may be wrong or may have expired. To request a song, scan the event QR.",
+    "cta": "Go to the start"
   }
 }

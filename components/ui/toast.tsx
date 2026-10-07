@@ -131,7 +131,7 @@ function ToastViewport({
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 px-4 pb-[max(env(safe-area-inset-bottom),16px)]"
+      className="toast-stack pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 px-4 pb-[max(env(safe-area-inset-bottom),16px)]"
     >
       <AnimatePresence initial={false}>
         {items.map((item) => (
@@ -218,7 +218,7 @@ function ToastCard({
               item.action?.onAction();
               onDismiss();
             }}
-            className="min-h-9 shrink-0 rounded-chip bg-surface-3 px-3 py-1.5 text-sm font-semibold text-accent-400 data-pressed:bg-surface-2"
+            className="min-h-9 shrink-0 rounded-chip bg-surface-3 px-3 py-1.5 text-sm font-semibold text-accent-300 data-pressed:bg-surface-2"
           >
             {item.action.label}
           </Pressable>

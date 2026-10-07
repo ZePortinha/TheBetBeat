@@ -3,12 +3,14 @@
 /**
  * Boot intro: the BetBeat mark beats twice like a heart (lub-dub at
  * 120 BPM), each beat sends a ring out like a sound wave, the name lands,
- * and the splash dissolves into the page (~2 s, tap to skip).
+ * and the splash dissolves into the page: the mark comes towards the
+ * viewer as the black lifts (~2 s, tap to skip).
  *
  * Haptics: browsers only allow vibration after the person has touched the
  * page, so the beat pattern plays at once when that already happened and
  * otherwise on the first tap during the intro. iOS has no vibration API.
  * Reduced motion: a short fade, no scale or rings.
+ * Plays once per tab: later loads skip it before first paint.
  */
 
 import * as React from "react";
@@ -39,6 +41,16 @@ export function BootIntro() {
   }, []);
 
   React.useEffect(() => {
+    // Already played in this tab (flag read before paint in app/layout.tsx).
+    if (document.documentElement.dataset.intro === "seen") {
+      setShow(false);
+      return;
+    }
+    try {
+      sessionStorage.setItem("bb-intro", "1");
+    } catch {
+      // Storage blocked (private mode): the intro simply plays again.
+    }
     const done = setTimeout(() => setShow(false), reduced ? 900 : TOTAL_MS);
     const haptic = setTimeout(() => {
       if (canVibrate()) buzz();
@@ -65,13 +77,17 @@ export function BootIntro() {
           data-testid="boot-intro"
           className="boot-intro fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-bg-base"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: reduced ? 0.25 : 0.35 } }}
+          exit={{ opacity: 0, transition: { duration: reduced ? 0.25 : 0.4, delay: reduced ? 0 : 0.08 } }}
           onPointerDown={() => {
             buzz();
             setShow(false);
           }}
         >
-          <div className="relative size-40">
+          {/* Leaving: the mark comes towards you and dissolves into the page. */}
+          <motion.div
+            className="relative size-40"
+            exit={reduced ? { opacity: 0 } : { scale: 1.9, opacity: 0, transition: { duration: 0.42, ease: [0.4, 0, 1, 1] } }}
+          >
             {/* Same markup with and without reduced motion (no hydration
                 mismatch): the rings simply stay invisible when reduced. */}
             {[FIRST_BEAT_S, FIRST_BEAT_S + BEAT_S].map((delay) => (
@@ -99,12 +115,13 @@ export function BootIntro() {
               <circle cx="256" cy="256" r="58" className="fill-accent-500" />
               <circle cx="256" cy="256" r="20" className="fill-bg-base" />
             </motion.svg>
-          </div>
+          </motion.div>
           <motion.p
             className="text-[2rem] font-bold leading-none tracking-[var(--tracking-display)] text-text-primary"
             initial={{ opacity: 0 }}
             animate={reduced ? { opacity: 1 } : { opacity: 1, y: [12, 0] }}
             transition={{ delay: reduced ? 0.2 : 1.15, duration: 0.4, ease: "easeOut" }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: 10, transition: { duration: 0.2 } }}
           >
             {tc("appName")}
           </motion.p>

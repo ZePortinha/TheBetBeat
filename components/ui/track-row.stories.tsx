@@ -30,8 +30,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    title: "Gata Only",
-    artist: "FloyyMenor, Cris MJ",
+    title: "Velvet Drift",
+    artist: "Linha Oito, Kova Ray",
     coverUrl: COVER,
     fit: "fits",
     fitText: "Encaixa",
@@ -41,8 +41,8 @@ export const Default: Story = {
 
 export const PlaceholderCover: Story = {
   args: {
-    title: "Vida Louca",
-    artist: "Mc Kevin o Chris",
+    title: "Coastal Horizon",
+    artist: "Rui Norte",
     fit: "possible",
     fitText: "Talvez",
     priceSlot: "desde 12 €",
@@ -51,8 +51,8 @@ export const PlaceholderCover: Story = {
 
 export const OffStyle: Story = {
   args: {
-    title: "Master of Puppets",
-    artist: "Metallica",
+    title: "Iron Lantern",
+    artist: "Basalto",
     coverUrl: COVER,
     fit: "off_style",
     fitText: "Fora do estilo",
@@ -62,8 +62,8 @@ export const OffStyle: Story = {
 
 export const Unavailable: Story = {
   args: {
-    title: "Pepas",
-    artist: "Farruko",
+    title: "Midnight Circuit",
+    artist: "Arco Verde",
     coverUrl: COVER,
     available: false,
     unavailableReason: "Tocou há 40 min",
@@ -72,8 +72,8 @@ export const Unavailable: Story = {
 
 export const LongTitles: Story = {
   args: {
-    title: "I'm Good (Blue) — Extended Festival Rework 2024 Edition",
-    artist: "David Guetta, Bebe Rexha & Friends of the Night Orchestra",
+    title: "Hidden Signal (Extended Festival Rework, Late Night Edition)",
+    artist: "Electric Pulse, Maré Alta & the Night Orchestra",
     coverUrl: COVER,
     fit: "fits",
     fitText: "Encaixa",
@@ -86,23 +86,23 @@ export const ResultsList: Story = {
   render: () => (
     <div style={{ display: "flex", flexDirection: "column", width: 400 }}>
       <TrackRow
-        title="Gata Only"
-        artist="FloyyMenor, Cris MJ"
+        title="Velvet Drift"
+        artist="Linha Oito, Kova Ray"
         coverUrl={COVER}
         fit="fits"
         fitText="Encaixa"
         priceSlot="desde 10 €"
       />
       <TrackRow
-        title="Vida Louca"
-        artist="Mc Kevin o Chris"
+        title="Coastal Horizon"
+        artist="Rui Norte"
         fit="possible"
         fitText="Talvez"
         priceSlot="desde 12 €"
       />
       <TrackRow
-        title="Pepas"
-        artist="Farruko"
+        title="Midnight Circuit"
+        artist="Arco Verde"
         coverUrl={COVER}
         available={false}
         unavailableReason="Tocou há 40 min"

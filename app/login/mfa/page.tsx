@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { MfaClient } from "./mfa-client";
 
-export const metadata = { title: "Verificação em dois passos" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("common.meta");
+  return { title: t("mfa"), robots: { index: false, follow: false } };
+}
 
 export default async function MfaPage({
   searchParams,
@@ -23,6 +27,7 @@ export default async function MfaPage({
           submit: t("submit"),
           error: t("error"),
           loading: t("loading"),
+          qrAlt: t("qrAlt"),
         }}
       />
     </AuthShell>

@@ -134,7 +134,7 @@ export function RequestCard({
         <span className="relative block size-[72px] shrink-0 overflow-hidden rounded-cover">
           {coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverUrl} alt="" className="size-full object-cover" />
+            <img src={coverUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
           ) : (
             <span
               className="flex size-full items-center justify-center text-base font-semibold text-text-secondary"

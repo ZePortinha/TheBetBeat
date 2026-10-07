@@ -5,7 +5,7 @@ import { query } from "@/lib/db";
 import { BarChart } from "@/components/console/bar-chart";
 import { PageHeader } from "@/components/console/page-header";
 import { Stat } from "@/components/console/stat";
-import { formatEuros, requireConsole } from "../_lib/context";
+import { formatEuros, oneDecimal, requireConsole } from "../_lib/context";
 import { saveOccupancyAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -123,7 +123,7 @@ export default async function AnalyticsPage({
 
   const inputCls =
     "w-28 rounded-button border border-line-subtle bg-surface-3 px-3 py-2 " +
-    "text-sm text-text-primary tnum focus:border-accent-500 focus:outline-none";
+    "text-sm text-text-primary tnum focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25";
 
   return (
     <div className="flex flex-col gap-10">
@@ -140,7 +140,7 @@ export default async function AnalyticsPage({
                   aria-current={p === period ? "page" : undefined}
                   className={`rounded-chip px-3 py-1.5 text-sm ${
                     p === period
-                      ? "bg-surface-3 font-semibold text-accent-400"
+                      ? "bg-surface-3 font-semibold text-accent-300"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
@@ -159,7 +159,7 @@ export default async function AnalyticsPage({
           />
           <Stat
             label={t("bidders")}
-            value={avgBidders === null ? "—" : avgBidders.toFixed(1)}
+            value={avgBidders === null ? "—" : oneDecimal(avgBidders)}
             hint={t("biddersHint")}
           />
           <Stat
@@ -232,7 +232,7 @@ export default async function AnalyticsPage({
         <h2 className="pb-4 text-lg font-semibold text-text-primary">
           {t("revenueByHour")}
         </h2>
-        <BarChart bars={bars} title={t("revenueByHour")} />
+        <BarChart bars={bars} title={t("revenueByHour")} emptyLabel={t("noRevenue")} />
       </section>
 
       <section className="grid grid-cols-2 gap-8">

@@ -518,3 +518,46 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
 - Instagram: the winner screen shares a 1080x1920 story image through the phone's share sheet (where Instagram lives). There is no Instagram web intent, so on desktop the image is saved instead.
+
+## 2026-10-07 - Quality pass: performance, accessibility, SEO, polish
+
+Measured in a cloud session without Docker: Postgres 16 with stubbed `auth`/`realtime` schemas plus a tiny local stand-in for Supabase Auth/PostgREST, production build, Lighthouse 12 (mobile) and axe on 33 screens at their B10 viewports.
+
+- Contrast (axe): destructive fills use `ember-700` (white text was 3.4:1 on `ember-500`); red text on `surface-3` chips uses `accent-300`. The cockpit content area is a `<main>`; the landing footer nav has its own label; the empty revenue header cell is a `<td>`.
+- Boot intro plays once per tab: a nonce'd inline script reads a `sessionStorage` flag before first paint, so reloads and the "/" → party hand-off no longer replay the 2 s splash. A fresh tab still gets it (the E2E intro test opens a fresh context).
+- /casas hero: entrance is a CSS animation instead of `whileInView` opacity, so the headline paints with the HTML instead of waiting for hydration. Below-the-fold blocks keep `Reveal`.
+- SEO: localized metadata (`common.meta`), `metadataBase`, Open Graph + Twitter card with a generated 1200x630 share image (Inter subsets in `assets/fonts`, OFL), canonical URLs, `robots.txt`, `sitemap.xml`. Only `/` and `/casas` are indexable; party pages (`/s/…`, signed tokens), `/entrar`, display, cockpit, console and login are `noindex`. Lighthouse SEO on those pages reads lower on purpose.
+- Icons: `favicon.ico`, `icon.svg`, a full-bleed `apple-icon.png`, and a maskable 512 icon in both manifests (`id`, `scope`, `lang` added).
+- 404 page and a root error boundary; the "QR já não é válido" screen and the /entrar "not on the list" note now link to "/" (camera + live events). The /casas "Entrar na festa" links to "/" too: since 2026-10-06 that is the guests' entry, and /entrar only works for guest lists.
+- Venue display: the "Próximo leilão" heading is hidden when nothing is open or scheduled (it was a heading over an empty row on the TV).
+- Guest layout preconnects to Supabase (anonymous sign-in and realtime start there).
+- `htmlLimitedBots: /.*/` in next.config: Next 15 streamed the page metadata into `<body>` for every client; it now goes in `<head>` (link previews and audits that do not run JS were missing the description).
+- /casas copy caught up with the auction-first guest app (2026-10-06): the hero, step 2 and the guarantee no longer describe the old "Na Fila / Em Breve / A Seguir" tiers; they describe bidding and the balance refund, in the same words the guest app uses.
+- Storybook stories used real artists and track titles; replaced with the fictional seed names (A2.5).
+- List cover images load lazily; the MFA QR alt text moved to translations.
+
+## 2026-10-07 - Big moments: intro, last 30 s, gavel, winner
+
+Product owner asked for better animation quality on the logo, the auction ending and the win. Reviewed frame by frame on `/dev/motion` (dev-only stage; `?scene=intro|final|win`).
+
+- Countdowns (guest card, teaser, strip, venue display, "next opens") roll digit by digit like a mechanical clock (`TickingCountdown`, springDefault); only changed digits move. The leader's amount rolls the same way. The looping `animate-pulse` on the last minute is gone (B10.6: no loops except live indicators).
+- Last 30 s: the edge glow beats once per second, on the second the digits roll, driven per tick with Web Animations on opacity (`FinalStretchFrame`). The old 1 s box-shadow keyframes repainted the whole viewport every frame and drifted out of step with the clock. Last 10 s: each beat is the BetBeat lub-dub. The digits tick (scale 1.08 → 1) on the beat; cards just run hot (static red border + glow) instead of flashing. Last 5 s of an auction I am in: a 12 ms haptic tick per second. Never more than two pulses a second (under the 3 Hz flash limit). Reduced motion: steady red edge, digits cross-fade.
+- Closing: the gavel strikes (springMomentum: a blow may overshoot) with a ring from the point of impact and one 40 ms buzz for guests in the auction, timed to the impact.
+- Logo intro: on leaving, the mark comes towards the viewer (scale 1.9) and dissolves as the black lifts, instead of a flat fade. The CSS safety fallback moved to 2.8 s so it no longer cuts the exit.
+- Winner: a bottom scrim keeps the amount, track and hint readable over the confetti and rays.
+- Party screens arrive with a 240 ms rise + fade (`template.tsx`, CSS only).
+- The intro's nonce'd inline script carries `suppressHydrationWarning` (browsers hide nonce attributes after load, which React reported as a mismatch).
+- Losing the lead shakes the auction card once (the iOS "no"); taking it lifts it slightly. The leader's amount rolls like the countdown.
+- The venue display also shows the gavel strike at 0:00.
+- Party-screen entrance plays only on navigation, not on the first load (keeps LCP and the server markup intact).
+- Toasts sit above the guest tab bar and its raised gavel (`body:has([data-guest-dock])`); before, "Foste ultrapassado" covered the Leilão button for 4 s.
+
+## 2026-10-07 - Second polish pass: cockpit and console
+
+- One `BrandMark` (the icon's concentric beats) replaces the "BB" text in the cockpit rail and sits next to the console wordmark.
+- Cockpit auction board: countdown and leader amount roll like the guest and venue screens (no beat; the DJ needs calm, not urgency).
+- A missing value ("—") is never painted in the money color: console `Stat` and the cockpit acceptance tile show it in tertiary.
+- Console "Receita por hora" says "Sem receita neste período." instead of an empty plot; averages use pt-PT decimals ("2,5"); time inputs no longer clip.
+- Console and MFA fields get the same focus ring as the staff login (accent border + 4 px soft ring); before, the only keyboard cue was a 1 px border change.
+- Cockpit "Payout" reads "Liquidação" (the brief's glossary, already used by the console).
+- Deferred: loading `@supabase/supabase-js` (66 kB gzip, in every guest first load) on demand. It touches `lib/realtime/client.ts` and `guest-providers.tsx`, which PR #1 rewrites; do it after PR #1 lands.

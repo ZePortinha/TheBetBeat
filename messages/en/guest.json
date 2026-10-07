@@ -2,7 +2,8 @@
   "invalid": {
     "title": "This QR code is no longer valid",
     "hint": "Scan the QR code in your zone again, or ask the staff for a new one.",
-    "noSession": "There's no set playing at this venue right now. Come back later."
+    "noSession": "There's no set playing at this venue right now. Come back later.",
+    "cta": "Scan the event QR"
   },
   "session": {
     "withDj": "with {dj}",
@@ -242,10 +243,11 @@
     "forget": "Forget this number",
     "partyTitle": "Join the party",
     "partyHint": "Enter the number on the party's guest list. We send a code by SMS and you go straight into the right party.",
-    "partyQrNote": "Not on the list? Scan the QR on the floor to join.",
+    "partyQrNote": "Not on the list?",
     "noPartyTitle": "We could not find your party",
     "noPartyHint": "The number {phone} is not on the list of any party happening now. Check with the venue or scan the QR on the floor.",
-    "otherNumber": "Use another number"
+    "otherNumber": "Use another number",
+    "partyQrLink": "Scan the event QR"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

@@ -79,6 +79,14 @@ In this order; fix selectors/labels as needed, then record results here:
 7. Display Phase 6 criterion: decode the QR from `docs/screens/display-16x9.png`.
 8. Money + security subagent reviews (A2.10) before closing Phase 8.
 
+## Quality pass (cloud session, 2026-10-07)
+
+Branch `claude/metricas-acabamento-9ep3sj`. See DECISIONS "Quality pass". Lighthouse mobile
+before → after on the production build: "/" perf 86 → 98, best practices 96 → 100; /casas perf
+95 → 98, best practices 96 → 100, SEO 90 → 100; axe: 0 violations on
+all 33 screens (was 9 across cockpit, console, landing, 404). Remaining best-practice flags on
+party pages come from the measurement setup (Turnstile blocked by the sandbox, no realtime).
+
 ## Next step
 
 Phase 8: wire Sentry (with `beforeSend` scrubbing) and PostHog behind env,

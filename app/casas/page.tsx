@@ -1,5 +1,20 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Footer, Guarantee, Hero, How, LandingHeader, Sides } from "@/components/landing/landing";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("common.meta");
+  const title = t("venuesTitle");
+  const description = t("venuesDescription");
+  return {
+    title,
+    description,
+    alternates: { canonical: "/casas" },
+    // Segment metadata replaces (not merges) the root's openGraph/twitter.
+    openGraph: { type: "website", siteName: "BetBeat", title, description, url: "/casas", images: "/opengraph-image" },
+    twitter: { card: "summary_large_image", title, description, images: "/opengraph-image" },
+  };
+}
 
 /** /casas — BetBeat for clubs (the marketing landing; "/" is the guests' front door). */
 export default async function ForVenues() {

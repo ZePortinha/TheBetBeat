@@ -2,7 +2,8 @@
   "invalid": {
     "title": "Este QR já não é válido",
     "hint": "Volta a ler o QR da tua zona ou pede um novo ao staff.",
-    "noSession": "Não há nenhum set a decorrer nesta casa. Volta mais tarde."
+    "noSession": "Não há nenhum set a decorrer nesta casa. Volta mais tarde.",
+    "cta": "Ler o QR do evento"
   },
   "session": {
     "withDj": "com {dj}",
@@ -242,10 +243,11 @@
     "forget": "Esquecer este número",
     "partyTitle": "Entrar na festa",
     "partyHint": "Escreve o número que está na lista da festa. Enviamos um código por SMS e entras logo na festa certa.",
-    "partyQrNote": "Não estás na lista? Lê o QR da pista para entrar.",
+    "partyQrNote": "Não estás na lista?",
     "noPartyTitle": "Não encontrámos a tua festa",
     "noPartyHint": "O número {phone} não está na lista de nenhuma festa a decorrer agora. Confirma com a casa ou lê o QR da pista.",
-    "otherNumber": "Usar outro número"
+    "otherNumber": "Usar outro número",
+    "partyQrLink": "Lê o QR do evento"
   },
   "errors": {
     "generic": "Algo correu mal. Tenta novamente.",

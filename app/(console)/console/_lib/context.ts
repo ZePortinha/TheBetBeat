@@ -146,6 +146,11 @@ export function formatEuros(cents: number): string {
   }).format(cents / 100);
 }
 
+/** Averages with one decimal, pt-PT style ("2,5", never "2.5"). */
+export function oneDecimal(n: number): string {
+  return new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n);
+}
+
 /** Lisbon-local date-time for tables. */
 export function formatDateTime(iso: string | Date): string {
   return new Intl.DateTimeFormat("pt-PT", {

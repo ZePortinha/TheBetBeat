@@ -11,6 +11,7 @@ interface Labels {
   submit: string;
   error: string;
   loading: string;
+  qrAlt: string;
 }
 
 type Mode = "loading" | "enroll" | "verify";
@@ -103,7 +104,7 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
         <div className="self-center rounded-card bg-white p-3">
           {/* Supabase returns an SVG data URI for the otpauth QR. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qrSvg} alt="TOTP QR" width={180} height={180} />
+          <img src={qrSvg} alt={labels.qrAlt} width={180} height={180} />
         </div>
       ) : null}
       {mode === "enroll" && secret ? (
@@ -114,7 +115,7 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
         <input
           className="w-full rounded-button border border-line-subtle bg-surface-3 px-4
             py-3 text-center text-xl tracking-[0.3em] text-text-primary tnum
-            focus:border-accent-500 focus:outline-none"
+            focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25"
           inputMode="numeric"
           autoComplete="one-time-code"
           pattern="[0-9]{6}"

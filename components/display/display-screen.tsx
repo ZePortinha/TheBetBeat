@@ -26,6 +26,9 @@ import { publicChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
 import type { DisplayStateDto } from "@/app/api/display/_lib/state";
 import { countdown, inFinalStretch } from "@/components/guest/use-auction";
+import { FinalStretchFrame } from "@/components/ui/final-stretch-frame";
+import { GavelStrike } from "@/components/ui/gavel-strike";
+import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { Crossfade } from "./crossfade";
 
@@ -142,7 +145,9 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
       ].join(" ")}
     >
       <div aria-hidden className="ambient absolute inset-0 -z-10" />
-      {open && inFinalStretch(open.closesAt, serverNow) ? <div aria-hidden className="auction-flash-frame" /> : null}
+      {open && inFinalStretch(open.closesAt, serverNow) ? (
+        <FinalStretchFrame secondsLeft={Math.max(0, Math.ceil((Date.parse(open.closesAt) - serverNow) / 1000))} />
+      ) : null}
 
       {/* ── Content column (the only region that ever crossfades) ──── */}
       <section className="flex min-w-0 flex-col justify-center gap-[4.5vmin]">
@@ -223,8 +228,9 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
           </div>
         )}
 
-        {/* Leilão aberto: the countdown is the show (ember in the last minute) */}
-        {session.live && auction ? (
+        {/* Leilão aberto: the countdown is the show (ember in the last minute).
+            Nothing open and nothing scheduled: no empty heading on the TV. */}
+        {session.live && auction && (open || auction.next) ? (
           <Crossfade contentKey={open ? `open-${open.id}` : "no-auction"}>
             <div className="min-w-0 border-t border-line-subtle pt-[2.5vmin]">
               <p className="label text-accent-400" style={{ fontSize: "clamp(0.875rem, 2vmin, 1.25rem)" }}>
@@ -232,18 +238,21 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
               </p>
               {open ? (
                 <div className="flex items-baseline gap-[3vmin]">
-                  <span
+                  <TickingCountdown
+                    value={countdown(open.closesAt, serverNow)}
+                    beat={inFinalStretch(open.closesAt, serverNow)}
                     className={
                       inFinalStretch(open.closesAt, serverNow)
-                        ? "tnum shrink-0 auction-flash-text"
+                        ? "shrink-0 auction-flash-text"
                         : Date.parse(open.closesAt) - serverNow <= auction.rules.lastMinuteWarningSec * 1000
-                          ? "tnum shrink-0 text-ember-500"
-                          : "tnum shrink-0 text-text-primary"
+                          ? "shrink-0 text-ember-500"
+                          : "shrink-0 text-text-primary"
                     }
                     style={{ ...displayFont, fontSize: "clamp(2.5rem, 9vmin, var(--text-80))", fontWeight: 800 }}
-                  >
-                    {countdown(open.closesAt, serverNow)}
-                  </span>
+                  />
+                  {Date.parse(open.closesAt) <= serverNow ? (
+                    <GavelStrike className="shrink-0 self-center text-[clamp(2rem,7vmin,4.5rem)] text-accent-400" />
+                  ) : null}
                   <p className="min-w-0 truncate" style={{ fontSize: "clamp(1.25rem, 3.4vmin, var(--text-40))", fontWeight: 700 }}>
                     {open.top ? (
                       <>
@@ -261,8 +270,8 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
                   </p>
                 </div>
               ) : auction.next ? (
-                <p className="tnum" style={{ ...displayFont, fontSize: "clamp(2rem, 7vmin, var(--text-80))", fontWeight: 800 }}>
-                  {countdown(auction.next.opensAt, serverNow)}
+                <p style={{ ...displayFont, fontSize: "clamp(2rem, 7vmin, var(--text-80))", fontWeight: 800 }}>
+                  <TickingCountdown value={countdown(auction.next.opensAt, serverNow)} />
                 </p>
               ) : null}
             </div>
@@ -347,7 +356,7 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
             alt={t("qrCaption")}
             caption={
               <span
-                className="block text-text-primary"
+                className="block whitespace-nowrap text-text-primary"
                 style={{
                   fontSize: "clamp(1.25rem, 3vmin, var(--text-32))",
                   fontWeight: 700,
