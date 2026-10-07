@@ -6,6 +6,8 @@ const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // The E2E server (tests/test-env.ts) builds into its own folder.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Dev only: testing on a phone through a temporary cloudflared tunnel.
   allowedDevOrigins: ["*.trycloudflare.com"],
   // Security headers that do not depend on a per-request nonce.

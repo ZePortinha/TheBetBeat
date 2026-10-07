@@ -8,7 +8,7 @@ import type { DisplayChoice } from "@/lib/auction/recognition";
 import { encrypt, hashPhone } from "@/lib/security/crypto";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
-import { apiError, clientIp, rateLimitedResponse } from "../../_lib/http";
+import { apiError, clientIp, correlationId, rateLimitedResponse } from "../../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../../_lib/auth";
 import { resolveGuestContext } from "../../_lib/context";
 
@@ -105,6 +105,10 @@ export async function POST(request: Request) {
   const now = Date.now();
   const placed = await placeBid(req, now);
   if (placed.ok) return NextResponse.json({ state: "placed", bid: placed });
+  // A too-low bid returns the actual minimum, so the UI can show it.
+  if ((placed.error === "below_minimum" || placed.error === "below_track_minimum") && placed.minCents !== undefined) {
+    return NextResponse.json({ error: { code: placed.error, id: correlationId() }, minCents: placed.minCents }, { status: 409 });
+  }
   if (placed.error !== "insufficient_funds") return apiError(placed.error, 409);
 
   // The wallet does not cover it: charge the rest (anti-bot on money, B12.4).

@@ -209,18 +209,26 @@ export async function bidViaApi(
   const guest = opts.guest ?? (await signInAnonymousGuest(request));
   const trackId =
     opts.trackId ?? (await searchTracks(request, guest, token)).filter((t) => t.available).at(-1)?.id ?? "";
-  const res = await request.post("/api/guest/auction/bid", {
-    headers: { authorization: `Bearer ${guest.accessToken}` },
-    data: {
-      token,
-      slotId: opts.slotId,
-      totalCents: opts.totalCents,
-      target: opts.backBidId ? { kind: "back", bidId: opts.backBidId } : { kind: "own", trackId },
-      display: opts.handle ? { mode: "handle", handle: opts.handle } : { mode: "anonymous" },
-      method: "card",
-      turnstileToken: "e2e-dev-always-pass",
-    },
-  });
+  const bid = (totalCents: number) =>
+    request.post("/api/guest/auction/bid", {
+      headers: { authorization: `Bearer ${guest.accessToken}` },
+      data: {
+        token,
+        slotId: opts.slotId,
+        totalCents,
+        target: opts.backBidId ? { kind: "back", bidId: opts.backBidId } : { kind: "own", trackId },
+        display: opts.handle ? { mode: "handle", handle: opts.handle } : { mode: "anonymous" },
+        method: "card",
+        turnstileToken: "e2e-dev-always-pass",
+      },
+    });
+  let res = await bid(opts.totalCents);
+  // A new bid with a harder transition has its own, higher floor than the
+  // leader minimum: retry once at the floor the server reports.
+  if (res.status() === 409) {
+    const body = (await res.json()) as { error?: { code?: string }; minCents?: number };
+    if (body.error?.code === "below_track_minimum" && body.minCents) res = await bid(body.minCents);
+  }
   if (!res.ok()) throw new Error(`bid failed (${res.status()}): ${await res.text()}`);
   return { guest, trackId };
 }
