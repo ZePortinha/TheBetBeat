@@ -208,6 +208,11 @@
     "history": "Older requests",
     "refundNote": "Refunds reach the same payment method within 1 to 3 business days."
   },
+  "connection": {
+    "failed": "We could not connect you to the party.",
+    "hint": "Check your connection and try again.",
+    "retry": "Try again"
+  },
   "dev": {
     "open": "DEV",
     "title": "PSP simulator (dev)",

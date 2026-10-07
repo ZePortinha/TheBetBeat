@@ -24,6 +24,11 @@ export const dynamic = "force-dynamic";
  *   network_fail a delivery with a corrupted signature (401; nothing
  *                changes — the payment stays pending and can still be
  *                confirmed later)
+ *
+ * The webhook goes to THIS server over loopback, never to
+ * NEXT_PUBLIC_APP_URL: that is the public address (a real domain once one
+ * is set), and a simulation sent there silently missed the local app. A
+ * delivery the app rejects is reported as an error, not as "sent".
  */
 
 function notFound() {
@@ -34,9 +39,14 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-async function deliver(rawBody: string, signature: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const res = await fetch(`${base.replace(/\/$/, "")}/api/webhooks/payments`, {
+/** This dev server on loopback (only the port is taken from the request). */
+function selfBase(request: Request): string {
+  const port = new URL(request.url).port || process.env.PORT || "3000";
+  return `http://127.0.0.1:${port}`;
+}
+
+async function deliver(base: string, rawBody: string, signature: string) {
+  const res = await fetch(`${base}/api/webhooks/payments`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -83,7 +93,11 @@ export async function GET(request: Request) {
     [identity.guestId],
   );
 
+  // Real MB WAY (ifthenpay) has no simulator: the push goes to the phone.
+  const simulator = "simulateMbwayConfirmation" in (await getPaymentProvider());
+
   return NextResponse.json({
+    simulator,
     payments: res.rows.map((p) => ({
       paymentId: p.id,
       requestId: p.request_id,
@@ -137,6 +151,7 @@ export async function POST(request: Request) {
     return apiError("not_mock_provider", 409);
   }
   const provider = candidate as MockPaymentProvider;
+  const base = selfBase(request);
 
   const deliveries: Array<{ status: number; body: unknown }> = [];
   try {
@@ -144,27 +159,27 @@ export async function POST(request: Request) {
       case "confirm": {
         const event = provider.simulateMbwayConfirmation(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(base, rawBody, signature));
         break;
       }
       case "decline": {
         const event = provider.simulateMbwayDecline(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(base, rawBody, signature));
         break;
       }
       case "expire": {
         const event = provider.simulateMbwayExpiry(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(base, rawBody, signature));
         break;
       }
       case "duplicate": {
         // Same event delivered twice: the second MUST be a no-op (B4.3).
         const event = provider.simulateMbwayConfirmation(providerRef);
         const { rawBody, signature } = provider.buildWebhook(event);
-        deliveries.push(await deliver(rawBody, signature));
-        deliveries.push(await deliver(rawBody, signature));
+        deliveries.push(await deliver(base, rawBody, signature));
+        deliveries.push(await deliver(base, rawBody, signature));
         break;
       }
       case "network_fail": {
@@ -181,7 +196,7 @@ export async function POST(request: Request) {
         const badSignature = createHmac("sha256", "wrong-secret-for-simulated-drop")
           .update(rawBody, "utf8")
           .digest("hex");
-        deliveries.push(await deliver(rawBody, badSignature));
+        deliveries.push(await deliver(base, rawBody, badSignature));
         break;
       }
     }
@@ -192,6 +207,10 @@ export async function POST(request: Request) {
       error instanceof Error ? error.message : "unknown",
     );
   }
+
+  // network_fail is meant to be refused (401); anything else must land.
+  const failed = parsed.data.action === "network_fail" ? undefined : deliveries.find((d) => d.status >= 400);
+  if (failed) return apiError("delivery_failed", 502, `webhook answered ${failed.status}`);
 
   return NextResponse.json({ action: parsed.data.action, deliveries });
 }

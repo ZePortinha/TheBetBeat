@@ -208,6 +208,11 @@
     "history": "Pedidos antigos",
     "refundNote": "Os reembolsos chegam ao mesmo método em 1 a 3 dias úteis."
   },
+  "connection": {
+    "failed": "Não conseguimos ligar-te à festa.",
+    "hint": "Verifica a ligação e tenta outra vez.",
+    "retry": "Tentar outra vez"
+  },
   "dev": {
     "open": "DEV",
     "title": "Simulador PSP (dev)",
