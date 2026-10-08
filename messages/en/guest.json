@@ -227,7 +227,7 @@
     "phoneHint": "We send a code by SMS. Your number is saved and filled in for you when you pay with MB WAY.",
     "phoneLabel": "Mobile number",
     "sendCode": "Send code",
-    "optionalNote": "It is optional: you can request songs without signing in.",
+    "optionalNote": "We only use your number to let you in and for MB WAY.",
     "codeTitle": "Enter the code",
     "codeHint": "We sent a 6-digit code to {phone}.",
     "codeLabel": "6-digit code",
@@ -448,5 +448,17 @@
     "title": "Top of the night",
     "anonymous": "Anonymous",
     "footnote": "Only money behind songs that already played counts."
+  },
+  "gate": {
+    "title": "Join the party",
+    "hint": "Type your number and we text you a code. Been here before? You go straight in with your @.",
+    "note": "Your number is saved and pre-fills MB WAY when you pay.",
+    "handleTitle": "Pick your @",
+    "handleHint": "It's the name on the venue screen and in the ranking. It stays with your number for next time.",
+    "handleLabel": "Your @",
+    "handlePlaceholder": "your-name",
+    "handleInvalid": "Use 2 to 24 letters, numbers, dot, hyphen or _.",
+    "handleTaken": "That @ is taken. Pick another one.",
+    "enter": "Enter"
   }
 }

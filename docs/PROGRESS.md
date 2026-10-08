@@ -15,6 +15,17 @@
 | 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing/catalog credentials unavailable → adapters stay mocked behind interfaces; Sentry/PostHog wiring, load-test run, B12 review pending |
 | 9 — Delivery | docs done | README, `docs/OPERATIONS.md`, `docs/SECURITY.md`, DECISIONS updated. Final `db:audit` result still to paste into SECURITY.md |
 
+## 2026-10-08 - Phone fixes and sharing (branch claude/correcoes-telemovel-partilhas-a9exxo)
+
+From the owner's test on a phone (see DECISIONS 2026-10-08): last-30-s frame
+on the page, 2D winner scene (~0.9 s after the close), winner video for
+Instagram, ranking redesign + Story image, backing without an @, phone
+sign-in at the party door. Verified in the cloud container on the real local
+Supabase stack: typecheck, lint, unit tests (incl. `tests/unit/win-scene.test.ts`),
+`tests/e2e/guest.spec.ts` on the phone viewport (Chromium), and Playwright
+screenshots of each screen. To check on a real phone: the video share on
+iOS Safari and Android Chrome (H.264 MP4), and the celebration's frame rate.
+
 ## This round (cloud session, no Docker / Supabase — 2026-10-02)
 
 Branch `cloud/finish-surfaces` (also pushed to the session branch). Everything

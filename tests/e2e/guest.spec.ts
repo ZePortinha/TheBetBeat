@@ -13,7 +13,7 @@
  */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { auctionState, bidViaApi, closeAuction, getGuestUrl, loginStaff, openAuction } from "./fixtures";
+import { auctionState, bidViaApi, closeAuction, enterParty, getGuestUrl, loginStaff, openAuction } from "./fixtures";
 
 const PHONE_ONLY = "phone viewport only";
 
@@ -24,12 +24,13 @@ test.describe("guest app · leilões", () => {
     test.setTimeout(120_000);
   });
 
-  /** Open the guest app and wait for the logo intro to leave. */
+  /** Open the guest app, wait for the logo intro to leave, sign in by phone. */
   async function openGuest(page: Page): Promise<string> {
     const guestUrl = await getGuestUrl(page);
     await page.goto(guestUrl);
     // Gone from the page, not just faded (its short fade-out may still run).
     await expect(page.getByTestId("boot-intro")).toHaveCount(0, { timeout: 10_000 });
+    await enterParty(page);
     return guestUrl;
   }
 
@@ -39,6 +40,7 @@ test.describe("guest app · leilões", () => {
     await page.goto(guestUrl, { waitUntil: "commit" });
     await expect(page.getByTestId("boot-intro")).toBeVisible();
     await expect(page.getByTestId("boot-intro")).toBeHidden({ timeout: 10_000 });
+    await enterParty(page);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
@@ -57,8 +59,8 @@ test.describe("guest app · leilões", () => {
     // 2. A track.
     await tap(page.getByRole("button").filter({ hasText: /^.*licitar$|bid$/i }).first());
     await expect(page).toHaveURL(/\/track\//);
-    // "O meu @" is preselected: the first time the guest types it (not a tap).
-    await page.getByRole("textbox", { name: /o meu @|my @/i }).fill("e2e-guest");
+    // "O meu @" is preselected with the @ picked at the front door.
+    await expect(page.getByRole("textbox", { name: /o meu @|my @/i })).not.toHaveValue("");
     // 3. Card, 4. "Licitar 2 €" (the minimum is preselected).
     await tap(page.getByRole("radio", { name: /cartão|card/i }));
     await tap(page.getByRole("button", { name: /^licitar \d|^bid \d/i }));
@@ -130,7 +132,7 @@ test.describe("guest app · leilões", () => {
     // Wait for the search page: the home button also ends in "licitar".
     await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
-    await page.getByRole("textbox", { name: /o meu @|my @/i }).fill("e2e-guest");
+    await expect(page.getByRole("textbox", { name: /o meu @|my @/i })).not.toHaveValue("");
     await page.getByRole("radio", { name: /mb way/i }).click();
     await page.getByRole("textbox", { name: /mb way/i }).fill("912345678");
     await page.getByRole("button", { name: /^licitar \d|^bid \d/i }).click();

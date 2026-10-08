@@ -15,6 +15,7 @@ import { useTranslations } from "next-intl";
 import { AudioLines, Gavel, Trophy, UserRound } from "lucide-react";
 import { cx } from "@/components/ui/pressable";
 import { AuctionOverlays, WalletPill } from "./auction-screens";
+import { PhoneGate } from "./phone-gate";
 import { AuctionProvider, useAuction } from "./use-auction";
 
 interface PartyValue {
@@ -96,11 +97,17 @@ export function PartyChrome({
   token,
   venueName,
   sessionId,
+  phoneRequired,
   children,
-}: PartyValue & { sessionId: string; children: React.ReactNode }) {
+}: PartyValue & { sessionId: string; phoneRequired: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   // Task screens (one request, the account) keep their own back header.
   const showTabs = !/\/requests\/[^/]+$|\/account$/.test(pathname);
+  // The front door: number + SMS code (and a new number's @) before the party.
+  const [entered, setEntered] = React.useState(!phoneRequired);
+  const enter = React.useCallback(() => setEntered(true), []);
+
+  if (!entered) return <PhoneGate venueName={venueName} onEntered={enter} />;
 
   return (
     <PartyContext.Provider value={{ token, venueName }}>
