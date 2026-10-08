@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl";
 import { publicChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
 import { apiFetch } from "./api";
-import { RankingPodium } from "./auction-screens";
+import { RankingPodium } from "./ranking";
 import { LiveDot, PartyHeading, PartyTopBar } from "./party-chrome";
 import type { SessionStateDto } from "./types";
 
@@ -58,7 +58,7 @@ export function TopScreen({
         title={t("title")}
         sub={ta("rankingTitle")}
       />
-      <RankingPodium />
+      <RankingPodium token={token} />
     </main>
   );
 }

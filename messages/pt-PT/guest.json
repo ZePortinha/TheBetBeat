@@ -363,6 +363,8 @@
     "outbidToast": "Foste ultrapassado. Sobe a licitação para voltares à frente.",
     "rankingTitle": "Quem mais gastou esta noite",
     "rankingHint": "Só conta o dinheiro das faixas que já tocaram.",
+    "shareRanking": "Partilhar ranking",
+    "shareRankingTitle": "Top da noite",
     "rankingEmpty": "Ainda ninguém entrou no ranking",
     "rankingEmptyHint": "Assim que a primeira faixa vencedora tocar, aparece aqui.",
     "endOfNight": "No fim da noite, o saldo que sobrar:",
@@ -439,5 +441,12 @@
     "liveEmpty": "Nenhum evento em direto agora. Volta mais logo.",
     "auctionLive": "Leilão aberto",
     "forVenues": "Para casas"
+  },
+  "rankingCard": {
+    "locale": "pt-PT",
+    "eyebrow": "Ranking da noite",
+    "title": "Top da noite",
+    "anonymous": "Anónimo",
+    "footnote": "Só conta o dinheiro das faixas que já tocaram."
   }
 }

@@ -363,6 +363,8 @@
     "outbidToast": "You were outbid. Raise your bid to take the lead again.",
     "rankingTitle": "Top spenders tonight",
     "rankingHint": "Only money behind tracks that already played counts.",
+    "shareRanking": "Share the ranking",
+    "shareRankingTitle": "Top of the night",
     "rankingEmpty": "Nobody is in the ranking yet",
     "rankingEmptyHint": "It appears here as soon as the first winning track plays.",
     "endOfNight": "At the end of the night, any balance left:",
@@ -439,5 +441,12 @@
     "liveEmpty": "No live events right now. Check back later.",
     "auctionLive": "Auction live",
     "forVenues": "For venues"
+  },
+  "rankingCard": {
+    "locale": "en",
+    "eyebrow": "Tonight's ranking",
+    "title": "Top of the night",
+    "anonymous": "Anonymous",
+    "footnote": "Only money behind songs that already played counts."
   }
 }
