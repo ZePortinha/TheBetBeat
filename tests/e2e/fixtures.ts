@@ -344,3 +344,36 @@ export async function loginStaff(
     await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 });
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* The party's front door (phone + SMS code, 2026-10-08)               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Passes the phone sign-in that opens every party: a fresh number, the
+ * mock SMS code shown on screen in development, and a fresh @. Returns
+ * the number and the @ so a test can sign in again as the same person.
+ */
+export async function enterParty(
+  page: Page,
+  who: { digits?: string; handle?: string } = {},
+): Promise<{ digits: string; handle: string }> {
+  const digits = who.digits ?? `9${String(Date.now() * 1000 + Math.floor(Math.random() * 1000)).slice(-8)}`;
+  const handle = who.handle ?? `e2e${Math.random().toString(36).slice(2, 10)}`;
+  const phone = page.locator("#gate-phone");
+  const nav = page.getByRole("navigation");
+  await phone.or(nav).first().waitFor({ timeout: 20_000 });
+  if (!(await phone.isVisible())) return { digits, handle };
+  await phone.fill(digits);
+  await page.getByRole("button", { name: /enviar código|send code/i }).click();
+  const dev = (await page.getByText(/código de teste|test code/i).textContent({ timeout: 15_000 })) ?? "";
+  await page.getByRole("textbox", { name: /código de 6 dígitos|6-digit code/i }).fill(/\d{6}/.exec(dev)?.[0] ?? "");
+  const handleField = page.locator("#gate-handle");
+  await handleField.or(nav).first().waitFor({ timeout: 15_000 });
+  if (await handleField.isVisible()) {
+    await handleField.fill(handle);
+    await page.getByRole("button", { name: /^entrar$|^enter$/i }).click();
+  }
+  await nav.waitFor({ timeout: 15_000 });
+  return { digits, handle };
+}

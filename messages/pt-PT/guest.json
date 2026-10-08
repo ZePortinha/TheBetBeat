@@ -227,7 +227,7 @@
     "phoneHint": "Enviamos um código por SMS. O número fica guardado e aparece já preenchido quando pagares com MB WAY.",
     "phoneLabel": "Telemóvel",
     "sendCode": "Enviar código",
-    "optionalNote": "É opcional: podes pedir músicas sem entrar.",
+    "optionalNote": "Usamos o número só para entrares na festa e para o MB WAY.",
     "codeTitle": "Escreve o código",
     "codeHint": "Enviámos um código de 6 dígitos para {phone}.",
     "codeLabel": "Código de 6 dígitos",
@@ -436,5 +436,17 @@
     "liveEmpty": "Nenhum evento em direto agora. Volta mais logo.",
     "auctionLive": "Leilão aberto",
     "forVenues": "Para casas"
+  },
+  "gate": {
+    "title": "Entra na festa",
+    "hint": "Escreve o teu número e enviamos um código por SMS. Se já cá estiveste, entras logo com o teu @.",
+    "note": "O número fica guardado e aparece já preenchido quando pagares com MB WAY.",
+    "handleTitle": "Escolhe o teu @",
+    "handleHint": "É o nome que aparece no ecrã e no ranking. Fica ligado ao teu número para a próxima vez.",
+    "handleLabel": "O teu @",
+    "handlePlaceholder": "o-teu-nome",
+    "handleInvalid": "Usa 2 a 24 letras, números, ponto, hífen ou _.",
+    "handleTaken": "Esse @ já está a ser usado. Escolhe outro.",
+    "enter": "Entrar"
   }
 }
