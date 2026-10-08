@@ -338,17 +338,44 @@ body:has(.guest-type) {
   scrollbar-color: var(--color-surface-3) transparent;
 }
 
-/* Last 30 s of an auction: the screen pulses red ↔ white. One cycle per
-   second stays well under the 3-flashes-per-second photosensitivity limit
-   (WCAG 2.3.1); reduced motion gets a steady red frame instead. */
-@keyframes auction-frame {
+/* Last 30 s of an auction: the page pulses red ↔ white. The frame belongs
+   to the page, not to the glass: it is drawn inside the guest column
+   (absolute, inset, rounded like the cards), scrolls with the content and
+   sits under the tab bar. Only opacity animates (a white frame fading over
+   the red one), so the pulse costs no repaints. One cycle per second stays
+   well under the 3-flashes-per-second photosensitivity limit (WCAG 2.3.1);
+   reduced motion gets a steady red frame instead. */
+@keyframes auction-frame-pulse {
   0%,
   100% {
-    box-shadow: inset 0 0 0 6px var(--color-accent-500), inset 0 0 56px var(--color-accent-500);
+    opacity: 0;
   }
   50% {
-    box-shadow: inset 0 0 0 6px var(--color-text-on-accent), inset 0 0 56px var(--color-text-on-accent);
+    opacity: 1;
   }
+}
+.auction-flash-frame {
+  position: absolute;
+  inset: 6px 6px calc(var(--dock-h) + 6px);
+  z-index: 30;
+  pointer-events: none;
+  border-radius: var(--radius-sheet);
+  box-shadow:
+    inset 0 0 0 3px var(--color-accent-500),
+    inset 0 0 36px color-mix(in srgb, var(--color-accent-500) 55%, transparent),
+    0 0 24px color-mix(in srgb, var(--color-accent-500) 45%, transparent);
+}
+.auction-flash-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 3px var(--color-text-on-accent),
+    inset 0 0 36px color-mix(in srgb, var(--color-text-on-accent) 35%, transparent);
+  opacity: 0;
+  animation: auction-frame-pulse 1s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes auction-flash-text {
   0%,
@@ -384,9 +411,8 @@ body:has(.guest-type) {
   animation: auction-flash-card 1s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .auction-flash-frame {
+  .auction-flash-frame::after {
     animation: none;
-    box-shadow: inset 0 0 0 6px var(--color-accent-500);
   }
   .auction-flash-text {
     animation: none;

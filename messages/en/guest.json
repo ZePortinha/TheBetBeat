@@ -334,6 +334,7 @@
     "startsAt": "Starts at",
     "trackFixed": "In this auction you already bid with {title}. Raise that bid from the home screen.",
     "yourBid": "Your bid",
+    "backTotal": "The song's new total",
     "appearAs": "How you appear",
     "appearAnonymous": "Anonymous",
     "appearHandle": "My @",
@@ -422,6 +423,8 @@
     "shareInstagram": "Share on Instagram",
     "shareTitle": "Auction winner",
     "shareSaved": "Image saved. Open Instagram and post it to your Stories.",
+    "sharePreparing": "Preparing the video…",
+    "shareVideoSaved": "Video saved. Open Instagram and post it to your Story.",
     "shareError": "We couldn't open sharing. Try again."
   },
   "entry": {

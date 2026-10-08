@@ -106,7 +106,7 @@ export function PartyChrome({
     <PartyContext.Provider value={{ token, venueName }}>
       <AuctionProvider token={token} sessionId={sessionId}>
         {children}
-        <AuctionOverlays />
+        <AuctionOverlays venueName={venueName} />
         {showTabs ? <TabBar token={token} /> : null}
       </AuctionProvider>
     </PartyContext.Provider>

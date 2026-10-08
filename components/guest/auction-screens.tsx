@@ -540,7 +540,7 @@ export function NightWinners() {
 /* ------------------------------------------------------------------ */
 
 /** Last 30 s flash (and one buzz if I am in it), the winner celebration. */
-export function AuctionOverlays() {
+export function AuctionOverlays({ venueName }: { venueName: string }) {
   const { state, serverNow, celebrate, dismissCelebration } = useAuction();
   const buzzed = React.useRef(new Set<string>());
   const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
@@ -564,6 +564,7 @@ export function AuctionOverlays() {
           trackArtist={won.trackArtist}
           totalCents={won.totalCents}
           coverUrl={wonCover}
+          venueName={venueName}
           onClose={dismissCelebration}
         />
       ) : null}

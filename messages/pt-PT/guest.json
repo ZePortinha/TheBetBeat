@@ -334,6 +334,7 @@
     "startsAt": "Começa em",
     "trackFixed": "Neste leilão já licitaste com {title}. Sobe essa licitação no início.",
     "yourBid": "A tua licitação",
+    "backTotal": "Novo total da faixa",
     "appearAs": "Como apareces",
     "appearAnonymous": "Anónimo",
     "appearHandle": "O meu @",
@@ -422,6 +423,8 @@
     "shareInstagram": "Partilhar no Instagram",
     "shareTitle": "Vencedor do leilão",
     "shareSaved": "Imagem guardada. Abre o Instagram e publica nas Stories.",
+    "sharePreparing": "A preparar o vídeo…",
+    "shareVideoSaved": "Vídeo guardado. Abre o Instagram e publica nas Stories.",
     "shareError": "Não conseguimos abrir a partilha. Tenta outra vez."
   },
   "entry": {

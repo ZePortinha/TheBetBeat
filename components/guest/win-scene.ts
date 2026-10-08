@@ -1,705 +1,693 @@
 /**
- * The winner's moment (three.js, loaded only when someone wins). One
- * timeline, filmed like a product shot:
- *   0.00  flash + gold shockwave, the camera starts a slow dolly-in
- *   0.05  the vinyl (their album art as the label) drops in on a spring,
- *         spinning; a fixed specular wedge sells the grooves
- *   0.30  confetti cannons fire from both bottom corners (paper + gold
- *         foil that flutters, catches the light, drifts on air drag)
- *   0.50  two champagne bottles rise; 0.95 the corks pop (mist puff,
- *         camera kick) and the wine sprays as glinting droplets
- *   1.60  confetti rains from above; sparkles twinkle round the record
- * Bloom post-processing makes the light read as light. Returns cleanup.
+ * The winner's moment, flat and sharp (2026-10-08, replaces the three.js
+ * stage that froze some phones). Plain Canvas 2D, no dependencies, and a
+ * PURE function of time: `drawWinFrame(t)` paints the same frame for the
+ * same `t`, so the live screen and the Instagram video are one animation.
+ *
+ *   0.00  white flash + a ring from the centre; the mirror ball spins
+ *   0.10  coloured stage lights start to sweep and strobe (≤ 2 flashes/s)
+ *   0.20  confetti cannons fire from both bottom corners
+ *   0.15  two champagne bottles slide in; 0.70 the corks pop and the
+ *         champagne sprays in gold streaks
+ *   1.20  confetti keeps raining from above; light spots from the ball
+ *         drift across the room
+ *
+ * Particles are seeded once (`createWinScene`) and placed analytically
+ * (ballistics with drag), so nothing accumulates frame to frame. Canvas
+ * colours are literal by necessity; they mirror the tokens (accent red
+ * #e8112d, amber #ff9f0a) plus the multi-colour stage lights.
  */
 
-import * as THREE from "three";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-
-const GRAVITY = -9.8 * 0.55;
-const RECORD_Y = 1.45;
-const PAPER = 220;
-const FOIL = 90;
-const DROPS = 900;
-const MIST = 40;
-const SPARKS = 70;
-
-const rand = (a: number, b: number) => a + Math.random() * (b - a);
-const easeOut = (k: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, k)), 3);
-
-function canvas(size: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
-  const c = document.createElement("canvas");
-  c.width = c.height = size;
-  return [c, c.getContext("2d")!];
+export interface WinText {
+  eyebrow: string;
+  title: string;
+  amount: string;
+  trackTitle: string;
+  trackArtist: string;
+  brand: string;
+  footer: string;
 }
 
-function texture(c: HTMLCanvasElement, srgb = true): THREE.CanvasTexture {
-  const t = new THREE.CanvasTexture(c);
-  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+export interface WinSceneOptions {
+  /** Album art, drawn in the middle (the video). The live screen shows it in HTML. */
+  cover?: CanvasImageSource | null;
+  /** Everything drawn in the canvas, text included (the video). */
+  text?: WinText | null;
+  /** Fewer particles (small or slow phones). */
+  lite?: boolean;
 }
 
-/** A soft round dot: droplets, mist, sparkles. */
-function dotTexture(): THREE.CanvasTexture {
-  const [c, ctx] = canvas(64);
-  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.35, "rgba(255,255,255,0.55)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 64, 64);
-  return texture(c, false);
+export interface WinScene {
+  draw(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void;
 }
 
-/** Deep red pool fading to black: the room. */
-function backdropTexture(): THREE.CanvasTexture {
-  const [c, ctx] = canvas(512);
-  const g = ctx.createRadialGradient(256, 210, 0, 256, 256, 330);
-  g.addColorStop(0, "#4a0812");
-  g.addColorStop(0.45, "#1a0306");
-  g.addColorStop(1, "#000000");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 512, 512);
-  return texture(c);
-}
+const ACCENT = "#e8112d";
+const AMBER = "#ff9f0a";
+const LIGHTS = ["#ff2d95", "#32d4ff", "#ffb020", "#e8112d", "#9b5cff", "#2bff88"];
+const CONFETTI = ["#e8112d", "#ffffff", "#ff9f0a", "#ff2d95", "#32d4ff", "#ffd60a", "#9b5cff"];
+const G = 1.35; // gravity, in scene heights per s²
 
-/** Gold god-rays, fading out from the centre. */
-function raysTexture(): THREE.CanvasTexture {
-  const [c, ctx] = canvas(1024);
-  ctx.translate(512, 512);
-  for (let i = 0; i < 28; i += 1) {
-    ctx.rotate((Math.PI * 2) / 28 + rand(-0.04, 0.04));
-    const w = rand(0.012, 0.045);
-    const g = ctx.createLinearGradient(0, 0, 512, 0);
-    g.addColorStop(0, "rgba(255,214,120,0.5)");
-    g.addColorStop(0.55, "rgba(255,214,120,0.12)");
-    g.addColorStop(1, "rgba(255,214,120,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(512, -512 * w);
-    ctx.lineTo(512, 512 * w);
-    ctx.closePath();
-    ctx.fill();
-  }
-  return texture(c);
-}
-
-/** Grooves (with track gaps) + the label: album art when it loads, red until then. */
-function recordTexture(coverUrl: string | null): THREE.CanvasTexture {
-  const size = 1024;
-  const [c, ctx] = canvas(size);
-  const m = size / 2;
-  ctx.fillStyle = "#070708";
-  ctx.fillRect(0, 0, size, size);
-  const gaps = [0.52, 0.63, 0.74, 0.86];
-  for (let r = 0.37; r < 0.985; r += 0.0035) {
-    const gap = gaps.some((g) => Math.abs(r - g) < 0.006);
-    const v = () => Math.round(18 + Math.random() * 10);
-    ctx.strokeStyle = gap ? "#030303" : `rgb(${v()},${v()},${v() + 2})`;
-    ctx.lineWidth = gap ? 4 : 1.2;
-    ctx.beginPath();
-    ctx.arc(m, m, r * m, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = "#1c1c1f";
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.arc(m, m, m * 0.99, 0, Math.PI * 2);
-  ctx.stroke();
-  const t = texture(c);
-  t.anisotropy = 8;
-  const label = (draw: () => void) => {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(m, m, m * 0.345, 0, Math.PI * 2);
-    ctx.clip();
-    draw();
-    ctx.restore();
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(m, m, m * 0.345, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = "#050505";
-    ctx.beginPath();
-    ctx.arc(m, m, m * 0.025, 0, Math.PI * 2);
-    ctx.fill();
-    t.needsUpdate = true;
+/** Small seeded PRNG: the same scene every time (the video matches the screen). */
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  label(() => {
-    const g = ctx.createRadialGradient(m, m, 0, m, m, m * 0.35);
-    g.addColorStop(0, "#ff3b4e");
-    g.addColorStop(1, "#b50e24");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-  });
-  if (coverUrl) {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => label(() => ctx.drawImage(img, m - m * 0.345, m - m * 0.345, m * 0.69, m * 0.69));
-    img.src = coverUrl;
-  }
-  return t;
 }
 
-/** The two opposite wedges of light every vinyl shows: they stay put while it spins. */
-function sheenTexture(): THREE.CanvasTexture {
-  const [c, ctx] = canvas(512);
-  ctx.translate(256, 256);
-  for (const base of [0, Math.PI]) {
-    const g = ctx.createConicGradient(base - 0.5, 0, 0);
-    g.addColorStop(0, "rgba(255,255,255,0)");
-    g.addColorStop(0.04, "rgba(255,255,255,0.55)");
-    g.addColorStop(0.08, "rgba(255,255,255,0.08)");
-    g.addColorStop(0.16, "rgba(255,255,255,0)");
-    g.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0, 0, 252, 0, Math.PI * 2);
-    ctx.arc(0, 0, 92, 0, Math.PI * 2, true);
-    ctx.fill();
-  }
-  return texture(c, false);
-}
-
-/** Cream label with the house name, gold rules. */
-function bottleLabelTexture(): THREE.CanvasTexture {
-  const [c, ctx] = canvas(512);
-  ctx.fillStyle = "#f3ead2";
-  ctx.fillRect(0, 0, 512, 512);
-  ctx.fillStyle = "#c9a227";
-  ctx.fillRect(0, 40, 512, 10);
-  ctx.fillRect(0, 462, 512, 10);
-  ctx.fillStyle = "#b50e24";
-  ctx.font = "bold 92px Helvetica, Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("BETBEAT", 256, 230);
-  ctx.fillStyle = "#3a2a10";
-  ctx.font = "600 40px Helvetica, Arial, sans-serif";
-  ctx.fillText("BRUT · CUVÉE DA NOITE", 256, 320);
-  return texture(c);
-}
-
-/** Crinkled foil: noise as a bump map. */
-function crinkleTexture(): THREE.CanvasTexture {
-  const [c, ctx] = canvas(256);
-  const img = ctx.createImageData(256, 256);
-  for (let i = 0; i < img.data.length; i += 4) {
-    const v = 110 + Math.random() * 120;
-    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-    img.data[i + 3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-  ctx.filter = "blur(1.2px)";
-  ctx.drawImage(c, 0, 0);
-  return texture(c, false);
-}
-
-function makeBottle(labelTex: THREE.Texture, crinkle: THREE.Texture) {
-  const group = new THREE.Group();
-  const curve = new THREE.SplineCurve(
-    [
-      [0.0, -1.25], [0.3, -1.25], [0.345, -1.18], [0.35, -0.9], [0.35, 0.2], [0.33, 0.42],
-      [0.24, 0.62], [0.16, 0.82], [0.135, 1.0], [0.13, 1.17], [0.145, 1.22], [0.0, 1.24],
-    ].map(([x, y]) => new THREE.Vector2(x, y)),
-  );
-  const glass = new THREE.Mesh(
-    new THREE.LatheGeometry(curve.getPoints(60), 64),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x0a2c17,
-      roughness: 0.06,
-      clearcoat: 1,
-      clearcoatRoughness: 0.03,
-      envMapIntensity: 2.2,
-    }),
-  );
-  const foil = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.148, 0.215, 0.66, 48, 8, true),
-    new THREE.MeshStandardMaterial({
-      color: 0xd8b04a,
-      metalness: 1,
-      roughness: 0.32,
-      bumpMap: crinkle,
-      bumpScale: 2.5,
-      envMapIntensity: 2,
-      side: THREE.DoubleSide,
-    }),
-  );
-  foil.position.y = 0.9;
-  const label = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.353, 0.353, 0.62, 64, 1, true, -Math.PI * 0.55, Math.PI * 1.1),
-    new THREE.MeshStandardMaterial({ map: labelTex, color: 0xb9b2a4, roughness: 0.6 }),
-  );
-  label.position.y = -0.4;
-  label.rotation.y = Math.PI / 2;
-  const collar = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.245, 0.27, 0.1, 48, 1, true),
-    new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: 1, roughness: 0.25, envMapIntensity: 2, side: THREE.DoubleSide }),
-  );
-  collar.position.y = 0.56;
-  // Mushroom cork.
-  const cork = new THREE.Group();
-  const corkMat = new THREE.MeshStandardMaterial({ color: 0xbf9a62, roughness: 0.85 });
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.125, 0.16, 24), corkMat);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), corkMat);
-  cap.position.y = 0.08;
-  cork.add(stem, cap);
-  cork.position.y = 1.3;
-  const neck = new THREE.Object3D();
-  neck.position.y = 1.26;
-  group.add(glass, foil, label, collar, cork, neck);
-  return { group, cork, neck };
-}
+const clamp01 = (k: number) => Math.min(1, Math.max(0, k));
+const easeOut = (k: number) => 1 - Math.pow(1 - clamp01(k), 3);
+/** Critically-damped-ish spring with a touch of overshoot for the pop-ins. */
+const springIn = (k: number) => {
+  const x = clamp01(k);
+  return 1 - Math.exp(-6 * x) * Math.cos(9 * x);
+};
 
 interface Flake {
-  p: THREE.Vector3;
-  v: THREE.Vector3;
-  q: THREE.Quaternion;
-  axis: THREE.Vector3;
+  start: number; // s
+  x0: number; // fraction of width
+  y0: number; // fraction of height
+  vx: number; // widths / s
+  vy: number; // heights / s (down +)
+  drag: number;
+  size: number; // fraction of width
+  ratio: number;
+  color: string;
   spin: number;
-  sway: number;
   phase: number;
+  sway: number;
+  life: number;
+  period: number; // > 0: rains again every `period` s
+}
+
+interface Drop {
+  start: number;
+  side: -1 | 1;
+  speed: number;
+  spread: number;
   size: number;
-  alive: boolean;
+  life: number;
 }
 
-function flakes(n: number): Flake[] {
-  return Array.from({ length: n }, () => ({
-    p: new THREE.Vector3(0, -99, 0),
-    v: new THREE.Vector3(),
-    q: new THREE.Quaternion(),
-    axis: new THREE.Vector3(rand(-1, 1), rand(-0.3, 0.3), rand(-1, 1)).normalize(),
-    spin: rand(7, 15),
-    sway: rand(0.4, 1.1),
-    phase: rand(0, 6.28),
-    size: rand(0.7, 1.3),
-    alive: false,
-  }));
+interface Spot {
+  x: number;
+  y: number;
+  r: number;
+  color: string;
+  speed: number;
+  phase: number;
 }
 
-/** Points that live, move under gravity and fade (additive: light, not paint). */
-class Spray {
-  readonly points: THREE.Points;
-  private readonly pos: Float32Array;
-  private readonly col: Float32Array;
-  private readonly vel: Float32Array;
-  private readonly life: Float32Array;
-  private readonly max: Float32Array;
-  private next = 0;
-
-  constructor(
-    private readonly n: number,
-    size: number,
-    private readonly tint: THREE.Color,
-    map: THREE.Texture,
-    private readonly drag: number,
-    private readonly gravity: number,
-  ) {
-    this.pos = new Float32Array(n * 3).fill(-99);
-    this.col = new Float32Array(n * 3);
-    this.vel = new Float32Array(n * 3);
-    this.life = new Float32Array(n);
-    this.max = new Float32Array(n).fill(1);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(this.pos, 3));
-    geo.setAttribute("color", new THREE.BufferAttribute(this.col, 3));
-    this.points = new THREE.Points(
-      geo,
-      new THREE.PointsMaterial({
-        size,
-        map,
-        vertexColors: true,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        sizeAttenuation: true,
-      }),
-    );
-    this.points.frustumCulled = false;
-  }
-
-  emit(at: THREE.Vector3, vel: THREE.Vector3, life: number) {
-    const i = this.next;
-    this.next = (this.next + 1) % this.n;
-    this.pos.set([at.x, at.y, at.z], i * 3);
-    this.vel.set([vel.x, vel.y, vel.z], i * 3);
-    this.life[i] = life;
-    this.max[i] = life;
-  }
-
-  update(dt: number, twinkle = 0, t = 0) {
-    const d = 1 - Math.min(0.95, this.drag * dt);
-    for (let i = 0; i < this.n; i += 1) {
-      const o = i * 3;
-      const life = this.life[i]!;
-      if (life <= 0) {
-        this.col[o] = this.col[o + 1] = this.col[o + 2] = 0;
-        continue;
-      }
-      this.life[i] = life - dt;
-      const k = Math.max(0, (life - dt) / this.max[i]!);
-      this.vel[o + 1] = this.vel[o + 1]! + this.gravity * dt;
-      this.vel[o] = this.vel[o]! * d;
-      this.vel[o + 1] = this.vel[o + 1]! * d;
-      this.vel[o + 2] = this.vel[o + 2]! * d;
-      this.pos[o] = this.pos[o]! + this.vel[o]! * dt;
-      this.pos[o + 1] = this.pos[o + 1]! + this.vel[o + 1]! * dt;
-      this.pos[o + 2] = this.pos[o + 2]! + this.vel[o + 2]! * dt;
-      const glint = twinkle ? 0.35 + 0.65 * Math.abs(Math.sin(t * twinkle + i * 1.7)) : 1;
-      const a = Math.min(1, k * 1.6) * glint;
-      this.col[o] = this.tint.r * a;
-      this.col[o + 1] = this.tint.g * a;
-      this.col[o + 2] = this.tint.b * a;
-    }
-    this.points.geometry.attributes.position!.needsUpdate = true;
-    this.points.geometry.attributes.color!.needsUpdate = true;
-  }
+/** Where the mirror ball hangs, for this canvas size. */
+export function ballGeometry(w: number, h: number) {
+  const r = Math.min(w * 0.12, h * 0.06);
+  const top = h * 0.03;
+  return { cx: w / 2, cy: top + h * 0.035 + r, r, top };
 }
 
-export function startWinScene(container: HTMLElement, opts: { coverUrl: string | null }): () => void {
-  let renderer: THREE.WebGLRenderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-  } catch {
-    return () => undefined; // No WebGL: the words still celebrate.
-  }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.domElement.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
-  container.appendChild(renderer.domElement);
+export function createWinScene(opts: WinSceneOptions = {}): WinScene {
+  const rnd = mulberry32(20261008);
+  const pick = <T,>(list: readonly T[]) => list[Math.floor(rnd() * list.length)] as T;
+  const lite = opts.lite ?? false;
 
-  const disposables: { dispose(): void }[] = [];
-  const keep = <T extends { dispose(): void }>(x: T): T => {
-    disposables.push(x);
-    return x;
-  };
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
-  const pmrem = keep(new THREE.PMREMGenerator(renderer));
-  const env = keep(pmrem.fromScene(new RoomEnvironment(), 0.04).texture);
-  scene.environment = env;
-  scene.environmentIntensity = 0.5;
-
-  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-  let baseZ = 9;
-
-  // Lights: warm key, red rim, a gold light circling the record.
-  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
-  const key = new THREE.DirectionalLight(0xfff0d8, 2.4);
-  key.position.set(3, 5, 6);
-  const rim = new THREE.PointLight(0xe8112d, 40, 25);
-  rim.position.set(-3.5, -1, 2.5);
-  const orbit = new THREE.PointLight(0xffd36a, 30, 18);
-  scene.add(key, rim, orbit);
-
-  // The room: red pool + slow gold rays.
-  const dot = keep(dotTexture());
-  const backdrop = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 40),
-    new THREE.MeshBasicMaterial({ map: keep(backdropTexture()), toneMapped: false }),
-  );
-  backdrop.position.z = -8;
-  const rays = new THREE.Mesh(
-    new THREE.PlaneGeometry(26, 26),
-    new THREE.MeshBasicMaterial({
-      map: keep(raysTexture()),
-      transparent: true,
-      opacity: 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  rays.position.set(0, RECORD_Y, -6);
-  scene.add(backdrop, rays);
-
-  // The record.
-  const tilt = new THREE.Group();
-  tilt.position.y = RECORD_Y;
-  const vinylSide = new THREE.MeshPhysicalMaterial({ color: 0x050506, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.06 });
-  const record = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.02, 0.045, 160), [
-    vinylSide,
-    // A touch under white: the art keeps its colours and never blooms.
-    new THREE.MeshBasicMaterial({ map: keep(recordTexture(opts.coverUrl)), color: 0xc8c8c8 }),
-    vinylSide,
-  ]);
-  const sheen = new THREE.Mesh(
-    new THREE.CircleGeometry(1.01, 96),
-    new THREE.MeshBasicMaterial({
-      map: keep(sheenTexture()),
-      transparent: true,
-      opacity: 0.2,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  sheen.rotation.x = -Math.PI / 2;
-  sheen.position.y = 0.024;
-  tilt.add(record, sheen);
-  tilt.scale.setScalar(0.001);
-  scene.add(tilt);
-
-  // Flash + shockwave.
-  const flash = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: dot, color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
-  );
-  flash.position.set(0, RECORD_Y, 1);
-  const wave = new THREE.Mesh(
-    new THREE.RingGeometry(0.96, 1, 128),
-    new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }),
-  );
-  wave.position.set(0, RECORD_Y, 0.2);
-  scene.add(flash, wave);
-
-  // Champagne.
-  const labelTex = keep(bottleLabelTexture());
-  const crinkle = keep(crinkleTexture());
-  const bottles = [-1, 1].map((side) => {
-    const b = makeBottle(labelTex, crinkle);
-    b.group.scale.setScalar(0.5);
-    b.group.rotation.z = -side * 0.3;
-    b.group.rotation.y = side * 0.5;
-    scene.add(b.group);
-    return { ...b, side, corkV: new THREE.Vector3(), corkW: rand(10, 16), popped: false };
-  });
-
-  // Wine spray, mist and sparkles.
-  const drops = new Spray(DROPS, 0.075, new THREE.Color(1, 0.93, 0.72), dot, 0.6, GRAVITY);
-  const mist = new Spray(MIST, 0.9, new THREE.Color(0.55, 0.5, 0.42), dot, 2.2, 0.3);
-  const sparks = new Spray(SPARKS, 0.13, new THREE.Color(1, 0.86, 0.45), dot, 0, 0);
-  scene.add(drops.points, mist.points, sparks.points);
-
-  // Confetti: matte paper and gold foil, lit (so a flip reads as a flash of light).
-  const flakeGeo = new THREE.PlaneGeometry(0.085, 0.15);
-  const paper = new THREE.InstancedMesh(flakeGeo, new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.65 }), PAPER);
-  const foil = new THREE.InstancedMesh(
-    flakeGeo,
-    new THREE.MeshStandardMaterial({ color: 0xe9c25a, metalness: 1, roughness: 0.22, envMapIntensity: 2.5, side: THREE.DoubleSide }),
-    FOIL,
-  );
-  const paperColors = [0xe8112d, 0xffffff, 0xf3ead2, 0xff453a, 0xffd60a, 0x8a0b1c];
-  const color = new THREE.Color();
-  for (let i = 0; i < PAPER; i += 1) paper.setColorAt(i, color.setHex(paperColors[i % paperColors.length]!));
-  // Instances start hidden: a bounds check made then would cull them for good.
-  paper.frustumCulled = false;
-  foil.frustumCulled = false;
-  scene.add(paper, foil);
-  const paperFlakes = flakes(PAPER);
-  const foilFlakes = flakes(FOIL);
-
-  const zAxis = new THREE.Vector3(0, 0, 1);
-  function cannon(list: Flake[], count: number, from: THREE.Vector3, dir: THREE.Vector3, speed: number) {
-    let n = 0;
-    for (const f of list) {
-      if (f.alive || n >= count) continue;
-      n += 1;
-      f.alive = true;
-      f.p.copy(from).add(new THREE.Vector3(rand(-0.1, 0.1), rand(-0.1, 0.1), rand(-0.1, 0.1)));
-      f.v.copy(dir).applyAxisAngle(zAxis, rand(-0.32, 0.32)).multiplyScalar(speed * rand(0.55, 1.1));
-      f.v.z += rand(-1.2, 2.2);
-      f.q.setFromEuler(new THREE.Euler(rand(0, 6), rand(0, 6), rand(0, 6)));
-    }
-  }
-
-  function rain(list: Flake[], count: number, halfWidth: number) {
-    let n = 0;
-    for (const f of list) {
-      if (f.alive || n >= count) continue;
-      n += 1;
-      f.alive = true;
-      f.p.set(rand(-halfWidth, halfWidth), rand(4.2, 7.5), rand(-1.5, 2));
-      f.v.set(rand(-0.3, 0.3), rand(-0.6, 0), 0);
-    }
-  }
-
-  const dummy = new THREE.Object3D();
-  const spinQ = new THREE.Quaternion();
-  function stepFlakes(mesh: THREE.InstancedMesh, list: Flake[], dt: number, t: number) {
-    // Paper falls at a walking pace: strong air drag, a sideways sway.
-    const drag = 1 - Math.min(0.95, 2.4 * dt);
-    list.forEach((f, i) => {
-      if (f.alive) {
-        f.v.y += GRAVITY * dt;
-        f.v.multiplyScalar(drag);
-        f.p.addScaledVector(f.v, dt);
-        f.p.x += Math.sin(t * 2.2 + f.phase) * f.sway * dt;
-        f.q.multiply(spinQ.setFromAxisAngle(f.axis, f.spin * dt));
-        if (f.p.y < -6) f.alive = false;
-      }
-      dummy.position.copy(f.p);
-      dummy.quaternion.copy(f.q);
-      dummy.scale.setScalar(f.alive ? f.size : 0);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+  // Confetti cannons (bottom corners) + the rain that follows.
+  const flakes: Flake[] = [];
+  const cannon = lite ? 90 : 150;
+  for (let i = 0; i < cannon; i += 1) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const angle = (-Math.PI / 2) + side * (0.28 + rnd() * 0.42); // up and inwards
+    const speed = 1.7 + rnd() * 1.1;
+    flakes.push({
+      start: 0.2 + rnd() * 0.18,
+      x0: side < 0 ? -0.02 : 1.02,
+      y0: 0.98,
+      vx: Math.cos(angle) * speed * 0.62,
+      vy: Math.sin(angle) * speed,
+      drag: 1.3 + rnd() * 0.9,
+      size: 0.02 + rnd() * 0.014,
+      ratio: 0.45 + rnd() * 0.35,
+      color: pick(CONFETTI),
+      spin: 5 + rnd() * 9,
+      phase: rnd() * Math.PI * 2,
+      sway: 0.01 + rnd() * 0.02,
+      life: 5,
+      period: 0,
     });
-    mesh.instanceMatrix.needsUpdate = true;
+  }
+  const rain = lite ? 50 : 80;
+  for (let i = 0; i < rain; i += 1) {
+    flakes.push({
+      start: 1.2 + rnd() * 4.5,
+      x0: rnd(),
+      y0: -0.04,
+      vx: (rnd() - 0.5) * 0.05,
+      vy: 0.05,
+      drag: 2.6,
+      size: 0.018 + rnd() * 0.012,
+      ratio: 0.45 + rnd() * 0.35,
+      color: pick(CONFETTI),
+      spin: 4 + rnd() * 7,
+      phase: rnd() * Math.PI * 2,
+      sway: 0.015 + rnd() * 0.025,
+      life: 4.6,
+      period: 4.5,
+    });
   }
 
-  // Post: bloom makes gold, sparks and the flash glow like real light.
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.6, 0.45, 0.88);
-  composer.addPass(bloom);
-  composer.addPass(new OutputPass());
-
-  let halfWidth = 2;
-  let halfHeight = 3;
-  function resize() {
-    const w = container.clientWidth || 1;
-    const h = container.clientHeight || 1;
-    renderer.setSize(w, h, false);
-    composer.setSize(w, h);
-    bloom.resolution.set(w / 2, h / 2);
-    camera.aspect = w / h;
-    // Keep the stage in frame on tall phones.
-    baseZ = w / h < 0.6 ? 11.5 : 9;
-    camera.updateProjectionMatrix();
-    halfHeight = Math.tan(THREE.MathUtils.degToRad(17.5)) * baseZ;
-    halfWidth = halfHeight * camera.aspect;
-    // Bottles flank the record like trophies (the words own the lower half).
-    for (const b of bottles) b.group.position.setX(b.side * Math.min(1.7, halfWidth - 0.32));
+  // Champagne: gold streaks out of each bottle once the cork pops.
+  const drops: Drop[] = [];
+  const perBottle = lite ? 70 : 120;
+  for (let i = 0; i < perBottle * 2; i += 1) {
+    const k = rnd();
+    drops.push({
+      start: 0.72 + Math.pow(k, 1.8) * 1.6, // most of it right at the pop
+      side: i % 2 === 0 ? -1 : 1,
+      speed: 0.9 + rnd() * 0.75,
+      spread: (rnd() - 0.5) * 0.42,
+      size: 0.6 + rnd() * 1.1,
+      life: 0.9 + rnd() * 0.6,
+    });
   }
-  const ro = new ResizeObserver(resize);
-  ro.observe(container);
-  resize();
 
-  const start = performance.now();
-  let last = start;
-  let raf = 0;
-  const fired = { cannons: false, rain: false, rain2: false };
-  let shake = 0;
-  const up = new THREE.Vector3(0, 1, 0);
-  const worldQ = new THREE.Quaternion();
+  // Light spots thrown around the room by the mirror ball.
+  const spots: Spot[] = [];
+  for (let i = 0; i < (lite ? 14 : 22); i += 1) {
+    spots.push({
+      x: rnd(),
+      y: 0.12 + rnd() * 0.82,
+      r: 0.003 + rnd() * 0.004,
+      color: pick(LIGHTS),
+      speed: 0.035 + rnd() * 0.05,
+      phase: rnd() * Math.PI * 2,
+    });
+  }
 
-  const tick = (now: number) => {
-    const t = (now - start) / 1000;
-    const dt = Math.min(1 / 30, Math.max(0, (now - last) / 1000));
-    last = now;
-    const bottom = -halfHeight + 0.2;
+  // Facet brightness of the mirror ball, fixed per tile.
+  const facet: number[] = [];
+  for (let i = 0; i < 512; i += 1) facet.push(rnd());
 
-    // Camera: slow dolly-in, a kick when the corks pop.
-    shake *= Math.exp(-6 * dt);
-    camera.position.set(Math.sin(t * 43) * shake * 0.06, 0.15 + Math.cos(t * 37) * shake * 0.06, baseZ + 1.4 * (1 - easeOut(t / 2.2)));
-    camera.lookAt(0, 0.35, 0);
+  function bottle(side: -1 | 1, w: number, h: number, t: number) {
+    // Bottom corners, tilted up towards the centre.
+    const slide = easeOut((t - 0.15) / 0.45);
+    const kick = t > 0.7 ? Math.exp(-(t - 0.7) * 9) * 0.08 : 0; // recoil at the pop
+    const angle = -side * (0.55 + kick);
+    const bx = side < 0 ? w * (0.02 - 0.3 * (1 - slide)) : w * (0.98 + 0.3 * (1 - slide));
+    const by = h * 0.9;
+    const u = w * 0.045; // bottle unit
+    return { bx, by, angle, u, slide };
+  }
 
-    // Room.
-    (rays.material as THREE.MeshBasicMaterial).opacity = 0.11 * easeOut(t / 1.2);
-    rays.rotation.z = t * 0.06;
+  /** Mouth of the bottle in canvas pixels, and the spray direction. */
+  function mouth(side: -1 | 1, w: number, h: number) {
+    const { bx, by, angle, u } = bottle(side, w, h, 2);
+    const len = u * 7.2;
+    return {
+      x: bx + Math.sin(angle) * len,
+      y: by - Math.cos(angle) * len,
+      dir: -Math.PI / 2 + angle,
+    };
+  }
 
-    // Record: drops in on a spring, spins fast then settles, gentle wobble.
-    const k = Math.min(1, t / 1.0);
-    tilt.scale.setScalar(Math.max(0.001, 1 - Math.exp(-5.5 * k) * Math.cos(10 * k)));
-    tilt.position.y = RECORD_Y + (1 - easeOut(t / 0.7)) * 2.2;
-    tilt.rotation.x = 1.12 + Math.sin(t * 1.1) * 0.05;
-    tilt.rotation.z = Math.sin(t * 0.8) * 0.07;
-    record.rotation.y -= dt * (3.5 + 14 * Math.exp(-2.2 * t));
-    orbit.position.set(Math.cos(t * 1.4) * 3, RECORD_Y + 1.5 + Math.sin(t * 1.9) * 0.5, 2.8);
+  function drawBottle(ctx: CanvasRenderingContext2D, side: -1 | 1, w: number, h: number, t: number) {
+    const { bx, by, angle, u, slide } = bottle(side, w, h, t);
+    if (slide <= 0) return;
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(angle);
+    // Body: deep green glass with a hard highlight (flat, two tones).
+    const body = ctx.createLinearGradient(-u, 0, u, 0);
+    body.addColorStop(0, "#06231a");
+    body.addColorStop(0.35, "#0f4a35");
+    body.addColorStop(0.55, "#0a3526");
+    body.addColorStop(1, "#041a12");
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.moveTo(-u, u * 1.2);
+    ctx.lineTo(-u, -u * 2.4);
+    ctx.quadraticCurveTo(-u, -u * 3.6, -u * 0.36, -u * 4.6);
+    ctx.lineTo(-u * 0.36, -u * 7.0);
+    ctx.lineTo(u * 0.36, -u * 7.0);
+    ctx.lineTo(u * 0.36, -u * 4.6);
+    ctx.quadraticCurveTo(u, -u * 3.6, u, -u * 2.4);
+    ctx.lineTo(u, u * 1.2);
+    ctx.closePath();
+    ctx.fill();
+    // Highlight stripe.
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillRect(-u * 0.62, -u * 2.2, u * 0.16, u * 3.2);
+    // Label.
+    ctx.fillStyle = "#f3ead2";
+    ctx.fillRect(-u, -u * 1.5, u * 2, u * 1.5);
+    ctx.fillStyle = ACCENT;
+    ctx.fillRect(-u, -u * 1.08, u * 2, u * 0.32);
+    // Gold foil on the neck.
+    const foil = ctx.createLinearGradient(-u * 0.4, 0, u * 0.4, 0);
+    foil.addColorStop(0, "#8a6a1c");
+    foil.addColorStop(0.5, "#ffe08a");
+    foil.addColorStop(1, "#8a6a1c");
+    ctx.fillStyle = foil;
+    ctx.fillRect(-u * 0.4, -u * 7.0, u * 0.8, u * 1.9);
+    // The cork: on the bottle until the pop, then it flies.
+    if (t < 0.7) {
+      ctx.fillStyle = "#c79a5b";
+      ctx.fillRect(-u * 0.3, -u * 7.7, u * 0.6, u * 0.7);
+    }
+    ctx.restore();
 
-    // Flash + shockwave.
-    const fk = t / 0.45;
-    flash.scale.setScalar(2 + fk * 9);
-    flash.material.opacity = Math.max(0, 1 - fk) * 1.6;
-    const wt = (t - 0.12) / 1.0;
-    wave.scale.setScalar(0.4 + easeOut(wt) * 5);
-    (wave.material as THREE.MeshBasicMaterial).opacity = wt > 0 && wt < 1 ? 0.9 * (1 - wt) : 0;
-
-    // Confetti.
-    if (!fired.cannons && t > 0.3) {
-      fired.cannons = true;
-      for (const side of [-1, 1]) {
-        const from = new THREE.Vector3(side * halfWidth * 0.95, bottom, 1.2);
-        const dir = new THREE.Vector3(-side * 0.32, 1, 0).normalize();
-        cannon(paperFlakes, 85, from, dir, 13);
-        cannon(foilFlakes, 32, from, dir, 13);
+    if (t >= 0.7) {
+      const k = t - 0.7;
+      if (k < 1.6) {
+        const m = mouth(side, w, h);
+        const v = h * 1.6;
+        const cx = m.x + Math.cos(m.dir) * v * k * 0.55;
+        const cy = m.y + Math.sin(m.dir) * v * k + 0.5 * G * h * k * k;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(k * 14 * side);
+        ctx.fillStyle = "#c79a5b";
+        ctx.fillRect(-u * 0.3, -u * 0.35, u * 0.6, u * 0.7);
+        ctx.restore();
       }
-    }
-    if (!fired.rain && t > 1.6) {
-      fired.rain = true;
-      rain(paperFlakes, 45, halfWidth + 0.5);
-      rain(foilFlakes, 22, halfWidth + 0.5);
-    }
-    if (!fired.rain2 && t > 3.4) {
-      fired.rain2 = true;
-      rain(paperFlakes, 40, halfWidth + 0.5);
-      rain(foilFlakes, 20, halfWidth + 0.5);
-    }
-    stepFlakes(paper, paperFlakes, dt, t);
-    stepFlakes(foil, foilFlakes, dt, t);
-
-    // Champagne: rise, tremble, pop, spray.
-    for (const b of bottles) {
-      b.group.position.y = bottom - 1.5 + easeOut((t - 0.5) / 0.6) * (RECORD_Y - 0.5 - bottom + 1.5);
-      b.group.rotation.x = t > 0.75 && t < 0.95 ? Math.sin(t * 90) * 0.012 : 0;
-      const mouth = b.neck.getWorldPosition(new THREE.Vector3());
-      const dir = up.clone().applyQuaternion(b.group.getWorldQuaternion(worldQ));
-      if (!b.popped && t > 0.95) {
-        b.popped = true;
-        shake = 1;
-        b.cork.removeFromParent();
-        b.cork.position.copy(mouth);
-        b.cork.scale.setScalar(0.5);
-        scene.add(b.cork);
-        b.corkV.copy(dir).multiplyScalar(11).add(new THREE.Vector3(0, 0, 2));
-        for (let i = 0; i < 14; i += 1) {
-          const v = dir.clone().multiplyScalar(rand(0.6, 1.6)).add(new THREE.Vector3(rand(-0.5, 0.5), rand(-0.2, 0.5), rand(-0.3, 0.3)));
-          mist.emit(mouth, v, rand(0.6, 1.1));
+      // Foam puff at the pop.
+      const puff = 1 - clamp01(k / 0.45);
+      if (puff > 0) {
+        const m = mouth(side, w, h);
+        ctx.fillStyle = `rgba(255,250,235,${0.32 * puff})`;
+        for (let i = 0; i < 4; i += 1) {
+          const d = u * (0.6 + i * 0.7) * (1 + k * 3);
+          ctx.beginPath();
+          ctx.arc(m.x + Math.cos(m.dir) * d, m.y + Math.sin(m.dir) * d, u * (0.3 + i * 0.15) * (1 + k * 1.5), 0, Math.PI * 2);
+          ctx.fill();
         }
       }
-      if (b.popped) {
-        b.corkV.y += GRAVITY * dt;
-        b.cork.position.addScaledVector(b.corkV, dt);
-        b.cork.rotation.x += dt * b.corkW;
-        b.cork.rotation.z += dt * b.corkW * 0.6;
-        const since = t - 0.95;
-        if (since < 2.2) {
-          // A gush that tapers off: most of the wine in the first half second.
-          const rate = since < 0.5 ? 26 : since < 1.2 ? 12 : 5;
-          for (let i = 0; i < rate; i += 1) {
-            const spread = new THREE.Vector3(rand(-0.55, 0.55), rand(-0.15, 0.4), rand(-0.45, 0.7));
-            drops.emit(mouth, dir.clone().multiplyScalar(rand(4.5, 8.5)).add(spread), rand(0.8, 1.5));
-          }
-        }
+    }
+  }
+
+  function drawSpray(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+    if (t < 0.72) return;
+    const m = [mouth(-1, w, h), mouth(1, w, h)];
+    ctx.lineCap = "round";
+    for (const d of drops) {
+      const k = t - d.start;
+      if (k < 0 || k > d.life) continue;
+      const origin = m[d.side < 0 ? 0 : 1]!;
+      const dir = origin.dir + d.spread;
+      const vx = Math.cos(dir) * d.speed * h * 0.62;
+      const vy = Math.sin(dir) * d.speed * h;
+      const x = origin.x + vx * k;
+      const y = origin.y + vy * k + 0.5 * G * h * k * k;
+      // Streak along the current velocity: speed reads as light.
+      const cvx = vx;
+      const cvy = vy + G * h * k;
+      const len = 0.022;
+      const alpha = 1 - k / d.life;
+      ctx.strokeStyle = `rgba(255,214,120,${0.85 * alpha})`;
+      ctx.lineWidth = d.size * (w / 400) * 1.6;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - cvx * len, y - cvy * len);
+      ctx.stroke();
+    }
+  }
+
+  function drawBeams(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+    const on = easeOut((t - 0.1) / 0.5);
+    if (on <= 0) return;
+    const n = 5;
+    for (let i = 0; i < n; i += 1) {
+      const x = w * (0.08 + (0.84 * i) / (n - 1));
+      const sway = Math.sin(t * (0.9 + i * 0.17) + i * 1.7) * 0.42 + (i - (n - 1) / 2) * -0.1;
+      const angle = Math.PI / 2 + sway;
+      // Strobe: each beam blinks on its own beat, never faster than 2/s.
+      const beat = Math.sin(t * Math.PI * 2 * (0.8 + (i % 3) * 0.3) + i);
+      const strobe = 0.35 + 0.65 * clamp01(beat * 1.6);
+      const color = LIGHTS[(i + Math.floor(t / 1.5)) % LIGHTS.length]!;
+      const len = h * 1.15;
+      const half = 0.12;
+      ctx.save();
+      ctx.translate(x, -h * 0.02);
+      ctx.rotate(angle - Math.PI / 2);
+      const g = ctx.createLinearGradient(0, 0, 0, len);
+      g.addColorStop(0, hexA(color, 0.5 * strobe * on));
+      g.addColorStop(0.6, hexA(color, 0.12 * strobe * on));
+      g.addColorStop(1, hexA(color, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.008, 0);
+      ctx.lineTo(w * 0.008, 0);
+      ctx.lineTo(Math.tan(half) * len, len);
+      ctx.lineTo(-Math.tan(half) * len, len);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawSpots(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+    const on = easeOut((t - 0.2) / 0.8);
+    if (on <= 0) return;
+    for (const s of spots) {
+      const x = (((s.x + t * s.speed) % 1) + 1) % 1;
+      const tw = 0.5 + 0.5 * Math.sin(t * 3 + s.phase);
+      ctx.fillStyle = hexA(s.color, 0.55 * tw * on);
+      ctx.beginPath();
+      ctx.arc(x * w, s.y * h, s.r * w * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawBall(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+    const { cx, cy, r, top } = ballGeometry(w, h);
+    // The wire it hangs from.
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.lineWidth = Math.max(1, w / 400);
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, cy - r);
+    ctx.stroke();
+    void top;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = "#1c1c1e";
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    const rows = 12;
+    const cols = 24;
+    const rot = t * 0.9;
+    for (let i = 0; i < rows; i += 1) {
+      const lat0 = -Math.PI / 2 + (Math.PI * i) / rows;
+      const lat1 = lat0 + Math.PI / rows;
+      const y0 = cy + r * Math.sin(lat0);
+      const y1 = cy + r * Math.sin(lat1);
+      const half = r * Math.cos((lat0 + lat1) / 2);
+      for (let j = 0; j < cols; j += 1) {
+        const lon0 = (Math.PI * 2 * j) / cols + rot;
+        const lon1 = lon0 + (Math.PI * 2) / cols;
+        const s0 = Math.sin(lon0);
+        const s1 = Math.sin(lon1);
+        const front = Math.cos((lon0 + lon1) / 2);
+        if (front <= 0) continue;
+        const xa = cx + half * Math.min(s0, s1);
+        const xb = cx + half * Math.max(s0, s1);
+        const base = facet[(i * cols + j) % facet.length]!;
+        // Light from the top left, plus a twinkle as facets turn past it.
+        const lit = 0.25 + 0.45 * front * (1 - (i / rows) * 0.6) + 0.3 * base;
+        const glint = Math.pow(Math.max(0, Math.sin(t * 4 + base * 40)), 24);
+        const v = Math.min(255, Math.round(255 * Math.min(1, lit + glint)));
+        ctx.fillStyle = glint > 0.4 ? LIGHTS[(i + j) % LIGHTS.length]! : `rgb(${v},${v},${Math.min(255, v + 12)})`;
+        ctx.fillRect(xa + 0.6, y0 + 0.6, Math.max(0, xb - xa - 1.2), Math.max(0, y1 - y0 - 1.2));
       }
     }
-    drops.update(dt);
-    mist.update(dt);
+    // Shade the far side so it reads round.
+    const shade = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r * 1.05);
+    shade.addColorStop(0, "rgba(255,255,255,0.18)");
+    shade.addColorStop(0.6, "rgba(0,0,0,0)");
+    shade.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.restore();
 
-    // Sparkles round the record once it has landed.
-    if (t > 0.8 && Math.random() < 0.8) {
-      const a = rand(0, Math.PI * 2);
-      const r = rand(1.2, 2.1);
-      sparks.emit(
-        new THREE.Vector3(Math.cos(a) * r, RECORD_Y + Math.sin(a) * r * 0.75, rand(0, 1)),
-        new THREE.Vector3(0, rand(0.05, 0.3), 0),
-        rand(0.6, 1.4),
-      );
+    // Four-point glints on the rim.
+    for (let i = 0; i < 3; i += 1) {
+      const k = (Math.sin(t * 2.6 + i * 2.1) + 1) / 2;
+      if (k < 0.55) continue;
+      const a = -2.2 + i * 1.1;
+      star(ctx, cx + Math.cos(a) * r * 0.82, cy + Math.sin(a) * r * 0.82, r * 0.45 * (k - 0.55) * 2.2, "#ffffff");
     }
-    sparks.update(dt, 9, t);
+  }
 
-    composer.render();
-    raf = requestAnimationFrame(tick);
+  function drawConfetti(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+    for (const f of flakes) {
+      let k = t - f.start;
+      if (k < 0) continue;
+      if (f.period > 0) k %= f.period;
+      if (k > f.life) continue;
+      // Linear drag towards a slow terminal fall, with a flutter.
+      const e = (1 - Math.exp(-f.drag * k)) / f.drag;
+      const terminal = G / f.drag;
+      const x = (f.x0 + f.vx * e + Math.sin(k * 3 + f.phase) * f.sway * clamp01(k)) * w;
+      const y = (f.y0 + terminal * k + (f.vy - terminal) * e) * h;
+      if (y > h + 20 || x < -20 || x > w + 20) continue;
+      const flip = Math.cos(k * f.spin + f.phase);
+      const sw = f.size * w;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(k * f.spin * 0.35 + f.phase);
+      ctx.scale(1, Math.max(0.12, Math.abs(flip)));
+      ctx.fillStyle = flip < 0 ? shadeOf(f.color) : f.color;
+      ctx.fillRect(-sw / 2, (-sw * f.ratio) / 2, sw, sw * f.ratio);
+      ctx.restore();
+    }
+  }
+
+  function drawCover(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+    const size = w * 0.56;
+    const cx = w / 2;
+    const cy = h * 0.405;
+    const k = springIn((t - 0.08) / 0.6);
+    if (k <= 0) return;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(k, k);
+    ctx.shadowColor = hexA(ACCENT, 0.7);
+    ctx.shadowBlur = w * 0.08;
+    roundRect(ctx, -size / 2, -size / 2, size, size, w * 0.035);
+    ctx.fillStyle = "#1c1c1e";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.save();
+    ctx.clip();
+    if (opts.cover) {
+      ctx.drawImage(opts.cover, -size / 2, -size / 2, size, size);
+    } else {
+      // No art: a vinyl in the brand red.
+      ctx.fillStyle = "#0b0b0c";
+      ctx.fillRect(-size / 2, -size / 2, size, size);
+      ctx.rotate(t * 2.2);
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 1.2;
+      for (let g = 0.2; g < 0.46; g += 0.025) {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * g, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = ACCENT;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#0b0b0c";
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.02, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = Math.max(2, w * 0.006);
+    roundRect(ctx, -size / 2, -size / 2, size, size, w * 0.035);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawText(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, text: WinText) {
+    const font = typeof document !== "undefined" ? getComputedStyle(document.body).fontFamily : "sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.shadowColor = "rgba(0,0,0,0.85)";
+    ctx.shadowBlur = w * 0.025;
+    const appear = (at: number, dur = 0.35) => easeOut((t - at) / dur);
+
+    // Brand line at the top.
+    ctx.globalAlpha = appear(0.2);
+    ctx.font = `600 ${w * 0.034}px ${font}`;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(text.brand, w / 2, h * 0.04 + w * 0.034);
+
+    // Eyebrow.
+    ctx.globalAlpha = appear(0.35);
+    ctx.font = `700 ${w * 0.034}px ${font}`;
+    ctx.fillStyle = AMBER;
+    ctx.fillText(text.eyebrow.toUpperCase(), w / 2, h * 0.64);
+
+    // Title, letter by letter, sliding up.
+    ctx.font = `800 ${w * 0.13}px ${font}`;
+    const chars = [...text.title];
+    const widths = chars.map((c) => ctx.measureText(c).width);
+    const total = widths.reduce((a, b) => a + b, 0);
+    let x = w / 2 - total / 2;
+    ctx.textAlign = "left";
+    chars.forEach((c, i) => {
+      const k = easeOut((t - 0.45 - i * 0.05) / 0.4);
+      ctx.globalAlpha = k;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(c, x, h * 0.715 + (1 - k) * h * 0.03);
+      x += widths[i]!;
+    });
+    ctx.textAlign = "center";
+
+    // Amount.
+    const ka = springIn((t - 0.8) / 0.5);
+    ctx.globalAlpha = clamp01(ka);
+    ctx.font = `800 ${w * 0.1}px ${font}`;
+    ctx.fillStyle = ACCENT;
+    ctx.save();
+    ctx.translate(w / 2, h * 0.79);
+    ctx.scale(0.7 + 0.3 * ka, 0.7 + 0.3 * ka);
+    ctx.fillText(text.amount, 0, 0);
+    ctx.restore();
+
+    // Track.
+    ctx.globalAlpha = appear(1.1);
+    ctx.font = `700 ${w * 0.05}px ${font}`;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(fit(ctx, text.trackTitle, w * 0.86), w / 2, h * 0.845);
+    ctx.font = `500 ${w * 0.04}px ${font}`;
+    ctx.fillStyle = "rgba(235,235,245,0.75)";
+    ctx.fillText(fit(ctx, text.trackArtist, w * 0.86), w / 2, h * 0.88);
+
+    // Footer.
+    ctx.globalAlpha = appear(1.4);
+    ctx.font = `500 ${w * 0.03}px ${font}`;
+    ctx.fillStyle = "rgba(235,235,245,0.6)";
+    ctx.fillText(text.footer, w / 2, h * 0.955);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+
+  return {
+    draw(ctx, w, h, t) {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+      // The room: black with a red pool of light that breathes with the beat.
+      ctx.fillStyle = "#050505";
+      ctx.fillRect(0, 0, w, h);
+      const pulse = 0.85 + 0.15 * Math.sin(t * Math.PI * 2 * 0.5);
+      const pool = ctx.createRadialGradient(w / 2, h * 0.42, 0, w / 2, h * 0.42, Math.max(w, h) * 0.62);
+      pool.addColorStop(0, hexA(ACCENT, 0.42 * pulse));
+      pool.addColorStop(0.45, hexA(ACCENT, 0.1 * pulse));
+      pool.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = pool;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.globalCompositeOperation = "lighter";
+      drawBeams(ctx, w, h, t);
+      drawSpots(ctx, w, h, t);
+      ctx.globalCompositeOperation = "source-over";
+
+      drawBall(ctx, w, h, t);
+      if (opts.text) drawCover(ctx, w, h, t);
+
+      // Shockwave ring from the centre at the start.
+      const ring = clamp01(t / 0.7);
+      if (ring < 1) {
+        ctx.strokeStyle = `rgba(255,214,120,${0.8 * (1 - ring)})`;
+        ctx.lineWidth = w * 0.012 * (1 - ring) + 1;
+        ctx.beginPath();
+        ctx.arc(w / 2, h * 0.405, easeOut(ring) * Math.max(w, h) * 0.6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      drawBottle(ctx, -1, w, h, t);
+      drawBottle(ctx, 1, w, h, t);
+      ctx.globalCompositeOperation = "lighter";
+      drawSpray(ctx, w, h, t);
+      ctx.globalCompositeOperation = "source-over";
+      drawConfetti(ctx, w, h, t);
+
+      if (opts.text) drawText(ctx, w, h, t, opts.text);
+
+      // The opening flash.
+      const flash = 1 - clamp01(t / 0.28);
+      if (flash > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${0.7 * flash * flash})`;
+        ctx.fillRect(0, 0, w, h);
+      }
+    },
   };
-  raf = requestAnimationFrame(tick);
+}
 
+function hexA(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${Math.max(0, Math.min(1, alpha)).toFixed(3)})`;
+}
+
+/** The back of a confetti piece: the same colour, darker. */
+function shadeOf(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const d = (v: number) => Math.round(v * 0.62);
+  return `rgb(${d((n >> 16) & 255)},${d((n >> 8) & 255)},${d(n & 255)})`;
+}
+
+function star(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, color: string) {
+  if (s <= 0) return;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y - s);
+  ctx.quadraticCurveTo(x, y, x + s, y);
+  ctx.quadraticCurveTo(x, y, x, y + s);
+  ctx.quadraticCurveTo(x, y, x - s, y);
+  ctx.quadraticCurveTo(x, y, x, y - s);
+  ctx.fill();
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** Ellipsis when a title is wider than the line. */
+function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
+  if (ctx.measureText(text).width <= max) return text;
+  let s = text;
+  while (s.length > 1 && ctx.measureText(`${s}…`).width > max) s = s.slice(0, -1);
+  return `${s.trimEnd()}…`;
+}
+
+/**
+ * Runs the scene full screen on a canvas until `stop()`. DPR is capped at
+ * 2 and frames are skipped when the phone falls behind; reduced motion
+ * paints one still frame.
+ */
+export function startWinScene(canvas: HTMLCanvasElement, opts: WinSceneOptions & { still?: boolean }): () => void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return () => {};
+  const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4;
+  const scene = createWinScene({ ...opts, lite: opts.lite ?? lowEnd });
+  let raf = 0;
+  let w = 0;
+  let h = 0;
+  const resize = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2);
+    w = canvas.clientWidth;
+    h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  resize();
+  if (opts.still) {
+    scene.draw(ctx, w, h, 2.6);
+    return () => {};
+  }
+  const start = performance.now();
+  const frame = (now: number) => {
+    scene.draw(ctx, w, h, (now - start) / 1000);
+    raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+  window.addEventListener("resize", resize);
   return () => {
     cancelAnimationFrame(raf);
-    ro.disconnect();
-    scene.traverse((o) => {
-      if (o instanceof THREE.Mesh || o instanceof THREE.Points || o instanceof THREE.Sprite) {
-        o.geometry.dispose();
-        for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.dispose();
-      }
-    });
-    for (const d of disposables) d.dispose();
-    composer.dispose();
-    renderer.dispose();
-    renderer.domElement.remove();
+    window.removeEventListener("resize", resize);
   };
 }
