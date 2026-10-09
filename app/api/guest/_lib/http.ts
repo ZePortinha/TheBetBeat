@@ -10,6 +10,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { clientIpFrom } from "@/lib/security/client-ip";
 
 export interface ApiErrorBody {
   error: { code: string; id: string };
@@ -34,12 +35,7 @@ export function rateLimitedResponse(): NextResponse<ApiErrorBody> {
   return apiError("rate_limited", 429);
 }
 
-/** Best-effort client IP for per-IP rate limiting. */
+/** Client IP for per-IP rate limiting (spoof-resistant, see lib/security/client-ip). */
 export function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get("x-real-ip") ?? "local";
+  return clientIpFrom(request.headers);
 }

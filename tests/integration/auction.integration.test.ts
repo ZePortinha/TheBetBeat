@@ -129,7 +129,7 @@ beforeAll(async () => {
   const t = await db.query<{ id: string }>(
     `insert into public.library_tracks (venue_id, title, artist, genre, bpm, camelot_key, duration_sec)
      select $1, 'AU ${RUN} Track ' || n, 'AU ${RUN} Artist', 'house', 124, '8A', 180
-       from generate_series(1, 30) as n returning id`,
+       from generate_series(1, 60) as n returning id`,
     [VENUE_ID],
   );
   tracks = t.rows.map((r) => r.id);
@@ -156,6 +156,38 @@ describe("bidding on the server clock", () => {
     expect(results.find((r) => !r.ok)).toMatchObject({ ok: false, error: "below_minimum" });
     const leaders = await db.query(`select 1 from public.auction_bids where slot_id = $1 and status = 'leading'`, [slot]);
     expect(leaders.rowCount).toBe(1);
+  }, 60_000);
+
+  it("a burst of parallel bids: one leader, the highest accepted, and no cent lost or created", async () => {
+    const now = T0 + 5_000;
+    const slot = await newSlot(now);
+    const guests = await Promise.all(Array.from({ length: 12 }, () => createGuest()));
+    // Interleaved amounts so that some lower bids land after higher ones.
+    const amounts = guests.map((_, i) => 500 + ((i * 7) % 12) * 150);
+    const results = await Promise.all(
+      guests.map((g, i) => bid(g, slot, amounts[i]!, now + 1000, { kind: "own", libraryTrackId: takeTrack() })),
+    );
+    for (const r of results) if (!r.ok) expect(r.error).toBe("below_minimum");
+
+    const leaders = await db.query<{ id: string; total_cents: number }>(
+      `select b.id, (select max(total_after_cents) from public.auction_contributions c where c.bid_id = b.id) as total_cents
+         from public.auction_bids b where b.slot_id = $1 and b.status = 'leading'`,
+      [slot],
+    );
+    expect(leaders.rowCount).toBe(1);
+    const accepted = amounts.filter((_, i) => results[i]!.ok);
+    expect(leaders.rows[0]!.total_cents).toBe(Math.max(...accepted));
+
+    // Per guest: everything charged is either in the wallet or in the leading bid.
+    for (const g of guests) {
+      const money = await db.query<{ charged: string; held: string }>(
+        `select (select coalesce(sum(captured_cents), 0) from public.payments where guest_id = $1)::bigint as charged,
+                (select coalesce(sum(amount_cents), 0) from public.auction_contributions
+                  where guest_id = $1 and bid_id = $2 and returned_at is null)::bigint as held`,
+        [g, leaders.rows[0]!.id],
+      );
+      expect(Number(money.rows[0]!.charged)).toBe((await balance(g)) + Number(money.rows[0]!.held));
+    }
   }, 60_000);
 
   it("enforces the larger of 1 € and 5%, gives outbid money back and re-bids charge only the difference", async () => {

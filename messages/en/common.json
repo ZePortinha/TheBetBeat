@@ -63,6 +63,17 @@
       "submit": "Verify",
       "error": "Invalid code. Try again.",
       "loading": "Preparing…"
+    },
+    "newPassword": {
+      "title": "New password",
+      "intro": "This account was created with a temporary password. Choose your own (at least {min} characters) to continue.",
+      "password": "New password",
+      "confirm": "Repeat the password",
+      "submit": "Save and continue",
+      "errorShort": "Use at least {min} characters.",
+      "errorMismatch": "The two passwords do not match.",
+      "errorSame": "Choose a password different from the temporary one.",
+      "errorFailed": "Could not save it. Try again."
     }
   },
   "devIndex": {

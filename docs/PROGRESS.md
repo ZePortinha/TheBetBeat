@@ -15,6 +15,37 @@
 | 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing/catalog credentials unavailable → adapters stay mocked behind interfaces; Sentry/PostHog wiring, load-test run, B12 review pending |
 | 9 — Delivery | docs done | README, `docs/OPERATIONS.md`, `docs/SECURITY.md`, DECISIONS updated. Final `db:audit` result still to paste into SECURITY.md |
 
+## Real MB WAY hardening (cloud session — 2026-10-06)
+
+Branch `claude/mbway-integracao-real-rz5b2z`. ifthenpay refund endpoint fixed;
+PSP journal (migration 0013) for exactly-once pushes/refunds across restarts,
+refund cap per payment, unknown outcomes alert instead of retrying, orphan
+payments auto-refunded; `pnpm mbway:smoke` go-live check. Green: typecheck,
+lint, `pnpm test` (459), `tests/integration/psp-journal.integration.test.ts`
+on a plain Postgres 16. Still to run locally: `pnpm db:reset`, `pnpm db:audit`,
+`SUPABASE_TEST=1 pnpm test`; with the real keys, `pnpm mbway:smoke` (see
+docs/INTEGRATIONS.md, steps 5–6). Details in DECISIONS.
+
+## Security hardening (cloud session, overnight — 2026-10-06)
+
+Same branch. Column grants (migration 0014) stop guests and managers writing
+protected columns through PostgREST (verified phone, @handle, BetBeat fee);
+`db:audit` now checks column privileges. Also: client IP from the right end of
+X-Forwarded-For (`TRUSTED_PROXY_HOPS`), Origin check on API writes, MFA (AAL2)
+on the cockpit API for managers, safe post-login/MFA redirects, preview SSRF
+allowlist, reserved @handles, durable SMS caps, per-IP caps + 1 s cache on
+public reads, coalesced realtime hints, forced change of temporary staff
+passwords, cockpit caches cleared at sign-in, Turnstile on staff sign-in
+(and Supabase Auth CAPTCHA ready behind `NEXT_PUBLIC_SUPABASE_CAPTCHA`),
+/api body caps, race-free SMS code attempts, sign-in limits in Postgres
+(migration 0015), indexes for the busiest payment/refund/ledger lookups
+(migration 0016), and integration tests for parallel bids, parallel duplicate
+webhooks and DJ accept/reject races. Green: typecheck, lint,
+`pnpm test` (479), db:audit and the RLS/domain/auction/worker/journal
+integration suites (47 tests) on a plain Postgres 16 with a Supabase stub.
+Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
+`pnpm test:e2e`; restart Supabase (config.toml: min password 12).
+
 ## This round (cloud session, no Docker / Supabase — 2026-10-02)
 
 Branch `cloud/finish-surfaces` (also pushed to the session branch). Everything
@@ -92,8 +123,8 @@ SMS, invoicing and catalog adapters when credentials arrive.
 - Supabase CLI 2.78.1 (2.119 available) — fine for local dev.
 - Real PSP/SMS/invoicing/catalog credentials not available; Phase 8 ships
   sandbox-ready adapters + docs instead of live validation.
-- Turnstile is not enforced on anonymous session creation nor rendered on the
-  staff login form (see `docs/SECURITY.md` B12.4) — Phase 8.
+- Turnstile on anonymous session creation needs Supabase CAPTCHA on in production plus
+  `NEXT_PUBLIC_SUPABASE_CAPTCHA=1` (off locally). See `docs/SECURITY.md` B12.4.
 - `price.changed` broadcasts not yet emitted (screens refetch quotes on
   `queue.changed`); wire a quote-service hook if live tickers are wanted.
 - TierQuote.reason lacks an `order_conflict` code: a tier made unavailable by

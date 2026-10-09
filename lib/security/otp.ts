@@ -6,6 +6,9 @@ import { randomInt, timingSafeEqual } from "node:crypto";
 
 export const SMS_CODE_TTL_MS = 5 * 60_000;
 export const SMS_CODE_MAX_ATTEMPTS = 5;
+/** Durable caps per number (and per guest), counted in the database. */
+export const SMS_CODES_PER_HOUR = 5;
+export const SMS_CODES_PER_DAY = 10;
 
 /** Six random digits, leading zeros kept. */
 export function newSmsCode(): string {

@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPool } from "@/lib/db";
 import type { Role } from "@/lib/domain/types";
+import { mustChangePassword } from "@/lib/security/password";
 
 export interface StaffApiContext {
   userId: string;
@@ -61,19 +62,31 @@ export async function requireStaffApi(): Promise<StaffApiResult> {
   if (!user || user.is_anonymous) {
     return { ok: false, response: apiError(401, "unauthorized") };
   }
+  if (mustChangePassword(user)) {
+    return { ok: false, response: apiError(403, "password_change_required") };
+  }
 
   const { data: rows } = await supabase
     .from("staff")
     .select("id, venue_id, role")
     .eq("user_id", user.id);
 
-  const memberships = (rows ?? [])
+  let memberships = (rows ?? [])
     .map((r) => ({
       staffId: r.id as string,
       venueId: r.venue_id as string | null,
       role: r.role as Exclude<Role, "guest">,
     }))
     .filter((m) => COCKPIT_ROLES.includes(m.role));
+
+  // Same rule as the pages (requireStaff): manager/admin powers need MFA.
+  // Without AAL2 only plain DJ memberships count, so a stolen manager
+  // password alone cannot drive the cockpit API.
+  if (memberships.some((m) => m.role !== "dj")) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.currentLevel !== "aal2") memberships = memberships.filter((m) => m.role === "dj");
+    if (memberships.length === 0) return { ok: false, response: apiError(403, "mfa_required") };
+  }
 
   if (memberships.length === 0) {
     return { ok: false, response: apiError(403, "forbidden") };

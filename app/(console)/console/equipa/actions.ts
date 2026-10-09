@@ -63,6 +63,8 @@ export async function inviteStaffAction(
     email: parsed.data.email,
     password: tempPassword,
     email_confirm: true,
+    // Shown once on the manager's screen: replaced at first sign-in (/login/password).
+    app_metadata: { must_change_password: true },
   });
   if (error || !created.user) {
     const exists = /already|exists|registered/i.test(error?.message ?? "");

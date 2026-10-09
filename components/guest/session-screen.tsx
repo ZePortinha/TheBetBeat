@@ -16,7 +16,7 @@ import { LiveBadge } from "@/components/ui/live-badge";
 import { TrackProgress } from "@/components/ui/now-playing";
 import { Pressable } from "@/components/ui/pressable";
 import { publicChannel } from "@/lib/realtime/events";
-import { useRealtimeChannel } from "@/lib/realtime/client";
+import { PUBLIC_HINT_MS, useRealtimeChannel } from "@/lib/realtime/client";
 import { apiFetch } from "./api";
 import { AuctionTeaser, NightWinners, largeCover } from "./auction-screens";
 import { LocaleToggle } from "./locale-toggle";
@@ -123,7 +123,7 @@ export function SessionScreen({
     return () => clearInterval(id);
   }, [refetchState]);
 
-  useRealtimeChannel(publicChannel(info.sessionId), { private: false }, () => {
+  useRealtimeChannel(publicChannel(info.sessionId), { private: false, minIntervalMs: PUBLIC_HINT_MS }, () => {
     void refetchState();
   });
 
