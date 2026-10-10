@@ -921,13 +921,14 @@ export async function createRequestAndStartPayment(
   const { row, validated } = reservation;
 
   // Store the salted phone hash for cross-device night limits (B4.7,
-  // B12.5) — never the number in clear. A different number than the one
-  // signed in by SMS drops the verified mark (it no longer applies).
+  // B12.5) — never the number in clear. A guest signed in by SMS keeps
+  // their account's number (paying with another MB WAY changes nothing).
   if (params.phone) {
     await getPool().query(
       `update public.guests
           set phone_encrypted = $2, phone_hash = $3, phone_verified_at = null
-        where id = $1 and phone_hash is distinct from $3`,
+        where id = $1 and phone_hash is distinct from $3
+          and phone_verified_at is null`,
       [params.guestId, encrypt(params.phone), hashPhone(params.phone)],
     );
   }

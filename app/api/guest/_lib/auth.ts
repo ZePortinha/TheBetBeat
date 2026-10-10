@@ -15,6 +15,7 @@ import "server-only";
  */
 
 import { getPool } from "@/lib/db";
+import { env } from "@/lib/security/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,4 +51,23 @@ export async function ensureGuestRow(guestId: string, locale?: string): Promise<
      on conflict (id) do nothing`,
     [guestId, locale ?? null],
   );
+}
+
+/**
+ * The party's phone login (2026-10-08, server-enforced since 2026-10-10):
+ * required everywhere except a production build still on the mock SMS
+ * provider, where nobody would ever receive a code.
+ */
+export function phoneLoginRequired(): boolean {
+  return !(process.env.NODE_ENV === "production" && env.SMS_PROVIDER === "mock");
+}
+
+/** True once this guest proved a phone number with an SMS code (or the login is off). */
+export async function isSignedIn(guestId: string): Promise<boolean> {
+  if (!phoneLoginRequired()) return true;
+  const res = await getPool().query<{ ok: boolean }>(
+    `select phone_verified_at is not null as ok from public.guests where id = $1`,
+    [guestId],
+  );
+  return res.rows[0]?.ok ?? false;
 }

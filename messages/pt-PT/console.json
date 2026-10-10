@@ -664,9 +664,8 @@
       "hint": "Depois de o leilão fechar.",
       "playTargetMin": "O DJ toca até (min)",
       "refundAfterMin": "Devolver se não tocar (min)",
-      "keepBalance": "O cliente pode guardar o saldo para outra noite",
-      "keepBalanceHint": "Desligado por defeito. Guardar dinheiro na app pode contar como moeda eletrónica: liga só depois da confirmação legal.",
-      "keepBalanceDays": "Devolver o saldo sem uso ao fim de (dias)"
+      "keepBalanceHint": "Cada euro que volta ao saldo (licitação ultrapassada, 3.º lugar ou pior, faixa que não tocou) pode ser levantado ou usado noutro leilão durante estes dias. Depois volta sozinho ao MB WAY ou cartão de onde veio. O 2.º lugar passa sempre para o leilão seguinte.",
+      "keepBalanceDays": "Dias para o cliente levantar o saldo"
     },
     "cap": {
       "title": "Limite de leilões",

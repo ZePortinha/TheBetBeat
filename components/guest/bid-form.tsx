@@ -143,11 +143,16 @@ export function BidForm({
   const [display, setDisplay] = React.useState<Display>({ mode: "handle", handle: "" });
   // My @ (the number's @ once it is proven, on any device).
   const myHandle = React.useRef("");
+  // Signed in with an @ (2026-10-10): "público" is that @, nothing to type.
+  const [ownHandle, setOwnHandle] = React.useState<string | null>(null);
   React.useEffect(() => {
     void apiFetch<{ handle: string | null }>("/api/guest/profile").then((res) => {
       const handle = res.ok ? (res.data.handle ?? "") : "";
       myHandle.current = handle;
-      if (handle) setDisplay((d) => (d.mode === "handle" && !d.handle ? { mode: "handle", handle } : d));
+      if (handle) {
+        setOwnHandle(handle);
+        setDisplay((d) => (d.mode === "handle" && !d.handle ? { mode: "handle", handle } : d));
+      }
     });
   }, []);
   const [method, setMethod] = React.useState<PaymentMethod>(methods[0] ?? "mbway");
@@ -293,7 +298,7 @@ export function BidForm({
               className={chip(display.mode === "handle")}
               onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
             >
-              {t("appearHandle")}
+              {ownHandle ? t("appearPublic", { handle: ownHandle }) : t("appearHandle")}
             </button>
             <button type="button" className={chip(display.mode === "anonymous")} onClick={() => setDisplay({ mode: "anonymous" })}>
               {t("appearAnonymous")}
@@ -306,7 +311,7 @@ export function BidForm({
               {t("appearTable")}
             </button>
           </div>
-          {display.mode === "handle" ? (
+          {display.mode === "handle" && !ownHandle ? (
             <div className="mt-2 flex min-h-12 items-center gap-1 rounded-button border border-line-subtle bg-surface-3 px-3 focus-within:border-accent-500">
               <span className="text-base text-text-tertiary">@</span>
               <input

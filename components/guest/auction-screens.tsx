@@ -7,7 +7,7 @@
  *  - AuctionTeaser + NightWinners on the home: the live auction one tap
  *    away, "A seguir" and the last 3 winners.
  *  - AuctionContextBar: which auction the guest is choosing a track for.
- *  - WalletPill: the balance, small, top right, only when there is one.
+ *  - WalletPill: the balance panel, top right, for every signed-in guest.
  *  - AuctionOverlays: last-30-s flash, buzz and the winner celebration on
  *    every tab.
  *  - BidScreen: a track from search → bid on the chosen auction.
@@ -572,74 +572,109 @@ export function AuctionOverlays() {
 }
 
 /**
- * The balance, small, top right — only while there is one (outbid money,
- * a late MB WAY). Tap: refund it now, or the end-of-night choice.
+ * The balance panel, top right (owner, 2026-10-10): always there once the
+ * guest is signed in, even at 0 €. Tap: what is available, what is on its
+ * way to the next auction (second place rolls on), until when it can be
+ * withdrawn, and "Levantar" back to the MB WAY or card it came from.
  */
 export function WalletPill({ token }: { token: string }) {
   const t = useTranslations("guest.auction");
+  const locale = useLocale();
   const { state, refetch } = useAuction();
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [withdrawn, setWithdrawn] = React.useState<number | null>(null);
   const cents = state?.me?.walletCents ?? 0;
-  if (cents <= 0 && !open) return null;
-  const keepAllowed = state?.rules.keepBalanceAllowed ?? false;
-  const kept = keepAllowed && (state?.me?.keepBalance ?? false);
+  const held = state?.me?.heldCents ?? 0;
+  const deadline = state?.me?.balanceDeadline ?? null;
+  const days = state?.rules.keepBalanceDays ?? 7;
+  if (!state?.me) return null;
 
-  async function refund() {
+  async function withdraw() {
     setBusy(true);
-    await apiFetch("/api/guest/wallet/refund", { method: "POST", body: JSON.stringify({ token }) });
+    const res = await apiFetch<{ refundedCents: number }>("/api/guest/wallet/refund", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    });
     setBusy(false);
-    setOpen(false);
+    if (res.ok) {
+      navigator.vibrate?.(20);
+      setWithdrawn(res.data.refundedCents);
+    }
     void refetch();
   }
-  async function choose(next: boolean) {
-    await apiFetch("/api/guest/wallet/keep", { method: "POST", body: JSON.stringify({ token, keep: next }) });
-    void refetch();
-  }
+
+  const date = deadline
+    ? new Intl.DateTimeFormat(locale, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Lisbon",
+      }).format(new Date(deadline))
+    : null;
 
   return (
     <>
       <Pressable
-        onPress={() => setOpen(true)}
-        aria-label={`${t("wallet")} ${formatEurosDisplay(cents)}`}
-        className="flex h-8 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-sm font-semibold text-text-primary ring-1 ring-line-strong data-pressed:bg-surface-3"
+        onPress={() => {
+          setWithdrawn(null);
+          setOpen(true);
+        }}
+        aria-label={`${t("wallet")} ${formatEurosDisplay(cents)}${held > 0 ? `, ${t("walletHeld", { amount: formatEurosDisplay(held) })}` : ""}`}
+        className="relative flex h-9 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-sm font-semibold text-text-primary ring-1 ring-line-strong transition-transform duration-100 data-pressed:scale-[0.97] data-pressed:bg-surface-3"
       >
         <Wallet size={14} className="text-accent-400" aria-hidden />
         <span className="tnum">{formatEurosDisplay(cents)}</span>
+        {held > 0 ? (
+          <span aria-hidden className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-accent-500 ring-2 ring-bg-base" />
+        ) : null}
       </Pressable>
       <BottomSheet open={open} onOpenChange={setOpen} title={t("walletTitle")}>
-        <div className="flex flex-col gap-4 pt-1">
-          <p className="tnum text-5xl font-bold text-text-primary">{formatEurosDisplay(cents)}</p>
-          <p className="text-sm text-text-secondary">
-            {kept ? t("walletKeptHint", { days: state?.rules.keepBalanceDays ?? 30 }) : t("walletHint")}
-          </p>
-          {keepAllowed ? (
-            <div>
-              <p className="text-xs text-text-secondary">{t("endOfNight")}</p>
-              <div className="mt-1.5 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("endOfNight")}>
-                {[false, true].map((option) => (
-                  <button
-                    key={String(option)}
-                    type="button"
-                    role="radio"
-                    aria-checked={kept === option}
-                    onClick={() => void choose(option)}
-                    className={cx(
-                      "min-h-11 rounded-button border px-3 text-sm font-semibold",
-                      kept === option
-                        ? "border-accent-500 bg-surface-2 text-text-primary"
-                        : "border-line-subtle bg-surface-1 text-text-secondary",
-                    )}
-                  >
-                    {option ? t("keepForNext") : t("refundAtEnd")}
-                  </button>
-                ))}
+        <div className="flex flex-col gap-5 pt-1">
+          <div>
+            <p className="label text-text-tertiary">{t("walletAvailable")}</p>
+            <p className="tnum mt-1 text-5xl font-bold tracking-tight text-text-primary">{formatEurosDisplay(cents)}</p>
+            <p className="mt-1.5 text-sm text-text-secondary">
+              {date ? t("walletDeadline", { date }) : t("walletEmpty")}
+            </p>
+          </div>
+
+          {held > 0 ? (
+            <div className="flex items-start gap-3 rounded-card bg-surface-2 px-4 py-3">
+              <Gavel size={18} className="mt-0.5 shrink-0 text-accent-400" aria-hidden />
+              <div className="min-w-0">
+                <p className="tnum text-base font-semibold text-text-primary">
+                  {t("walletHeld", { amount: formatEurosDisplay(held) })}
+                </p>
+                <p className="mt-0.5 text-sm text-text-secondary">{t("walletHeldHint")}</p>
               </div>
             </div>
           ) : null}
-          <Button fullWidth variant="secondary" loading={busy} disabled={cents <= 0} onPress={() => void refund()}>
-            {t("walletRefundNow")}
-          </Button>
+
+          <ol className="flex flex-col gap-2 text-sm text-text-secondary">
+            <li className="flex gap-2">
+              <span className="tnum w-5 shrink-0 font-semibold text-accent-400">2.º</span>
+              {t("walletRuleSecond")}
+            </li>
+            <li className="flex gap-2">
+              <span className="tnum w-5 shrink-0 font-semibold text-text-tertiary">3.º+</span>
+              {t("walletRuleThird", { days })}
+            </li>
+          </ol>
+
+          {withdrawn !== null ? (
+            <p role="status" className="text-center text-sm font-medium text-text-primary">
+              {withdrawn > 0 ? t("walletWithdrawn", { amount: formatEurosDisplay(withdrawn) }) : t("walletWithdrawFailed")}
+            </p>
+          ) : null}
+          <div>
+            <Button fullWidth size="lg" loading={busy} disabled={cents <= 0} onPress={() => void withdraw()}>
+              {t("walletWithdraw")}
+            </Button>
+            <p className="mt-2 text-center text-xs text-text-tertiary">{t("walletWithdrawHint", { days })}</p>
+          </div>
         </div>
       </BottomSheet>
     </>
@@ -665,8 +700,9 @@ export function MyBids({ empty }: { empty?: React.ReactNode }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-semibold text-text-primary">{b.trackTitle}</p>
             <p className="truncate text-sm text-text-secondary">
-              {t(`bidStatus.${b.status}`)}
+              {b.rolledOn && b.status === "lost" ? t("bidStatus.rolledOn") : t(`bidStatus.${b.status}`)}
               {b.owner ? "" : ` · ${t("backed")}`}
+              {b.rolled ? ` · ${t("rolledIn")}` : ""}
             </p>
           </div>
           <p className="tnum shrink-0 text-sm font-semibold text-text-primary">

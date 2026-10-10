@@ -57,12 +57,10 @@ export interface AuctionConfig {
   playTargetMin: number;
   refundAfterMin: number;
   /**
-   * The guest may keep the balance left at the end of the night for
-   * another night here (else it goes back to the payment method). Off
-   * until the legal check on stored balances (e-money rules).
+   * Days each euro of a guest's balance can be withdrawn (or used in
+   * another auction) from when it landed there; after that it goes back to
+   * the payment method on its own. 7 by default (owner, 2026-10-10).
    */
-  keepBalanceAllowed: boolean;
-  /** A balance with no movement for this many days goes back to the payment method. */
   keepBalanceDays: number;
   /**
    * Transition assistant (lib/auction/transition): tempo change the DJ
@@ -115,8 +113,7 @@ export const DEFAULT_AUCTION_CONFIG: AuctionConfig = {
   lastMinuteWarningSec: 60,
   playTargetMin: 10,
   refundAfterMin: 15,
-  keepBalanceAllowed: false,
-  keepBalanceDays: 30,
+  keepBalanceDays: 7,
   transition: { easyMaxPct: 4, mediumMaxPct: 8, easyBps: 10_000, mediumBps: 15_000, hardBps: 25_000, unknownBps: 15_000 },
   recognition: {
     screenNameCents: 5000,
@@ -175,7 +172,6 @@ export const auctionConfigInputSchema = z
     lastMinuteWarningSec: num,
     playTargetMin: num,
     refundAfterMin: num,
-    keepBalanceAllowed: z.boolean(),
     keepBalanceDays: num,
     transition: z
       .object({ easyMaxPct: num, mediumMaxPct: num, easyBps: num, mediumBps: num, hardBps: num, unknownBps: num })
@@ -286,7 +282,6 @@ export function parseAuctionConfig(input: unknown): AuctionConfig {
     // The refund deadline can never come before the DJ's play target.
     playTargetMin: Math.min(refundAfterMin, int(raw.playTargetMin ?? d.playTargetMin, 1, 120)),
     refundAfterMin,
-    keepBalanceAllowed: raw.keepBalanceAllowed ?? d.keepBalanceAllowed,
     keepBalanceDays: int(raw.keepBalanceDays ?? d.keepBalanceDays, 1, 365),
     transition: transitionRules(raw.transition ?? {}, d.transition),
     recognition: {

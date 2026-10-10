@@ -5,7 +5,7 @@
  * money back to the wallet (re-bid charges only the difference), backing
  * someone else's bid, rejected track, track not played in 15 min, mic
  * announcement limit, MB WAY money arriving after the auction moved on,
- * and the end-of-night wallet refund. (Midnight, phases and specials are
+ * and the balance's 7 days (runner-up rollover: rollover.integration.test.ts). (Midnight, phases and specials are
  * pure — lib/auction/schedule.test.ts.)
  *
  * Each run uses its own session (no planned slots) and fresh guests.
@@ -129,7 +129,7 @@ beforeAll(async () => {
   const t = await db.query<{ id: string }>(
     `insert into public.library_tracks (venue_id, title, artist, genre, bpm, camelot_key, duration_sec)
      select $1, 'AU ${RUN} Track ' || n, 'AU ${RUN} Artist', 'house', 124, '8A', 180
-       from generate_series(1, 30) as n returning id`,
+       from generate_series(1, 60) as n returning id`,
     [VENUE_ID],
   );
   tracks = t.rows.map((r) => r.id);
@@ -431,48 +431,24 @@ describe("money", () => {
     expect(g.rows[0]!.phone_verified_at).not.toBeNull();
   }, 60_000);
 
-  it("end of night: open bids come back and every wallet is refunded to its payment method", async () => {
+  it("end of night: open bids come back to the balance, which is NOT refunded tonight", async () => {
     const now = T0 + 2_100_000;
     const slot = await newSlot(now);
     const a = await createGuest();
     await bid(a, slot, 3000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
     expect(await balance(a)).toBe(0);
-    const done = await auction.finishNightAuctions(SESSION_ID, now + 5000);
-    expect(done.walletsRefunded).toBeGreaterThan(0);
-    expect(await balance(a)).toBe(0);
-    const refunds = await db.query<{ n: string }>(
-      `select coalesce(sum(amount_cents), 0) as n from public.refunds where guest_id = $1 and status = 'succeeded'`,
-      [a],
-    );
-    expect(Number(refunds.rows[0]!.n)).toBe(3000);
-    expect((await slotRow(slot)).status).toBe("cancelled");
-  }, 60_000);
-
-  it("a guest who chose to keep the balance keeps it, but only while the club allows it", async () => {
-    const now = T0 + 2_200_000;
-    const slot = await newSlot(now);
-    const [keeper, other] = await Promise.all([createGuest(), createGuest()]);
-    await bid(keeper, slot, 3000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
-    await bid(other, slot, 4000, now + 2000, { kind: "own", libraryTrackId: takeTrack() });
-    expect(await balance(keeper)).toBe(3000);
-    await auction.setKeepBalance(keeper, VENUE_ID, true);
-    const allow = (on: boolean) =>
-      db.query(`update public.sessions set auction_config = auction_config || jsonb_build_object('keepBalanceAllowed', $2::boolean) where id = $1`, [
-        SESSION_ID,
-        on,
-      ]);
-
-    await allow(true);
     await auction.finishNightAuctions(SESSION_ID, now + 5000);
-    expect(await balance(keeper)).toBe(3000);
-    expect(await balance(other)).toBe(0);
-
-    await allow(false);
-    await auction.finishNightAuctions(SESSION_ID, now + 6000);
-    expect(await balance(keeper)).toBe(0);
+    // Withdrawable for 7 days from now (owner, 2026-10-10).
+    expect(await balance(a)).toBe(3000);
+    const refunds = await db.query(`select 1 from public.refunds where guest_id = $1`, [a]);
+    expect(refunds.rowCount).toBe(0);
+    expect((await slotRow(slot)).status).toBe("cancelled");
+    const me = await auction.myAuctionState(SESSION_ID, VENUE_ID, a);
+    expect(me.walletCents).toBe(3000);
+    expect(me.balanceDeadline).not.toBeNull();
   }, 60_000);
 
-  it("a kept balance unused for 30 days goes back to the payment method", async () => {
+  it("money older than 7 days in the balance goes back to the payment method, oldest first", async () => {
     const now = T0 + 2_300_000;
     const slot = await newSlot(now);
     const [stale, recent, top] = await Promise.all([createGuest(), createGuest(), createGuest()]);
@@ -485,10 +461,10 @@ describe("money", () => {
         guestId,
         days,
       ]);
-    await age(stale, 31);
-    await age(recent, 10);
+    await age(stale, 8);
+    await age(recent, 6);
 
-    await auction.expireKeptBalances(Date.now());
+    await auction.expireBalances(Date.now());
     expect(await balance(stale)).toBe(0);
     expect(await balance(recent)).toBe(3000);
     const refunds = await db.query<{ n: string }>(
@@ -496,5 +472,139 @@ describe("money", () => {
       [stale],
     );
     expect(Number(refunds.rows[0]!.n)).toBe(2000);
+  }, 60_000);
+});
+
+describe("runner-up rollover (owner, 2026-10-10)", () => {
+  // A night of its own: rollovers only ever move inside their night.
+  let NIGHT = "";
+  const base = T0 + 3_000_000;
+  const open = async (now: number) => {
+    const id = await auction.openExtraSlot(NIGHT, "staff:test-dj", now);
+    if (!id) throw new Error("slot not opened");
+    return id;
+  };
+  const bids = (slotId: string) =>
+    db.query<{ owner_guest_id: string; total_cents: number; status: string; track_title: string; rolled_from_bid_id: string | null }>(
+      `select owner_guest_id, total_cents, status, track_title, rolled_from_bid_id from public.auction_bids where slot_id = $1`,
+      [slotId],
+    );
+  const rollovers = (fromSlot: string) =>
+    db.query<{ status: string; amount_cents: number; release_reason: string | null; owner_guest_id: string }>(
+      `select status, amount_cents, release_reason, owner_guest_id from public.auction_rollovers where from_slot_id = $1`,
+      [fromSlot],
+    );
+
+  beforeAll(async () => {
+    const config = {
+      phases: [{ name: "warmup", start: null, slotsPerHour: 0, minPriceCents: 500 }],
+      specials: { firstPeak: { enabled: false }, lastSong: { enabled: false } },
+    };
+    const s = await db.query<{ id: string }>(
+      `insert into public.sessions (venue_id, name, status, starts_at, ends_at, auction_config)
+       values ($1, $2, 'live', to_timestamp($3 / 1000.0), to_timestamp($4 / 1000.0), $5) returning id`,
+      [VENUE_ID, `IT rollover ${RUN}`, T0 - 3_600_000, T0 + 6 * 3_600_000, JSON.stringify(config)],
+    );
+    NIGHT = s.rows[0]!.id;
+  });
+  afterAll(async () => {
+    await db.query(`update public.sessions set status = 'ended', ended_at = now() where id = $1`, [NIGHT]);
+  });
+
+  it("second place opens the next auction; second again rolls again; the win spends it; third stays in the balance", async () => {
+    let now = base;
+    const first = await open(now);
+    const [a, b, c, d] = await Promise.all([createGuest(), createGuest(), createGuest(), createGuest()]);
+    const tb = takeTrack();
+    await bid(a, first, 1000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    await bid(b, first, 1200, now + 2000, { kind: "own", libraryTrackId: tb });
+    await bid(c, first, 1400, now + 3000, { kind: "own", libraryTrackId: takeTrack() });
+    const second = await open(now + 100_000);
+
+    await auction.tickAuctions(now + 241_000);
+    expect(await slotRow(first)).toMatchObject({ outcome: "won" });
+    // B was second: 12 € left the balance and opened the next auction for B's track.
+    expect((await rollovers(first)).rows[0]).toMatchObject({ status: "placed", amount_cents: 1200, owner_guest_id: b });
+    expect(await balance(b)).toBe(0);
+    const opened = (await bids(second)).rows;
+    expect(opened).toHaveLength(1);
+    expect(opened[0]).toMatchObject({ owner_guest_id: b, total_cents: 1200, status: "leading" });
+    expect(opened[0]!.rolled_from_bid_id).not.toBeNull();
+    // A was third: the 10 € is already in the balance.
+    expect(await balance(a)).toBe(1000);
+    const meA = await auction.myAuctionState(NIGHT, VENUE_ID, a);
+    expect(meA.balanceDeadline).not.toBeNull();
+
+    // Second auction: D takes it, B is second again → rolls again.
+    now = base + 300_000;
+    expect(await bid(d, second, 2000, now, { kind: "own", libraryTrackId: takeTrack() })).toMatchObject({ ok: true });
+    expect(await balance(b)).toBe(1200); // outbid: back for now…
+    const third = await open(now + 10_000);
+    await auction.tickAuctions(base + 100_000 + 241_000);
+    expect((await rollovers(second)).rows[0]).toMatchObject({ status: "placed", amount_cents: 1200 });
+    expect(await balance(b)).toBe(0); // …and moved on at the close.
+    const meB = await auction.myAuctionState(NIGHT, VENUE_ID, b);
+    expect(meB.bids.find((x) => x.slotId === second)).toMatchObject({ rolled: true, rolledOn: true });
+
+    // Third auction: B wins with the rolled money; played → spent, never returned.
+    await auction.tickAuctions(now + 10_000 + 241_000);
+    expect(await slotRow(third)).toMatchObject({ outcome: "won" });
+    expect((await auction.djSlotAction(third, "playing", "staff:test-dj", now + 260_000)).ok).toBe(true);
+    expect((await auction.djSlotAction(third, "played", "staff:test-dj", now + 400_000)).ok).toBe(true);
+    expect(await balance(b)).toBe(0);
+    const spent = await db.query<{ n: string }>(
+      `select coalesce(sum(amount_cents), 0) as n from public.auction_contributions where slot_id = $1 and guest_id = $2 and spent_at is not null`,
+      [third, b],
+    );
+    expect(Number(spent.rows[0]!.n)).toBe(1200);
+  }, 60_000);
+
+  it("a backed bid rolls with its backers; with no auction left the money goes back to the balance", async () => {
+    const now = base + 1_000_000;
+    const slot = await open(now);
+    const [owner, friend, top] = await Promise.all([createGuest(), createGuest(), createGuest()]);
+    const r = await bid(owner, slot, 800, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    if (!r.ok) throw new Error("bid failed");
+    await bid(friend, slot, 1300, now + 2000, { kind: "back", bidId: r.bidId });
+    await bid(top, slot, 1500, now + 3000, { kind: "own", libraryTrackId: takeTrack() });
+    await auction.tickAuctions(now + 241_000);
+    // No next auction tonight: released straight back, nobody loses anything.
+    expect((await rollovers(slot)).rows[0]).toMatchObject({ status: "released", release_reason: "no_next_auction", amount_cents: 1300 });
+    expect([await balance(owner), await balance(friend)]).toEqual([800, 500]);
+  }, 60_000);
+
+  it("a rolled amount that cannot beat the next auction's top goes back to the balance", async () => {
+    const now = base + 2_000_000;
+    const slot = await open(now);
+    const [a, b, x] = await Promise.all([createGuest(), createGuest(), createGuest()]);
+    await bid(a, slot, 600, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    await bid(b, slot, 900, now + 2000, { kind: "own", libraryTrackId: takeTrack() });
+    const next = await open(now + 50_000);
+    await bid(x, next, 3000, now + 60_000, { kind: "own", libraryTrackId: takeTrack() });
+    await auction.tickAuctions(now + 241_000);
+    expect((await rollovers(slot)).rows[0]).toMatchObject({ status: "released", release_reason: "outbid_already" });
+    expect(await balance(a)).toBe(600);
+    expect((await bids(next)).rows.map((row) => row.owner_guest_id)).toEqual([x]);
+  }, 60_000);
+
+  it("money still waiting at the end of the night goes back to the balance", async () => {
+    const now = base + 3_000_000;
+    const slot = await open(now);
+    const [a, b] = await Promise.all([createGuest(), createGuest()]);
+    await bid(a, slot, 700, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    await bid(b, slot, 900, now + 2000, { kind: "own", libraryTrackId: takeTrack() });
+    // The next auction is planned but not open yet.
+    await db.query(
+      `insert into public.auction_slots (session_id, venue_id, kind, phase, opens_at, scheduled_close_at, closes_at, min_price_cents)
+       values ($1, $2, 'regular', 'warmup', to_timestamp($3 / 1000.0), to_timestamp($4 / 1000.0), to_timestamp($4 / 1000.0), 500)`,
+      [NIGHT, VENUE_ID, now + 3_600_000, now + 3_840_000],
+    );
+    await auction.tickAuctions(now + 241_000);
+    expect((await rollovers(slot)).rows[0]).toMatchObject({ status: "held", amount_cents: 700 });
+    expect(await balance(a)).toBe(0);
+    expect((await auction.myAuctionState(NIGHT, VENUE_ID, a)).heldCents).toBe(700);
+    await auction.finishNightAuctions(NIGHT, now + 300_000);
+    expect((await rollovers(slot)).rows[0]).toMatchObject({ status: "released", release_reason: "night_ended" });
+    expect(await balance(a)).toBe(700);
   }, 60_000);
 });

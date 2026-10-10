@@ -2,14 +2,14 @@
 
 /**
  * The party's front door (2026-10-08): after the QR, the guest always
- * signs in with their phone number and the SMS code. A number that has
- * been here before comes back with its @ (it is not asked again); a new
- * number picks its @ once, and it stays with the number for every night
- * after. While SMS is still the mock provider, development shows the code
+ * signs in with their phone number and the SMS code. The number is the
+ * account (2026-10-10): a number seen before, on any phone, signs this
+ * browser in as that guest, with its @, balance and bids (it is not
+ * asked again); a new number picks its @ once, for good. While SMS is still the mock provider, development shows the code
  * on screen (see /api/guest/phone).
  *
- * Later, with real SMS live, the bid form stops asking for an @ and offers
- * "anonymous" or "public" instead (not done yet: docs/DECISIONS.md).
+ * Signed in with an @, the bid form offers "Público · @handle" or
+ * "Anónimo" instead of asking for an @.
  */
 
 import * as React from "react";
@@ -18,6 +18,7 @@ import { AtSign, MessageSquareText, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/client";
 import { apiFetch, errorMessage } from "./api";
 import { useGuest } from "./guest-providers";
 import { LocaleToggle } from "./locale-toggle";
@@ -29,6 +30,8 @@ interface PhoneDto {
   phone: string | null;
   verified: boolean;
   handle: string | null;
+  /** The number already has an account: this browser signs in as it. */
+  session?: { accessToken: string; refreshToken: string };
 }
 
 const field =
@@ -107,6 +110,21 @@ export function PhoneGate({ venueName, onEntered }: { venueName: string; onEnter
       return fail(res);
     }
     navigator.vibrate?.(20);
+    if (res.data.session) {
+      // A number seen before: become that guest (its @, balance and bids),
+      // then start the party again under that session.
+      setBusy(true);
+      const { error: sessionError } = await createClient().auth.setSession({
+        access_token: res.data.session.accessToken,
+        refresh_token: res.data.session.refreshToken,
+      });
+      if (sessionError) {
+        setBusy(false);
+        return setError(tErr("login_failed"));
+      }
+      window.location.reload();
+      return;
+    }
     after(res.data);
   }
 

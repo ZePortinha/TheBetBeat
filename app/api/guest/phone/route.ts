@@ -7,6 +7,7 @@ import { checkSmsCode, newSmsCode, SMS_CODE_TTL_MS } from "@/lib/security/otp";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { linkPhoneHandle } from "@/lib/guests/phone-handle";
+import { resolvePhoneAccount, sessionForGuest, type GuestSession } from "@/lib/guests/account";
 import { apiError, clientIp, rateLimitedResponse } from "../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../_lib/auth";
 import { guestListPartyHref } from "../_lib/guest-list";
@@ -14,17 +15,20 @@ import { guestListPartyHref } from "../_lib/guest-list";
 export const dynamic = "force-dynamic";
 
 /**
- * Guest phone sign-in (2026-10-05). Optional: never required to pay
- * (B1/B4 #3). The verified number is kept encrypted (B12.5) and pre-fills
+ * Guest phone sign-in (2026-10-05; the party's login since 2026-10-08,
+ * one account per number since 2026-10-10). The verified number is kept encrypted (B12.5) and pre-fills
  * MB WAY. `partyHref` is the live party whose guest list holds the number
  * (only ever revealed after the SMS code proved the number).
  *
  *   GET                       the saved number (own row only) + partyHref
  *                             + the guest's @ (null until they pick one)
  *   POST { phone, turnstile } sends a 6-digit code by SMS
- *   POST { phone, code }      verifies it, saves the number, + partyHref
- *   DELETE                    forgets the number; phone_hash stays for the
- *                             night limits (B4.7)
+ *   POST { phone, code }      verifies it, saves the number, + partyHref;
+ *                             a number that already has an account returns
+ *                             that guest's session (this browser switches)
+ *   DELETE                    forgets the saved copy of the number (MB WAY
+ *                             pre-fill); the account and its login stay,
+ *                             phone_hash stays for the night limits (B4.7)
  */
 
 const bodySchema = z
@@ -131,26 +135,41 @@ export async function POST(request: Request) {
     );
     if (used.rowCount === 0) return apiError("code_expired", 422);
 
+    // The number is the account (lib/guests/account.ts): a number seen
+    // before signs this browser in as its guest, with its @ and balance.
+    const account = await resolvePhoneAccount(pool, guestId, phoneHash);
+    const accountId = account.accountId;
     await pool.query(
       `update public.guests
           set phone_encrypted = $2, phone_hash = $3, phone_verified_at = now()
         where id = $1`,
-      [guestId, encrypt(phone), phoneHash],
+      [accountId, encrypt(phone), phoneHash],
     );
     await pool.query(
-      `insert into public.audit_log (actor, action, entity, entity_id)
-       values ($1, 'guest.phone_verified', 'guest', $2)`,
-      [`guest:${guestId}`, guestId],
+      `insert into public.audit_log (actor, action, entity, entity_id, payload)
+       values ($1, $2, 'guest', $3, $4)`,
+      [
+        `guest:${guestId}`,
+        account.kind === "switch" ? "guest.phone_signed_in" : "guest.phone_verified",
+        accountId,
+        JSON.stringify(account.kind === "switch" ? { fromGuestId: guestId } : {}),
+      ],
     );
-    // The number owns one @: this device gets it back (or the number keeps
-    // this one). A returning number comes back with its @, so the entry
-    // screen does not ask for one again.
-    const handle = await linkPhoneHandle(pool, guestId, phoneHash);
+    // The number owns one @: a returning number comes back with its @, so
+    // the entry screen does not ask for one again.
+    const handle = await linkPhoneHandle(pool, accountId, phoneHash);
+    let session: GuestSession | null = null;
+    if (account.kind === "switch") {
+      session = await sessionForGuest(accountId);
+      if (!session) return apiError("login_failed", 502);
+    }
     return NextResponse.json({
       phone,
       verified: true,
       partyHref: await guestListPartyHref(phoneHash),
       handle,
+      // Only after the code proved the number: that guest's own session.
+      ...(session ? { session } : {}),
     });
   }
 
@@ -196,7 +215,7 @@ export async function DELETE(request: Request) {
 
   const pool = getPool();
   await pool.query(
-    `update public.guests set phone_encrypted = null, phone_verified_at = null where id = $1`,
+    `update public.guests set phone_encrypted = null where id = $1`,
     [identity.guestId],
   );
   await pool.query(
