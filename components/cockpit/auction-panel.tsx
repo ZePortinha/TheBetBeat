@@ -141,7 +141,7 @@ export function AuctionNext({ a }: { a: CockpitAuction }) {
           <p className="mt-2 text-lg font-bold text-text-primary">
             {t("micBody", { label: w.label ?? t("anonymous"), amount: formatEurosDisplay(w.totalCents), track: w.trackTitle })}
           </p>
-          <Button className="mt-3" variant="secondary" loading={busy("announced")} onPress={() => void a.act(slot.id, "announced")}>
+          <Button size="lg" className="mt-3" variant="secondary" loading={busy("announced")} onPress={() => void a.act(slot.id, "announced")}>
             {t("announced")}
           </Button>
         </div>
@@ -192,7 +192,7 @@ export function AuctionNext({ a }: { a: CockpitAuction }) {
         </div>
       )}
       {slot.playStatus !== "playing" ? (
-        <Button variant="ghost" className="text-ember-500" loading={busy("reject")} onPress={() => void a.act(slot.id, "reject")}>
+        <Button size="lg" variant="destructiveGhost" loading={busy("reject")} onPress={() => void a.act(slot.id, "reject")}>
           {t("reject")}
         </Button>
       ) : null}
@@ -214,7 +214,7 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
       <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto pb-2">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-bold text-text-secondary">{t("openTitle")}</h2>
-          <Button size="md" variant="secondary" loading={a.busy === "open-now"} onPress={() => void a.openNow()}>
+          <Button size="lg" variant="secondary" loading={a.busy === "open-now"} onPress={() => void a.openNow()}>
             <Gavel size={16} aria-hidden />
             {t("openNow")}
           </Button>
@@ -247,10 +247,10 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
                 )}
                 {!s.top ? (
                   <div className="mt-3 flex gap-2">
-                    <Button variant="secondary" loading={a.busy === `${s.id}:pause`} onPress={() => void a.act(s.id, "pause")}>
+                    <Button size="lg" variant="secondary" loading={a.busy === `${s.id}:pause`} onPress={() => void a.act(s.id, "pause")}>
                       {t("pause")}
                     </Button>
-                    <Button variant="ghost" className="text-ember-500" loading={a.busy === `${s.id}:cancel`} onPress={() => void a.act(s.id, "cancel")}>
+                    <Button size="lg" variant="destructiveGhost" loading={a.busy === `${s.id}:cancel`} onPress={() => void a.act(s.id, "cancel")}>
                       {t("cancel")}
                     </Button>
                   </div>
@@ -286,28 +286,35 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
           <p className="text-sm text-text-tertiary">{t("scheduleEmpty")}</p>
         ) : (
           upcoming.map((s) => (
-            <div key={s.id} className="flex items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-3 py-2">
-              <div className="min-w-0 flex-1">
-                <p className="tnum text-base font-semibold text-text-primary">
-                  {clock(s.closesAt)}
-                  {kind(s.kind) ? <span className="ml-2 text-xs text-accent-400">{kind(s.kind)}</span> : null}
-                </p>
-                <p className="tnum text-xs text-text-tertiary">
+            // Time and price on top, the two 56px actions below: side by side
+            // they squeezed the time out of a 42%-wide column.
+            <div key={s.id} className="flex flex-col gap-2 rounded-card border border-line-subtle bg-surface-1 p-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-1">
+                <p className="tnum text-xl font-semibold text-text-primary">{clock(s.closesAt)}</p>
+                <p className="tnum text-sm text-text-tertiary">
                   {s.status === "paused" ? t("paused") : t("minPrice", { amount: formatEurosDisplay(s.minPriceCents) })}
                 </p>
+                {/* One chip, never broken word by word next to the time. */}
+                {kind(s.kind) ? (
+                  <span className="whitespace-nowrap rounded-full bg-accent-500/15 px-2 py-0.5 text-xs font-semibold text-accent-400">
+                    {kind(s.kind)}
+                  </span>
+                ) : null}
               </div>
-              {s.status === "paused" ? (
-                <Button size="md" variant="secondary" loading={a.busy === `${s.id}:resume`} onPress={() => void a.act(s.id, "resume")}>
-                  {t("resume")}
+              <div className="flex gap-2">
+                {s.status === "paused" ? (
+                  <Button size="lg" variant="secondary" className="flex-1" loading={a.busy === `${s.id}:resume`} onPress={() => void a.act(s.id, "resume")}>
+                    {t("resume")}
+                  </Button>
+                ) : (
+                  <Button size="lg" variant="secondary" className="flex-1" loading={a.busy === `${s.id}:pause`} onPress={() => void a.act(s.id, "pause")}>
+                    {t("pause")}
+                  </Button>
+                )}
+                <Button size="lg" variant="destructiveGhost" className="flex-1" loading={a.busy === `${s.id}:cancel`} onPress={() => void a.act(s.id, "cancel")}>
+                  {t("cancel")}
                 </Button>
-              ) : (
-                <Button size="md" variant="ghost" loading={a.busy === `${s.id}:pause`} onPress={() => void a.act(s.id, "pause")}>
-                  {t("pause")}
-                </Button>
-              )}
-              <Button size="md" variant="ghost" className="text-ember-500" loading={a.busy === `${s.id}:cancel`} onPress={() => void a.act(s.id, "cancel")}>
-                {t("cancel")}
-              </Button>
+              </div>
             </div>
           ))
         )}

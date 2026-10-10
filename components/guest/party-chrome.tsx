@@ -73,7 +73,7 @@ function TabBar({ token }: { token: string }) {
         >
           <span
             className={cx(
-              "absolute -top-7 flex size-[4.25rem] items-center justify-center rounded-full bg-accent-500 text-text-on-accent ring-4 ring-bg-base transition-transform duration-100 group-active:scale-95",
+              "absolute -top-7 flex size-[4.25rem] items-center justify-center rounded-full bg-accent-500 text-text-on-accent ring-4 ring-bg-base transition-transform duration-100 group-active:scale-[0.97]",
               active === "auction" ? "shadow-glow-accent" : "shadow-lg",
             )}
           >

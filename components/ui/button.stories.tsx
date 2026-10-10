@@ -23,6 +23,10 @@ export const Ghost: Story = {
   args: { variant: "ghost", children: "Cancelar" },
 };
 
+export const DestructiveGhost: Story = {
+  args: { variant: "destructiveGhost", children: "Cancelar" },
+};
+
 export const Destructive: Story = {
   args: { variant: "destructive", children: "Recusar pedido" },
 };

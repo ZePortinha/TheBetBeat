@@ -155,10 +155,10 @@ export function StatsScreen({ sessionId, footer }: { sessionId: string | null; f
           {t("title")}
         </h1>
         <div className="flex gap-3 print:hidden">
-          <Button variant="secondary" onPress={exportCsv}>
+          <Button size="lg" variant="secondary" onPress={exportCsv}>
             {t("exportCsv")}
           </Button>
-          <Button variant="secondary" onPress={() => window.print()}>
+          <Button size="lg" variant="secondary" onPress={() => window.print()}>
             {t("exportPdf")}
           </Button>
         </div>

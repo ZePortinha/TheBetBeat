@@ -127,7 +127,7 @@ export default async function AdminFlagsPage({
 
               <button
                 type="submit"
-                className="min-h-10 self-start rounded-button bg-accent-500 px-5 text-sm
+                className="min-h-10 self-start rounded-full bg-accent-500 px-5 text-sm
                   font-semibold text-text-on-accent transition-transform duration-100
                   active:scale-[0.97]"
               >
