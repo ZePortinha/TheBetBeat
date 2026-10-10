@@ -66,6 +66,7 @@ export async function recordWinVideo(slotId: string, text: WinText, signal?: Abo
   if (!ctx) throw new Error("no_canvas");
 
   const scene = createWinScene({ cover, text });
+  scene.prepare();
   scene.draw(ctx, W, H, 0);
   const stream = canvas.captureStream(FPS);
   const recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6_000_000 });

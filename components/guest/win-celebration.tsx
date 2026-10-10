@@ -70,6 +70,24 @@ function footerDate(locale: string, at: Date): string {
 
 type VideoState = "recording" | "ready" | "none";
 
+
+/** Loads the album cover through our proxy so the canvas stays same-origin. */
+function useCoverBitmap(slotId: string, coverUrl?: string | null): ImageBitmap | null {
+  const [bmp, setBmp] = React.useState<ImageBitmap | null>(null);
+  React.useEffect(() => {
+    if (!coverUrl) return;
+    let cancelled = false;
+    fetch(`/api/guest/auction/${slotId}/cover`)
+      .then((r) => (r.ok ? r.blob() : Promise.reject()))
+      .then((b) => createImageBitmap(b))
+      .then((img) => { if (!cancelled) setBmp(img); })
+      .catch(() => {});
+    return () => { cancelled = true; bmp?.close(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotId, coverUrl]);
+  return bmp;
+}
+
 export function WinCelebration({
   slotId,
   trackTitle,
@@ -94,12 +112,13 @@ export function WinCelebration({
   const stage = React.useRef<HTMLCanvasElement>(null);
   const amount = useCountUp(totalCents, 900, !reduced);
   const title = t("winTitle");
+  const coverBmp = useCoverBitmap(slotId, coverUrl);
 
   // The stage starts on the first frame: no import, no 3D to warm up.
   React.useEffect(() => {
     if (!stage.current) return;
-    return startWinScene(stage.current, { still: reduced });
-  }, [reduced]);
+    return startWinScene(stage.current, { cover: coverBmp, still: reduced });
+  }, [reduced, coverBmp]);
 
   // The Instagram video records in the background, once the opening burst
   // has played on screen (so the two never compete for the same frames).

@@ -1,22 +1,43 @@
 /**
- * The winner's moment, flat and sharp (2026-10-08, replaces the three.js
- * stage that froze some phones). Plain Canvas 2D, no dependencies, and a
- * PURE function of time: `drawWinFrame(t)` paints the same frame for the
- * same `t`, so the live screen and the Instagram video are one animation.
+ * The winner's moment, "Gold & Smoke" (2026-10-10, chosen from five options and
+ * refined with the venue over five rounds). Plain Canvas 2D, no dependencies,
+ * and a PURE function of time: `draw(ctx, w, h, t)` paints the same frame for
+ * the same `t`, so the live screen and the Instagram video are one animation.
  *
- *   0.00  white flash + a ring from the centre; the mirror ball spins
- *   0.10  coloured stage lights start to sweep and strobe (≤ 2 flashes/s)
- *   0.20  confetti cannons fire from both bottom corners
- *   0.15  two champagne bottles slide in; 0.70 the corks pop and the
- *         champagne sprays in gold streaks
- *   1.20  confetti keeps raining from above; light spots from the ball
- *         drift across the room
+ *   0.00  a gold line draws itself across the middle; smoke drifts, dust lifts
+ *   0.15  the sparkler on the bottle's neck catches
+ *   0.30  the record irises open out of the line and starts turning
+ *   0.36  the cork leaves at speed; the label switches on; champagne sprays
+ *   0.80  the title, the amount and the track fade up under the record
  *
  * Particles are seeded once (`createWinScene`) and placed analytically
- * (ballistics with drag), so nothing accumulates frame to frame. Canvas
- * colours are literal by necessity; they mirror the tokens (accent red
- * #e8112d, amber #ff9f0a) plus the multi-colour stage lights.
+ * (ballistics with drag), so nothing accumulates frame to frame. The bottle's
+ * shading (win-bottle) is spread over the first frames, and everything else
+ * expensive — smoke, the stage's warm wash, the record — is baked once and
+ * blitted, so a phone holds the frame rate.
+ *
+ * Canvas colours are literal by necessity; they mirror the tokens (accent red
+ * #e8112d) plus the warm gold of the stage.
  */
+
+import {
+  type Canvas2D,
+  blobSprite,
+  clamp,
+  easeInOut,
+  easeOut,
+  fit,
+  glowSprite,
+  offscreen,
+  rng,
+  sceneFont,
+  shine,
+  spaced,
+  sprite,
+  smokeSprite,
+} from "./win-canvas";
+import { createBottle, drawCork, labelLight, type Bottle } from "./win-bottle";
+import { createVinyl, type Vinyl } from "./win-vinyl";
 
 export interface WinText {
   eyebrow: string;
@@ -29,634 +50,425 @@ export interface WinText {
 }
 
 export interface WinSceneOptions {
-  /** Album art, drawn in the middle (the video). The live screen shows it in HTML. */
+  /** Album art, pressed into the record. Without it the record is brand red. */
   cover?: CanvasImageSource | null;
   /** Everything drawn in the canvas, text included (the video). */
   text?: WinText | null;
-  /** Fewer particles (small or slow phones). */
+  /** Fewer particles and coarser shading (small or slow phones). */
   lite?: boolean;
 }
 
 export interface WinScene {
   draw(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void;
+  /** Shades every light angle now, instead of one a frame (the video). */
+  prepare(): void;
 }
 
-const ACCENT = "#e8112d";
-const AMBER = "#ff9f0a";
-const LIGHTS = ["#ff2d95", "#32d4ff", "#ffb020", "#e8112d", "#9b5cff", "#2bff88"];
-const CONFETTI = ["#e8112d", "#ffffff", "#ff9f0a", "#ff2d95", "#32d4ff", "#ffd60a", "#9b5cff"];
-const G = 1.35; // gravity, in scene heights per s²
+/** When the cork leaves, in scene seconds. */
+const POP = 0.36;
+/** The bottle's angles over the whole animation: what gets shaded ahead of time. */
+const ROT_FROM = -0.64;
+const ROT_TO = 0.06;
 
-/** Small seeded PRNG: the same scene every time (the video matches the screen). */
-function mulberry32(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const clamp01 = (k: number) => Math.min(1, Math.max(0, k));
-const easeOut = (k: number) => 1 - Math.pow(1 - clamp01(k), 3);
-/** Critically-damped-ish spring with a touch of overshoot for the pop-ins. */
-const springIn = (k: number) => {
-  const x = clamp01(k);
-  return 1 - Math.exp(-6 * x) * Math.cos(9 * x);
-};
-
-interface Flake {
-  start: number; // s
-  x0: number; // fraction of width
-  y0: number; // fraction of height
-  vx: number; // widths / s
-  vy: number; // heights / s (down +)
-  drag: number;
-  size: number; // fraction of width
-  ratio: number;
-  color: string;
-  spin: number;
-  phase: number;
-  sway: number;
+interface Spark {
+  a: number;
+  v: number;
+  off: number;
   life: number;
-  period: number; // > 0: rains again every `period` s
 }
 
-interface Drop {
-  start: number;
-  side: -1 | 1;
-  speed: number;
+interface Foam {
+  te: number;
+  sp: number;
   spread: number;
   size: number;
-  life: number;
+  drop: boolean;
 }
 
-interface Spot {
+interface Dust {
+  ang: number;
+  sp: number;
+  x0: number;
+  y0: number;
+  size: number;
+  tw: number;
+  ph: number;
+  rise: number;
+  d: number;
+}
+
+interface Smoke {
   x: number;
   y: number;
-  r: number;
-  color: string;
-  speed: number;
-  phase: number;
+  sc: number;
+  sp: number;
+  ph: number;
 }
 
-/** Where the mirror ball hangs, for this canvas size. */
-export function ballGeometry(w: number, h: number) {
-  const r = Math.min(w * 0.12, h * 0.06);
-  const top = h * 0.03;
-  return { cx: w / 2, cy: top + h * 0.035 + r, r, top };
+interface Layout {
+  u: number;
+  s: number;
+  cx: number;
+  cy: number;
 }
+
+const layout = (w: number, h: number): Layout => ({ u: w / 360, s: w * 0.58, cx: w / 2, cy: h * 0.355 });
 
 export function createWinScene(opts: WinSceneOptions = {}): WinScene {
-  const rnd = mulberry32(20261008);
-  const pick = <T,>(list: readonly T[]) => list[Math.floor(rnd() * list.length)] as T;
   const lite = opts.lite ?? false;
+  const SP = {
+    gold: glowSprite("255,214,140"),
+    white: glowSprite("255,255,255"),
+    foam: blobSprite("255,253,246"),
+    smoke: smokeSprite("214,168,92", 7),
+  };
+  const vinyl: Vinyl = createVinyl(opts.cover ?? null, SP.gold);
 
-  // Confetti cannons (bottom corners) + the rain that follows.
-  const flakes: Flake[] = [];
-  const cannon = lite ? 90 : 150;
-  for (let i = 0; i < cannon; i += 1) {
-    const side = i % 2 === 0 ? -1 : 1;
-    const angle = (-Math.PI / 2) + side * (0.28 + rnd() * 0.42); // up and inwards
-    const speed = 1.7 + rnd() * 1.1;
-    flakes.push({
-      start: 0.2 + rnd() * 0.18,
-      x0: side < 0 ? -0.02 : 1.02,
-      y0: 0.98,
-      vx: Math.cos(angle) * speed * 0.62,
-      vy: Math.sin(angle) * speed,
-      drag: 1.3 + rnd() * 0.9,
-      size: 0.02 + rnd() * 0.014,
-      ratio: 0.45 + rnd() * 0.35,
-      color: pick(CONFETTI),
-      spin: 5 + rnd() * 9,
-      phase: rnd() * Math.PI * 2,
-      sway: 0.01 + rnd() * 0.02,
-      life: 5,
-      period: 0,
+  // Per-size state: the particles, the baked stage wash and the bottle's shading.
+  let size = "";
+  let dust: Dust[] = [];
+  let smoke: Smoke[] = [];
+  let foam: Foam[] = [];
+  let sparks: Spark[] = [];
+  let bottle: Bottle | null = null;
+  let glowBuf: Canvas2D | null = null;
+  let smokeBuf: Canvas2D | null = null;
+
+  function build(w: number, h: number, L: Layout) {
+    const r = rng(20261010);
+    dust = Array.from({ length: lite ? 48 : 78 }, () => {
+      const a = r() * Math.PI * 2;
+      const m = 0.5 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a)));
+      return {
+        ang: a + (r() - 0.5) * 0.6,
+        sp: 0.2 + r() * 0.8,
+        x0: L.cx + Math.cos(a) * L.s * m,
+        y0: L.cy + Math.sin(a) * L.s * m,
+        size: 0.6 + r() * 1.6,
+        tw: 2 + r() * 4,
+        ph: r() * 6.3,
+        rise: 6 + r() * 20,
+        d: r() * 0.3,
+      };
     });
-  }
-  const rain = lite ? 50 : 80;
-  for (let i = 0; i < rain; i += 1) {
-    flakes.push({
-      start: 1.2 + rnd() * 4.5,
-      x0: rnd(),
-      y0: -0.04,
-      vx: (rnd() - 0.5) * 0.05,
-      vy: 0.05,
-      drag: 2.6,
-      size: 0.018 + rnd() * 0.012,
-      ratio: 0.45 + rnd() * 0.35,
-      color: pick(CONFETTI),
-      spin: 4 + rnd() * 7,
-      phase: rnd() * Math.PI * 2,
-      sway: 0.015 + rnd() * 0.025,
-      life: 4.6,
-      period: 4.5,
+    smoke = Array.from({ length: lite ? 4 : 7 }, () => ({
+      x: r() * w,
+      y: h * (0.35 + r() * 0.8),
+      sc: 0.8 + r() * 0.8,
+      sp: 0.6 + r(),
+      ph: r() * 6.3,
+    }));
+    foam = Array.from({ length: lite ? 110 : 170 }, () => {
+      const k = r();
+      return {
+        te: POP + 2.4 * Math.pow(k, 2.2),
+        sp: 0.85 + r() * 0.7,
+        spread: (r() - 0.5) * 0.32,
+        size: 0.6 + r() * 1.0,
+        drop: r() < 0.28,
+      };
     });
-  }
-
-  // Champagne: gold streaks out of each bottle once the cork pops.
-  const drops: Drop[] = [];
-  const perBottle = lite ? 70 : 120;
-  for (let i = 0; i < perBottle * 2; i += 1) {
-    const k = rnd();
-    drops.push({
-      start: 0.72 + Math.pow(k, 1.8) * 1.6, // most of it right at the pop
-      side: i % 2 === 0 ? -1 : 1,
-      speed: 0.9 + rnd() * 0.75,
-      spread: (rnd() - 0.5) * 0.42,
-      size: 0.6 + rnd() * 1.1,
-      life: 0.9 + rnd() * 0.6,
+    sparks = Array.from({ length: lite ? 44 : 70 }, () => ({
+      a: -Math.PI / 2 + (r() - 0.5) * 1.6,
+      v: 0.25 + r() * 0.45,
+      off: r(),
+      life: 0.35 + r() * 0.35,
+    }));
+    bottle = createBottle({
+      height: h * 0.54,
+      from: ROT_FROM,
+      to: ROT_TO,
+      pop: POP,
+      cap: lite ? 340 : 520,
+      step: lite ? 0.08 : 0.055,
     });
+    // the stage's warm wash and the smoke are soft and slow, so they live at half
+    // size: seven screen-sized blends a frame cost far more than one blit
+    const bw = Math.ceil(w * 0.5);
+    const bh = Math.ceil(h * 0.5);
+    glowBuf = offscreen(bw, bh);
+    const gg = glowBuf?.getContext("2d");
+    if (gg) {
+      gg.scale(0.5, 0.5);
+      const gr = gg.createRadialGradient(L.cx, L.cy, 0, L.cx, L.cy, w * 0.95);
+      gr.addColorStop(0, "rgba(201,160,82,0.3)");
+      gr.addColorStop(0.45, "rgba(110,76,28,0.14)");
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      gg.fillStyle = gr;
+      gg.fillRect(0, 0, w, h);
+    }
+    smokeBuf = offscreen(bw, bh);
   }
 
-  // Light spots thrown around the room by the mirror ball.
-  const spots: Spot[] = [];
-  for (let i = 0; i < (lite ? 14 : 22); i += 1) {
-    spots.push({
-      x: rnd(),
-      y: 0.12 + rnd() * 0.82,
-      r: 0.003 + rnd() * 0.004,
-      color: pick(LIGHTS),
-      speed: 0.035 + rnd() * 0.05,
-      phase: rnd() * Math.PI * 2,
-    });
-  }
-
-  // Facet brightness of the mirror ball, fixed per tile.
-  const facet: number[] = [];
-  for (let i = 0; i < 512; i += 1) facet.push(rnd());
-
-  function bottle(side: -1 | 1, w: number, h: number, t: number) {
-    // Bottom corners, tilted up towards the centre.
-    const slide = easeOut((t - 0.15) / 0.45);
-    const kick = t > 0.7 ? Math.exp(-(t - 0.7) * 9) * 0.08 : 0; // recoil at the pop
-    const angle = -side * (0.55 + kick);
-    const bx = side < 0 ? w * (0.02 - 0.3 * (1 - slide)) : w * (0.98 + 0.3 * (1 - slide));
-    const by = h * 0.9;
-    const u = w * 0.045; // bottle unit
-    return { bx, by, angle, u, slide };
-  }
-
-  /** Mouth of the bottle in canvas pixels, and the spray direction. */
-  function mouth(side: -1 | 1, w: number, h: number) {
-    const { bx, by, angle, u } = bottle(side, w, h, 2);
-    const len = u * 7.2;
+  /** Where the bottle is, how it leans, and where its mouth points, at time `t`. */
+  function pose(w: number, h: number, t: number) {
+    const enter = easeOut(t / 0.35);
+    const kick = t > POP ? Math.exp(-(t - POP) * 7) * Math.sin((t - POP) * 26) * 0.05 : 0;
+    const sway = Math.sin(t * 1.25) * 0.045 * easeOut((t - 0.6) / 0.8);
+    const ang = -0.14 - 0.45 * (1 - enter) + kick + sway;
     return {
-      x: bx + Math.sin(angle) * len,
-      y: by - Math.cos(angle) * len,
-      dir: -Math.PI / 2 + angle,
+      ang,
+      H: h * 0.54,
+      x: w * 0.8 + (1 - enter) * w * 0.3,
+      y: h * 0.47 + (1 - enter) * h * 0.35,
+      dir: { x: Math.sin(ang), y: -Math.cos(ang) },
     };
   }
 
-  function drawBottle(ctx: CanvasRenderingContext2D, side: -1 | 1, w: number, h: number, t: number) {
-    const { bx, by, angle, u, slide } = bottle(side, w, h, t);
-    if (slide <= 0) return;
-    ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(angle);
-    // Body: deep green glass with a hard highlight (flat, two tones).
-    const body = ctx.createLinearGradient(-u, 0, u, 0);
-    body.addColorStop(0, "#06231a");
-    body.addColorStop(0.35, "#0f4a35");
-    body.addColorStop(0.55, "#0a3526");
-    body.addColorStop(1, "#041a12");
-    ctx.fillStyle = body;
-    ctx.beginPath();
-    ctx.moveTo(-u, u * 1.2);
-    ctx.lineTo(-u, -u * 2.4);
-    ctx.quadraticCurveTo(-u, -u * 3.6, -u * 0.36, -u * 4.6);
-    ctx.lineTo(-u * 0.36, -u * 7.0);
-    ctx.lineTo(u * 0.36, -u * 7.0);
-    ctx.lineTo(u * 0.36, -u * 4.6);
-    ctx.quadraticCurveTo(u, -u * 3.6, u, -u * 2.4);
-    ctx.lineTo(u, u * 1.2);
-    ctx.closePath();
-    ctx.fill();
-    // Highlight stripe.
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
-    ctx.fillRect(-u * 0.62, -u * 2.2, u * 0.16, u * 3.2);
-    // Label.
-    ctx.fillStyle = "#f3ead2";
-    ctx.fillRect(-u, -u * 1.5, u * 2, u * 1.5);
-    ctx.fillStyle = ACCENT;
-    ctx.fillRect(-u, -u * 1.08, u * 2, u * 0.32);
-    // Gold foil on the neck.
-    const foil = ctx.createLinearGradient(-u * 0.4, 0, u * 0.4, 0);
-    foil.addColorStop(0, "#8a6a1c");
-    foil.addColorStop(0.5, "#ffe08a");
-    foil.addColorStop(1, "#8a6a1c");
-    ctx.fillStyle = foil;
-    ctx.fillRect(-u * 0.4, -u * 7.0, u * 0.8, u * 1.9);
-    // The cork: on the bottle until the pop, then it flies.
-    if (t < 0.7) {
-      ctx.fillStyle = "#c79a5b";
-      ctx.fillRect(-u * 0.3, -u * 7.7, u * 0.6, u * 0.7);
+  function drawStage(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, L: Layout) {
+    ctx.fillStyle = "#050403";
+    ctx.fillRect(0, 0, w, h);
+    const gl = easeOut((t - 0.35) / 1.2) * (0.85 + 0.15 * Math.sin(t * 1.6));
+    if (glowBuf) {
+      ctx.globalAlpha = gl;
+      ctx.drawImage(glowBuf, 0, 0, w, h);
+      ctx.globalAlpha = 1;
     }
-    ctx.restore();
-
-    if (t >= 0.7) {
-      const k = t - 0.7;
-      if (k < 1.6) {
-        const m = mouth(side, w, h);
-        const v = h * 1.6;
-        const cx = m.x + Math.cos(m.dir) * v * k * 0.55;
-        const cy = m.y + Math.sin(m.dir) * v * k + 0.5 * G * h * k * k;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(k * 14 * side);
-        ctx.fillStyle = "#c79a5b";
-        ctx.fillRect(-u * 0.3, -u * 0.35, u * 0.6, u * 0.7);
-        ctx.restore();
+    const sg = smokeBuf?.getContext("2d");
+    if (smokeBuf && sg) {
+      sg.setTransform(1, 0, 0, 1, 0, 0);
+      sg.clearRect(0, 0, smokeBuf.width, smokeBuf.height);
+      sg.setTransform(0.5, 0, 0, 0.5, 0, 0);
+      for (const s of smoke) {
+        const span = h * 1.6;
+        const y = h * 1.25 - ((h * 1.25 - s.y + t * h * 0.03 * s.sp) % span);
+        const x = s.x + Math.sin(t * 0.3 + s.ph) * w * 0.08;
+        sprite(sg, SP.smoke, x, y, w * 0.95 * s.sc, 0.55 * easeOut(t / 1.5));
       }
-      // Foam puff at the pop.
-      const puff = 1 - clamp01(k / 0.45);
-      if (puff > 0) {
-        const m = mouth(side, w, h);
-        ctx.fillStyle = `rgba(255,250,235,${0.32 * puff})`;
-        for (let i = 0; i < 4; i += 1) {
-          const d = u * (0.6 + i * 0.7) * (1 + k * 3);
-          ctx.beginPath();
-          ctx.arc(m.x + Math.cos(m.dir) * d, m.y + Math.sin(m.dir) * d, u * (0.3 + i * 0.15) * (1 + k * 1.5), 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      ctx.globalCompositeOperation = "screen";
+      ctx.drawImage(smokeBuf, 0, 0, w, h);
+      ctx.globalCompositeOperation = "source-over";
     }
-  }
-
-  function drawSpray(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-    if (t < 0.72) return;
-    const m = [mouth(-1, w, h), mouth(1, w, h)];
-    ctx.lineCap = "round";
-    for (const d of drops) {
-      const k = t - d.start;
-      if (k < 0 || k > d.life) continue;
-      const origin = m[d.side < 0 ? 0 : 1]!;
-      const dir = origin.dir + d.spread;
-      const vx = Math.cos(dir) * d.speed * h * 0.62;
-      const vy = Math.sin(dir) * d.speed * h;
-      const x = origin.x + vx * k;
-      const y = origin.y + vy * k + 0.5 * G * h * k * k;
-      // Streak along the current velocity: speed reads as light.
-      const cvx = vx;
-      const cvy = vy + G * h * k;
-      const len = 0.022;
-      const alpha = 1 - k / d.life;
-      ctx.strokeStyle = `rgba(255,214,120,${0.85 * alpha})`;
-      ctx.lineWidth = d.size * (w / 400) * 1.6;
+    // two rings of pressure leaving the middle as the record opens
+    for (let k = 0; k < 2; k += 1) {
+      const p = (t - 0.45 - k * 0.2) / 1.5;
+      if (p <= 0 || p >= 1) continue;
+      ctx.strokeStyle = `rgba(236,200,126,${(1 - p) * 0.75})`;
+      ctx.lineWidth = (2.4 - 1.6 * p) * L.u;
       ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x - cvx * len, y - cvy * len);
+      ctx.arc(L.cx, L.cy, L.s * 0.6 + easeOut(p) * w * 0.7, 0, Math.PI * 2);
       ctx.stroke();
     }
-  }
-
-  function drawBeams(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-    const on = easeOut((t - 0.1) / 0.5);
-    if (on <= 0) return;
-    const n = 5;
-    for (let i = 0; i < n; i += 1) {
-      const x = w * (0.08 + (0.84 * i) / (n - 1));
-      const sway = Math.sin(t * (0.9 + i * 0.17) + i * 1.7) * 0.42 + (i - (n - 1) / 2) * -0.1;
-      const angle = Math.PI / 2 + sway;
-      // Strobe: each beam blinks on its own beat, never faster than 2/s.
-      const beat = Math.sin(t * Math.PI * 2 * (0.8 + (i % 3) * 0.3) + i);
-      const strobe = 0.35 + 0.65 * clamp01(beat * 1.6);
-      const color = LIGHTS[(i + Math.floor(t / 1.5)) % LIGHTS.length]!;
-      const len = h * 1.15;
-      const half = 0.12;
-      ctx.save();
-      ctx.translate(x, -h * 0.02);
-      ctx.rotate(angle - Math.PI / 2);
-      const g = ctx.createLinearGradient(0, 0, 0, len);
-      g.addColorStop(0, hexA(color, 0.5 * strobe * on));
-      g.addColorStop(0.6, hexA(color, 0.12 * strobe * on));
-      g.addColorStop(1, hexA(color, 0));
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(-w * 0.008, 0);
-      ctx.lineTo(w * 0.008, 0);
-      ctx.lineTo(Math.tan(half) * len, len);
-      ctx.lineTo(-Math.tan(half) * len, len);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+    // the gold line draws itself, then the record irises open out of it
+    const open = easeInOut((t - 0.3) / 0.5);
+    if (open > 0) vinyl.draw(ctx, L.cx, L.cy, L.s * 0.52, t, open);
+    const grow = easeOut(t / 0.3);
+    const lw = L.s * grow * 1.12;
+    const fade = 1 - easeOut((t - 0.3) / 0.35);
+    if (fade > 0.01) {
+      const gx = ctx.createLinearGradient(L.cx - lw / 2, 0, L.cx + lw / 2, 0);
+      gx.addColorStop(0, "rgba(226,186,110,0)");
+      gx.addColorStop(0.5, `rgba(255,241,204,${fade})`);
+      gx.addColorStop(1, "rgba(226,186,110,0)");
+      ctx.fillStyle = gx;
+      ctx.fillRect(L.cx - lw / 2, L.cy - 0.8 * L.u, lw, 1.6 * L.u);
     }
-  }
-
-  function drawSpots(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-    const on = easeOut((t - 0.2) / 0.8);
-    if (on <= 0) return;
-    for (const s of spots) {
-      const x = (((s.x + t * s.speed) % 1) + 1) % 1;
-      const tw = 0.5 + 0.5 * Math.sin(t * 3 + s.phase);
-      ctx.fillStyle = hexA(s.color, 0.55 * tw * on);
-      ctx.beginPath();
-      ctx.arc(x * w, s.y * h, s.r * w * 2, 0, Math.PI * 2);
-      ctx.fill();
+    // gold dust lifting off the record
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of dust) {
+      const dt = t - 0.45 - p.d;
+      if (dt <= 0) continue;
+      const k = 2.2;
+      const out = (1 - Math.exp(-k * dt)) / k;
+      const x = p.x0 + Math.cos(p.ang) * p.sp * w * 0.4 * out + Math.sin(t * 0.7 + p.ph) * 4 * L.u;
+      const y = p.y0 + Math.sin(p.ang) * p.sp * w * 0.4 * out - p.rise * L.u * dt;
+      const a = Math.min(1, dt * 4) * (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * p.tw + p.ph)));
+      sprite(ctx, SP.gold, x, y, p.size * L.u * 7, a * 0.9);
     }
-  }
-
-  function drawBall(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-    const { cx, cy, r, top } = ballGeometry(w, h);
-    // The wire it hangs from.
-    ctx.strokeStyle = "rgba(255,255,255,0.35)";
-    ctx.lineWidth = Math.max(1, w / 400);
-    ctx.beginPath();
-    ctx.moveTo(cx, 0);
-    ctx.lineTo(cx, cy - r);
-    ctx.stroke();
-    void top;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.fillStyle = "#1c1c1e";
-    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-    const rows = 12;
-    const cols = 24;
-    const rot = t * 0.9;
-    for (let i = 0; i < rows; i += 1) {
-      const lat0 = -Math.PI / 2 + (Math.PI * i) / rows;
-      const lat1 = lat0 + Math.PI / rows;
-      const y0 = cy + r * Math.sin(lat0);
-      const y1 = cy + r * Math.sin(lat1);
-      const half = r * Math.cos((lat0 + lat1) / 2);
-      for (let j = 0; j < cols; j += 1) {
-        const lon0 = (Math.PI * 2 * j) / cols + rot;
-        const lon1 = lon0 + (Math.PI * 2) / cols;
-        const s0 = Math.sin(lon0);
-        const s1 = Math.sin(lon1);
-        const front = Math.cos((lon0 + lon1) / 2);
-        if (front <= 0) continue;
-        const xa = cx + half * Math.min(s0, s1);
-        const xb = cx + half * Math.max(s0, s1);
-        const base = facet[(i * cols + j) % facet.length]!;
-        // Light from the top left, plus a twinkle as facets turn past it.
-        const lit = 0.25 + 0.45 * front * (1 - (i / rows) * 0.6) + 0.3 * base;
-        const glint = Math.pow(Math.max(0, Math.sin(t * 4 + base * 40)), 24);
-        const v = Math.min(255, Math.round(255 * Math.min(1, lit + glint)));
-        ctx.fillStyle = glint > 0.4 ? LIGHTS[(i + j) % LIGHTS.length]! : `rgb(${v},${v},${Math.min(255, v + 12)})`;
-        ctx.fillRect(xa + 0.6, y0 + 0.6, Math.max(0, xb - xa - 1.2), Math.max(0, y1 - y0 - 1.2));
-      }
-    }
-    // Shade the far side so it reads round.
-    const shade = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r * 1.05);
-    shade.addColorStop(0, "rgba(255,255,255,0.18)");
-    shade.addColorStop(0.6, "rgba(0,0,0,0)");
-    shade.addColorStop(1, "rgba(0,0,0,0.55)");
-    ctx.fillStyle = shade;
-    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-    ctx.restore();
-
-    // Four-point glints on the rim.
-    for (let i = 0; i < 3; i += 1) {
-      const k = (Math.sin(t * 2.6 + i * 2.1) + 1) / 2;
-      if (k < 0.55) continue;
-      const a = -2.2 + i * 1.1;
-      star(ctx, cx + Math.cos(a) * r * 0.82, cy + Math.sin(a) * r * 0.82, r * 0.45 * (k - 0.55) * 2.2, "#ffffff");
-    }
-  }
-
-  function drawConfetti(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-    for (const f of flakes) {
-      let k = t - f.start;
-      if (k < 0) continue;
-      if (f.period > 0) k %= f.period;
-      if (k > f.life) continue;
-      // Linear drag towards a slow terminal fall, with a flutter.
-      const e = (1 - Math.exp(-f.drag * k)) / f.drag;
-      const terminal = G / f.drag;
-      const x = (f.x0 + f.vx * e + Math.sin(k * 3 + f.phase) * f.sway * clamp01(k)) * w;
-      const y = (f.y0 + terminal * k + (f.vy - terminal) * e) * h;
-      if (y > h + 20 || x < -20 || x > w + 20) continue;
-      const flip = Math.cos(k * f.spin + f.phase);
-      const sw = f.size * w;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(k * f.spin * 0.35 + f.phase);
-      ctx.scale(1, Math.max(0.12, Math.abs(flip)));
-      ctx.fillStyle = flip < 0 ? shadeOf(f.color) : f.color;
-      ctx.fillRect(-sw / 2, (-sw * f.ratio) / 2, sw, sw * f.ratio);
-      ctx.restore();
-    }
-  }
-
-  function drawCover(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-    const size = w * 0.56;
-    const cx = w / 2;
-    const cy = h * 0.405;
-    const k = springIn((t - 0.08) / 0.6);
-    if (k <= 0) return;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(k, k);
-    ctx.shadowColor = hexA(ACCENT, 0.7);
-    ctx.shadowBlur = w * 0.08;
-    roundRect(ctx, -size / 2, -size / 2, size, size, w * 0.035);
-    ctx.fillStyle = "#1c1c1e";
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.save();
-    ctx.clip();
-    if (opts.cover) {
-      ctx.drawImage(opts.cover, -size / 2, -size / 2, size, size);
-    } else {
-      // No art: a vinyl in the brand red.
-      ctx.fillStyle = "#0b0b0c";
-      ctx.fillRect(-size / 2, -size / 2, size, size);
-      ctx.rotate(t * 2.2);
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.lineWidth = 1.2;
-      for (let g = 0.2; g < 0.46; g += 0.025) {
-        ctx.beginPath();
-        ctx.arc(0, 0, size * g, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      ctx.fillStyle = ACCENT;
-      ctx.beginPath();
-      ctx.arc(0, 0, size * 0.17, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#0b0b0c";
-      ctx.beginPath();
-      ctx.arc(0, 0, size * 0.02, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-    ctx.strokeStyle = "rgba(255,255,255,0.85)";
-    ctx.lineWidth = Math.max(2, w * 0.006);
-    roundRect(ctx, -size / 2, -size / 2, size, size, w * 0.035);
-    ctx.stroke();
-    ctx.restore();
+    ctx.globalCompositeOperation = "source-over";
   }
 
   function drawText(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, text: WinText) {
-    const font = typeof document !== "undefined" ? getComputedStyle(document.body).fontFamily : "sans-serif";
+    const u = w / 360;
+    const cx = w / 2;
+    const font = sceneFont();
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.shadowColor = "rgba(0,0,0,0.85)";
-    ctx.shadowBlur = w * 0.025;
-    const appear = (at: number, dur = 0.35) => easeOut((t - at) / dur);
-
-    // Brand line at the top.
-    ctx.globalAlpha = appear(0.2);
-    ctx.font = `600 ${w * 0.034}px ${font}`;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(text.brand, w / 2, h * 0.04 + w * 0.034);
-
-    // Eyebrow.
-    ctx.globalAlpha = appear(0.35);
-    ctx.font = `700 ${w * 0.034}px ${font}`;
-    ctx.fillStyle = AMBER;
-    ctx.fillText(text.eyebrow.toUpperCase(), w / 2, h * 0.64);
-
-    // Title, letter by letter, sliding up.
-    ctx.font = `800 ${w * 0.13}px ${font}`;
-    const chars = [...text.title];
-    const widths = chars.map((c) => ctx.measureText(c).width);
-    const total = widths.reduce((a, b) => a + b, 0);
-    let x = w / 2 - total / 2;
-    ctx.textAlign = "left";
-    chars.forEach((c, i) => {
-      const k = easeOut((t - 0.45 - i * 0.05) / 0.4);
-      ctx.globalAlpha = k;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(c, x, h * 0.715 + (1 - k) * h * 0.03);
-      x += widths[i]!;
+    ctx.shadowColor = "rgba(0,0,0,0.75)";
+    ctx.shadowBlur = 14 * u;
+    const t0 = 0.8;
+    const line = (at: number, fn: () => void) => {
+      const a = easeOut((t - at) / 0.5);
+      if (a <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(0, (1 - a) * 12 * u);
+      fn();
+      ctx.restore();
+    };
+    line(t0, () => {
+      ctx.font = `600 ${11 * u}px ${font}`;
+      ctx.fillStyle = "#d9b56d";
+      spaced(ctx, text.eyebrow.toUpperCase(), cx, h * 0.64, 2.8 * u);
     });
-    ctx.textAlign = "center";
-
-    // Amount.
-    const ka = springIn((t - 0.8) / 0.5);
-    ctx.globalAlpha = clamp01(ka);
-    ctx.font = `800 ${w * 0.1}px ${font}`;
-    ctx.fillStyle = ACCENT;
-    ctx.save();
-    ctx.translate(w / 2, h * 0.79);
-    ctx.scale(0.7 + 0.3 * ka, 0.7 + 0.3 * ka);
-    ctx.fillText(text.amount, 0, 0);
-    ctx.restore();
-
-    // Track.
-    ctx.globalAlpha = appear(1.1);
-    ctx.font = `700 ${w * 0.05}px ${font}`;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(fit(ctx, text.trackTitle, w * 0.86), w / 2, h * 0.845);
-    ctx.font = `500 ${w * 0.04}px ${font}`;
-    ctx.fillStyle = "rgba(235,235,245,0.75)";
-    ctx.fillText(fit(ctx, text.trackArtist, w * 0.86), w / 2, h * 0.88);
-
-    // Footer.
-    ctx.globalAlpha = appear(1.4);
-    ctx.font = `500 ${w * 0.03}px ${font}`;
-    ctx.fillStyle = "rgba(235,235,245,0.6)";
-    ctx.fillText(text.footer, w / 2, h * 0.955);
-    ctx.globalAlpha = 1;
+    line(t0 + 0.1, () => {
+      ctx.font = `800 ${50 * u}px ${font}`;
+      const sp = -1.4 * u;
+      const tw = ctx.measureText(text.title).width + sp * (text.title.length - 1);
+      ctx.fillStyle = shine(ctx, cx - tw / 2, cx + tw / 2, ((t * 0.5) % 1.8) - 0.3, "#d9b56d", "#fff6dc");
+      spaced(ctx, text.title, cx, h * 0.715, sp);
+    });
+    line(t0 + 0.22, () => {
+      ctx.font = `600 ${30 * u}px ${font}`;
+      ctx.fillStyle = "#f3e3bf";
+      ctx.fillText(text.amount, cx, h * 0.783);
+    });
+    line(t0 + 0.34, () => {
+      ctx.font = `600 ${17 * u}px ${font}`;
+      ctx.fillStyle = "#f5efe4";
+      ctx.fillText(fit(ctx, text.trackTitle, w * 0.86), cx, h * 0.838);
+      ctx.font = `400 ${14 * u}px ${font}`;
+      ctx.fillStyle = "rgba(245,239,228,0.6)";
+      ctx.fillText(fit(ctx, text.trackArtist, w * 0.86), cx, h * 0.868);
+    });
+    line(t0 + 0.5, () => {
+      ctx.font = `600 ${10 * u}px ${font}`;
+      ctx.fillStyle = "rgba(245,239,228,0.6)";
+      spaced(ctx, text.brand.toUpperCase(), cx, h * 0.93, 2.4 * u);
+      ctx.font = `500 ${9 * u}px ${font}`;
+      ctx.fillText(text.footer, cx, h * 0.962);
+    });
     ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
   }
 
   return {
+    prepare() {
+      bottle?.warm(1e3);
+    },
     draw(ctx, w, h, t) {
+      const L = layout(w, h);
+      const key = `${Math.round(w)}x${Math.round(h)}`;
+      if (key !== size) {
+        size = key;
+        build(w, h, L);
+      }
+      // One more light angle per frame, so opening the screen never blocks.
+      bottle?.warm(1);
+
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
-      // The room: black with a red pool of light that breathes with the beat.
-      ctx.fillStyle = "#050505";
-      ctx.fillRect(0, 0, w, h);
-      const pulse = 0.85 + 0.15 * Math.sin(t * Math.PI * 2 * 0.5);
-      const pool = ctx.createRadialGradient(w / 2, h * 0.42, 0, w / 2, h * 0.42, Math.max(w, h) * 0.62);
-      pool.addColorStop(0, hexA(ACCENT, 0.42 * pulse));
-      pool.addColorStop(0.45, hexA(ACCENT, 0.1 * pulse));
-      pool.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = pool;
-      ctx.fillRect(0, 0, w, h);
+      drawStage(ctx, w, h, t, L);
 
-      ctx.globalCompositeOperation = "lighter";
-      drawBeams(ctx, w, h, t);
-      drawSpots(ctx, w, h, t);
-      ctx.globalCompositeOperation = "source-over";
+      const u = L.u;
+      const p = pose(w, h, t);
+      const tip = { x: p.x, y: p.y };
+      const corkV = h * 3.3;
+      const corkG = h * 1.3;
+      const corkAt = (dt: number) => ({
+        x: tip.x + p.dir.x * corkV * dt - w * 0.5 * dt * dt,
+        y: tip.y + p.dir.y * corkV * dt + 0.5 * corkG * dt * dt,
+      });
 
-      drawBall(ctx, w, h, t);
-      if (opts.text) drawCover(ctx, w, h, t);
-
-      // Shockwave ring from the centre at the start.
-      const ring = clamp01(t / 0.7);
-      if (ring < 1) {
-        ctx.strokeStyle = `rgba(255,214,120,${0.8 * (1 - ring)})`;
-        ctx.lineWidth = w * 0.012 * (1 - ring) + 1;
+      // the crack: a flat ring of pressure leaving the muzzle
+      if (t > POP && t < POP + 0.45) {
+        const k = (t - POP) / 0.45;
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.translate(tip.x, tip.y);
+        ctx.rotate(p.ang);
+        ctx.strokeStyle = `rgba(255,246,228,${(1 - k) * 0.8})`;
+        ctx.lineWidth = (3.4 - 2.6 * k) * u;
         ctx.beginPath();
-        ctx.arc(w / 2, h * 0.405, easeOut(ring) * Math.max(w, h) * 0.6, 0, Math.PI * 2);
+        ctx.ellipse(0, -easeOut(k) * h * 0.1, easeOut(k) * w * 0.52, easeOut(k) * w * 0.16, 0, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.restore();
       }
 
-      drawBottle(ctx, -1, w, h, t);
-      drawBottle(ctx, 1, w, h, t);
+      const lit = labelLight(t, POP);
       ctx.globalCompositeOperation = "lighter";
-      drawSpray(ctx, w, h, t);
+      sprite(ctx, SP.gold, p.x + Math.sin(-p.ang) * 0.75 * p.H, p.y + Math.cos(p.ang) * 0.75 * p.H, p.H * 0.75, 0.2 * lit);
       ctx.globalCompositeOperation = "source-over";
-      drawConfetti(ctx, w, h, t);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.ang);
+      bottle?.draw(ctx, p.H, { t, rot: p.ang, lit, drained: clamp((t - POP) / 2.6) });
+      ctx.restore();
+
+      // the pop: a flash and a starburst
+      ctx.globalCompositeOperation = "lighter";
+      if (t > POP - 0.02 && t < POP + 0.3) {
+        const a = 1 - (t - POP) / 0.3;
+        sprite(ctx, SP.white, tip.x, tip.y, w * 0.3 * a, a * 0.8);
+      }
+      if (t > POP && t < POP + 0.7) {
+        const k = (t - POP) / 0.7;
+        const a = (1 - k) * 0.6;
+        for (let i = 0; i < 14; i += 1) {
+          const ra = (i / 14) * Math.PI * 2 + k * 0.4;
+          const len = w * (0.25 + 0.5 * easeOut(k)) * (i % 2 ? 0.6 : 1);
+          const wd = 0.035;
+          const g = ctx.createLinearGradient(tip.x, tip.y, tip.x + Math.cos(ra) * len, tip.y + Math.sin(ra) * len);
+          g.addColorStop(0, `rgba(255,255,255,${a})`);
+          g.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.moveTo(tip.x, tip.y);
+          ctx.lineTo(tip.x + Math.cos(ra - wd) * len, tip.y + Math.sin(ra - wd) * len);
+          ctx.lineTo(tip.x + Math.cos(ra + wd) * len, tip.y + Math.sin(ra + wd) * len);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+      ctx.globalCompositeOperation = "source-over";
+      if (t > POP && t < POP + 0.9) drawCork(ctx, p.H, t - POP, corkAt);
+
+      // the sparkler fixed to the neck
+      const sx = p.x + Math.cos(p.ang) * 0.075 * p.H + p.dir.x * 0.1 * p.H;
+      const sy = p.y + Math.sin(p.ang) * 0.075 * p.H + p.dir.y * 0.1 * p.H;
+      const on = easeOut((t - 0.15) / 0.3);
+      if (on > 0) {
+        ctx.strokeStyle = "#8a8f96";
+        ctx.lineWidth = 1.6 * u;
+        ctx.beginPath();
+        ctx.moveTo(p.x + Math.cos(p.ang) * 0.06 * p.H - p.dir.x * 0.18 * p.H, p.y + Math.sin(p.ang) * 0.06 * p.H - p.dir.y * 0.18 * p.H);
+        ctx.lineTo(sx, sy);
+        ctx.stroke();
+        ctx.globalCompositeOperation = "lighter";
+        sprite(ctx, SP.gold, sx, sy, (40 + 10 * Math.sin(t * 40)) * u, on);
+        sprite(ctx, SP.white, sx, sy, 16 * u, on);
+        for (const s of sparks) {
+          const age = (t + s.off * s.life) % s.life;
+          const q = age / s.life;
+          const x = sx + Math.cos(s.a) * s.v * h * age;
+          const y = sy + Math.sin(s.a) * s.v * h * age + 0.5 * h * 1.2 * age * age;
+          ctx.strokeStyle = `rgba(255,${200 - 80 * q},${140 - 100 * q},${(1 - q) * on})`;
+          ctx.lineWidth = 1.3 * u;
+          ctx.beginPath();
+          ctx.moveTo(x - Math.cos(s.a) * 14 * u, y - Math.sin(s.a) * 14 * u + 4 * u);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+        ctx.globalCompositeOperation = "source-over";
+      }
+
+      // the champagne leaving the bottle: drag along the jet, gravity down
+      for (const f of foam) {
+        const dt = t - f.te;
+        const life = f.drop ? 2.4 : 1.5;
+        if (dt <= 0 || dt > life) continue;
+        const I = Math.max(0.3, 1 - (f.te - POP) / 2.4);
+        const v = h * 1.45 * f.sp * I;
+        const a = Math.atan2(p.dir.y, p.dir.x) + f.spread;
+        const k = f.drop ? 0.9 : 1.8;
+        const out = (1 - Math.exp(-k * dt)) / k;
+        const g = h * (f.drop ? 1.1 : 0.55);
+        const x = tip.x + Math.cos(a) * v * out;
+        const y = tip.y + Math.sin(a) * v * out + 0.5 * g * dt * dt;
+        const fade = Math.pow(1 - dt / life, 1.4);
+        if (f.drop) sprite(ctx, SP.gold, x, y, (5 + f.size * 5) * u, fade);
+        else sprite(ctx, SP.foam, x, y, (5 + dt * 20) * u * f.size, fade * 0.8);
+      }
 
       if (opts.text) drawText(ctx, w, h, t, opts.text);
-
-      // The opening flash.
-      const flash = 1 - clamp01(t / 0.28);
-      if (flash > 0) {
-        ctx.fillStyle = `rgba(255,255,255,${0.7 * flash * flash})`;
-        ctx.fillRect(0, 0, w, h);
-      }
     },
   };
 }
 
-function hexA(hex: string, alpha: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${Math.max(0, Math.min(1, alpha)).toFixed(3)})`;
-}
-
-/** The back of a confetti piece: the same colour, darker. */
-function shadeOf(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const d = (v: number) => Math.round(v * 0.62);
-  return `rgb(${d((n >> 16) & 255)},${d((n >> 8) & 255)},${d(n & 255)})`;
-}
-
-function star(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, color: string) {
-  if (s <= 0) return;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, y - s);
-  ctx.quadraticCurveTo(x, y, x + s, y);
-  ctx.quadraticCurveTo(x, y, x, y + s);
-  ctx.quadraticCurveTo(x, y, x - s, y);
-  ctx.quadraticCurveTo(x, y, x, y - s);
-  ctx.fill();
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-/** Ellipsis when a title is wider than the line. */
-function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
-  if (ctx.measureText(text).width <= max) return text;
-  let s = text;
-  while (s.length > 1 && ctx.measureText(`${s}…`).width > max) s = s.slice(0, -1);
-  return `${s.trimEnd()}…`;
-}
-
 /**
- * Runs the scene full screen on a canvas until `stop()`. DPR is capped at
- * 2 and frames are skipped when the phone falls behind; reduced motion
- * paints one still frame.
+ * Runs the scene full screen on a canvas until `stop()`. The canvas is drawn in
+ * device pixels (DPR capped at 2, 1.5 on a slow phone) so the record's grooves
+ * and the glass stay sharp; reduced motion paints one still frame.
  */
 export function startWinScene(canvas: HTMLCanvasElement, opts: WinSceneOptions & { still?: boolean }): () => void {
   const ctx = canvas.getContext("2d");
@@ -664,24 +476,21 @@ export function startWinScene(canvas: HTMLCanvasElement, opts: WinSceneOptions &
   const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4;
   const scene = createWinScene({ ...opts, lite: opts.lite ?? lowEnd });
   let raf = 0;
-  let w = 0;
-  let h = 0;
   const resize = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2);
-    w = canvas.clientWidth;
-    h = canvas.clientHeight;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+    canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   };
   resize();
   if (opts.still) {
-    scene.draw(ctx, w, h, 2.6);
+    scene.prepare();
+    scene.draw(ctx, canvas.width, canvas.height, 2.6);
     return () => {};
   }
   const start = performance.now();
   const frame = (now: number) => {
-    scene.draw(ctx, w, h, (now - start) / 1000);
+    scene.draw(ctx, canvas.width, canvas.height, (now - start) / 1000);
     raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);
