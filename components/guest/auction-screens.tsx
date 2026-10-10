@@ -11,7 +11,6 @@
  *  - AuctionOverlays: last-30-s flash, buzz and the winner celebration on
  *    every tab.
  *  - BidScreen: a track from search → bid on the chosen auction.
- *  - RankingPodium: the top 3 on a podium, everyone else below, quieter.
  *  - MyBids: my bids tonight.
  */
 
@@ -19,7 +18,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { AudioWaveform, Crown, Gavel, Sparkles, Trophy, Wallet } from "lucide-react";
+import { AudioWaveform, Crown, Gavel, Sparkles, Wallet } from "lucide-react";
 import type { PublicSlot, PublicWinner, UpcomingSlot } from "@/lib/auction/service";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -540,7 +539,7 @@ export function NightWinners() {
 /* ------------------------------------------------------------------ */
 
 /** Last 30 s flash (and one buzz if I am in it), the winner celebration. */
-export function AuctionOverlays() {
+export function AuctionOverlays({ venueName }: { venueName: string }) {
   const { state, serverNow, celebrate, dismissCelebration } = useAuction();
   const buzzed = React.useRef(new Set<string>());
   const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
@@ -564,6 +563,7 @@ export function AuctionOverlays() {
           trackArtist={won.trackArtist}
           totalCents={won.totalCents}
           coverUrl={wonCover}
+          venueName={venueName}
           onClose={dismissCelebration}
         />
       ) : null}
@@ -839,91 +839,6 @@ function TransitionAssistant({
           {assessment.multiplierBps > 10_000 ? <span className="text-text-tertiary"> {t("why")}</span> : null}
         </p>
       ) : null}
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Ranking                                                             */
-/* ------------------------------------------------------------------ */
-
-const PODIUM = {
-  1: { order: "order-2", step: "h-32", avatar: "size-20 text-2xl bg-accent-500 text-text-on-accent shadow-glow-accent", amount: "text-xl text-accent-400" },
-  2: { order: "order-1", step: "h-24", avatar: "size-14 text-lg bg-surface-3 text-text-primary ring-1 ring-line-strong", amount: "text-base text-text-primary" },
-  3: { order: "order-3", step: "h-16", avatar: "size-14 text-lg bg-surface-3 text-text-primary ring-1 ring-line-strong", amount: "text-base text-text-primary" },
-} as const;
-
-/** "@rita" → "R", "Mesa 12" → "M", anonymous → "?". */
-function initialOf(label: string | null): string {
-  const letter = label?.replace(/^@/, "").trim().charAt(0);
-  return letter ? letter.toUpperCase() : "?";
-}
-
-function PodiumStep({ place, label, cents }: { place: 1 | 2 | 3; label: string | null; cents: number }) {
-  const t = useTranslations("guest.auction");
-  const look = PODIUM[place];
-  const name = label ?? t("anonymous");
-  return (
-    <li className={cx("flex min-w-0 flex-col items-center", look.order)} aria-label={t("place", { place, name, amount: formatEurosDisplay(cents) })}>
-      {place === 1 ? <Crown size={22} className="mb-1 text-amber-500" aria-hidden /> : null}
-      <span aria-hidden className={cx("flex items-center justify-center rounded-full font-bold", look.avatar)}>
-        {initialOf(label)}
-      </span>
-      <p aria-hidden className="mt-2 w-full truncate text-center text-sm font-semibold text-text-primary">
-        {name}
-      </p>
-      <p aria-hidden className={cx("tnum text-center font-bold", look.amount)}>
-        {formatEurosDisplay(cents)}
-      </p>
-      <div
-        aria-hidden
-        className={cx(
-          "mt-2 flex w-full justify-center rounded-t-card border-x border-t pt-2",
-          look.step,
-          place === 1 ? "border-accent-500/50 bg-linear-to-b from-accent-500/40 to-accent-500/5" : "border-line-subtle bg-surface-2",
-        )}
-      >
-        <span className="tnum text-2xl font-bold text-text-secondary">{place}</span>
-      </div>
-    </li>
-  );
-}
-
-/** Top 3 on a podium; everyone else below, smaller and quieter. */
-export function RankingPodium() {
-  const t = useTranslations("guest.auction");
-  const { state } = useAuction();
-  if (!state) return <Skeleton height={280} rounded="card" />;
-  if (state.ranking.length === 0) {
-    return <EmptyState icon={Trophy} title={t("rankingEmpty")} hint={t("rankingEmptyHint")} />;
-  }
-  const podium = state.ranking.slice(0, 3);
-  const rest = state.ranking.slice(3);
-  return (
-    <section aria-label={t("rankingTitle")} className="flex flex-col gap-6">
-      <ol className="grid grid-cols-3 items-end gap-2 pt-2">
-        {podium.map((r, i) => (
-          <PodiumStep key={`${r.label ?? "anon"}-${i}`} place={(i + 1) as 1 | 2 | 3} label={r.label} cents={r.spentCents} />
-        ))}
-      </ol>
-      {rest.length > 0 ? (
-        <section aria-label={t("rankingRest")}>
-          <p className="label text-text-tertiary">{t("rankingRest")}</p>
-          <ol start={4} className="mt-1">
-            {rest.map((r, i) => (
-              <li
-                key={`${r.label ?? "anon"}-${i}`}
-                className="flex items-center gap-3 border-b border-line-subtle py-2.5 text-sm last:border-b-0"
-              >
-                <span className="tnum w-6 shrink-0 text-text-tertiary">{i + 4}</span>
-                <span className="min-w-0 flex-1 truncate text-text-secondary">{r.label ?? t("anonymous")}</span>
-                <span className="tnum shrink-0 text-text-tertiary">{formatEurosDisplay(r.spentCents)}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
-      <p className="text-xs text-text-tertiary">{t("rankingHint")}</p>
     </section>
   );
 }

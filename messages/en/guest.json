@@ -227,7 +227,7 @@
     "phoneHint": "We send a code by SMS. Your number is saved and filled in for you when you pay with MB WAY.",
     "phoneLabel": "Mobile number",
     "sendCode": "Send code",
-    "optionalNote": "It is optional: you can request songs without signing in.",
+    "optionalNote": "We only use your number to let you in and for MB WAY.",
     "codeTitle": "Enter the code",
     "codeHint": "We sent a 6-digit code to {phone}.",
     "codeLabel": "6-digit code",
@@ -334,6 +334,7 @@
     "startsAt": "Starts at",
     "trackFixed": "In this auction you already bid with {title}. Raise that bid from the home screen.",
     "yourBid": "Your bid",
+    "backTotal": "The song's new total",
     "appearAs": "How you appear",
     "appearAnonymous": "Anonymous",
     "appearHandle": "My @",
@@ -362,6 +363,8 @@
     "outbidToast": "You were outbid. Raise your bid to take the lead again.",
     "rankingTitle": "Top spenders tonight",
     "rankingHint": "Only money behind tracks that already played counts.",
+    "shareRanking": "Share the ranking",
+    "shareRankingTitle": "Top of the night",
     "rankingEmpty": "Nobody is in the ranking yet",
     "rankingEmptyHint": "It appears here as soon as the first winning track plays.",
     "endOfNight": "At the end of the night, any balance left:",
@@ -422,6 +425,8 @@
     "shareInstagram": "Share on Instagram",
     "shareTitle": "Auction winner",
     "shareSaved": "Image saved. Open Instagram and post it to your Stories.",
+    "sharePreparing": "Preparing the video…",
+    "shareVideoSaved": "Video saved. Open Instagram and post it to your Story.",
     "shareError": "We couldn't open sharing. Try again."
   },
   "entry": {
@@ -436,5 +441,24 @@
     "liveEmpty": "No live events right now. Check back later.",
     "auctionLive": "Auction live",
     "forVenues": "For venues"
+  },
+  "rankingCard": {
+    "locale": "en",
+    "eyebrow": "Tonight's ranking",
+    "title": "Top of the night",
+    "anonymous": "Anonymous",
+    "footnote": "Only money behind songs that already played counts."
+  },
+  "gate": {
+    "title": "Join the party",
+    "hint": "Type your number and we text you a code. Been here before? You go straight in with your @.",
+    "note": "Your number is saved and pre-fills MB WAY when you pay.",
+    "handleTitle": "Pick your @",
+    "handleHint": "It's the name on the venue screen and in the ranking. It stays with your number for next time.",
+    "handleLabel": "Your @",
+    "handlePlaceholder": "your-name",
+    "handleInvalid": "Use 2 to 24 letters, numbers, dot, hyphen or _.",
+    "handleTaken": "That @ is taken. Pick another one.",
+    "enter": "Enter"
   }
 }

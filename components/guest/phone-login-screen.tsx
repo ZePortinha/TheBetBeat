@@ -34,7 +34,7 @@ const field =
   "min-h-14 w-full rounded-card bg-surface-1 text-text-primary outline-none " +
   "transition-shadow duration-100 focus-within:ring-2 focus-within:ring-accent-500";
 
-function Intro({
+export function Intro({
   Icon,
   title,
   hint,
