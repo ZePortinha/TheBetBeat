@@ -52,6 +52,8 @@ export interface WinText {
 export interface WinSceneOptions {
   /** Album art, pressed into the record. Without it the record is brand red. */
   cover?: CanvasImageSource | null;
+  /** Album art that may arrive after the scene started (read every frame). */
+  coverRef?: { readonly current: CanvasImageSource | null };
   /** Everything drawn in the canvas, text included (the video). */
   text?: WinText | null;
   /** Fewer particles and coarser shading (small or slow phones). */
@@ -122,7 +124,7 @@ export function createWinScene(opts: WinSceneOptions = {}): WinScene {
     foam: blobSprite("255,253,246"),
     smoke: smokeSprite("214,168,92", 7),
   };
-  const vinyl: Vinyl = createVinyl(opts.cover ?? null, SP.gold);
+  const vinyl: Vinyl = createVinyl(() => opts.coverRef?.current ?? opts.cover ?? null, SP.gold);
 
   // Per-size state: the particles, the baked stage wash and the bottle's shading.
   let size = "";
