@@ -56,7 +56,6 @@ export async function saveAuctionConfigAction(formData: FormData): Promise<void>
       lastMinuteWarningSec: n("warnSec"),
       playTargetMin: n("playTargetMin"),
       refundAfterMin: n("refundAfterMin"),
-      keepBalanceAllowed: on("keepBalance"),
       keepBalanceDays: n("keepBalanceDays"),
       transition: {
         easyMaxPct: n("trEasyPct"),

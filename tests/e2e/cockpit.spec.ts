@@ -23,7 +23,7 @@ import {
   loginStaff,
   openAuction,
   SEED,
-  walletEntries,
+  walletBalance,
 } from "./fixtures";
 
 const IPAD_ONLY = "iPad viewport only";
@@ -148,7 +148,7 @@ test.describe("cockpit · leilões", () => {
     await expect(sheet).toBeHidden();
   });
 
-  test("Terminar set: manter premido 2 s fecha a sessão e devolve o dinheiro", async ({ page, request }) => {
+  test("Terminar set: manter premido 2 s fecha a sessão e devolve o dinheiro ao saldo", async ({ page, request }) => {
     test.skip(process.env.E2E_END_SET !== "1", "destructive: ends the seeded live session (set E2E_END_SET=1 and run last)");
     const slotId = (await auctionState(request)).open[0]!.id;
     const { guest } = await bidViaApi(request, { slotId, totalCents: 500 });
@@ -165,11 +165,10 @@ test.describe("cockpit · leilões", () => {
 
     await expect(page.getByTestId("end-set-summary")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Set terminado").first()).toBeVisible();
-    // The open bid came back and the balance went back to the card.
-    // (The guest API answers only for a live night: read the wallet entries.)
-    const entries = await walletEntries(request, guest.guestId);
-    expect(entries.reduce((sum, e) => sum + e.amount_cents, 0)).toBe(0);
-    expect(entries.filter((e) => e.reason === "refund").reduce((sum, e) => sum - e.amount_cents, 0)).toBe(500);
+    // The open bid came back to the guest's balance (withdrawable for 7 days,
+    // not refunded tonight: 2026-10-10).
+    // (At least the 5 € asked: the bid helper may climb to the track's own floor.)
+    expect(await walletBalance(request, guest.guestId)).toBeGreaterThanOrEqual(500);
     const ended = await page.request.get(`/api/cockpit/state?sessionId=${SEED.sessionId}`);
     expect(((await ended.json()) as { session: { status: string } }).session.status).toBe("ended");
   });

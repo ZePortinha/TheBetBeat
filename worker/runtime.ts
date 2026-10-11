@@ -12,8 +12,9 @@
  *   genre-weekly         singleton cron — M_g recommendations (B5.4)
  *   payout-scan          singleton cron sweeping pending payouts
  *   payout-execute       per-payout SEPA execution (mock until Phase 8)
- *   wallet-expiry        singleton cron — refunds balances kept past the
- *                        club's limit (30 days by default, lib/auction)
+ *   wallet-expiry        singleton cron (hourly) — refunds the part of a
+ *                        balance older than the club's limit (7 days by
+ *                        default, lib/auction/rollover)
  *
  * Multiple worker processes are safe: crons are pg-boss singletons, work
  * queues dedupe on singletonKey, and every scan claims rows with
@@ -45,7 +46,7 @@ import {
 } from "./jobs/refund-retry";
 import { RECONCILIATION_QUEUE, runDailyReconciliation } from "./jobs/reconciliation";
 import { GENRE_WEEKLY_QUEUE, runGenreWeekly } from "./jobs/genre-weekly";
-import { expireKeptBalances } from "@/lib/auction/service";
+import { expireBalances } from "@/lib/auction/service";
 import {
   PAYOUT_EXECUTE_QUEUE,
   PAYOUT_SCAN_QUEUE,
@@ -114,7 +115,7 @@ function buildPlan(cfg: WorkerEnv): QueuePlan[] {
       name: WALLET_EXPIRY_QUEUE,
       policy: "singleton",
       cron: cfg.WORKER_WALLET_EXPIRY_CRON,
-      duty: "refund wallet balances unused past the club's keepBalanceDays",
+      duty: "refund the part of each balance older than the club's keepBalanceDays",
     },
   ];
 }
@@ -228,7 +229,7 @@ export async function runWorker(): Promise<void> {
   await boss.work(
     WALLET_EXPIRY_QUEUE,
     perJob(async (_data, now) => {
-      const { refunded } = await expireKeptBalances(now);
+      const { refunded } = await expireBalances(now);
       console.log(`[worker:wallet-expiry] refunded=${refunded}`);
     }),
   );

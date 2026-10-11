@@ -45,6 +45,20 @@ webhooks and DJ accept/reject races. Green: typecheck, lint,
 integration suites (47 tests) on a plain Postgres 16 with a Supabase stub.
 Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
 `pnpm test:e2e`; restart Supabase (config.toml: min password 12).
+## 2026-10-10 - Phone login and balance with rollover (branch claude/login-telemovel-saldo-y25pn1)
+
+Owner's brief (see DECISIONS 2026-10-10): the number is the account on any
+phone, the @ is chosen once, second place rolls into the next auction, third
+or lower stays in a balance withdrawable for 7 days, balance panel top right.
+Built on the phone gate from PR #4 (ported). Verified in the cloud container
+on the real local Supabase stack: typecheck, lint, 465 unit tests,
+`SUPABASE_TEST=1 pnpm test` 151/151 (rollover scenarios + cross-device login
+with a real Auth session), `pnpm db:audit`, and E2E on Chromium: guest spec
+green incl. the new login and balance-panel tests. Known E2E reds from main
+(fixed by PR #3's library-only track pick): cockpit "vencedor 7 €" and
+"recusar devolve 600" climb to a catalog track's 12,50 € floor. To do with
+real SMS: try the second-phone login on two real phones.
+
 ## 2026-10-08 - Phone fixes and sharing (branch claude/correcoes-telemovel-partilhas-a9exxo)
 
 From the owner's test on a phone (see DECISIONS 2026-10-08): last-30-s frame

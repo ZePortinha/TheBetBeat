@@ -13,7 +13,7 @@
  */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { auctionState, bidViaApi, closeAuction, enterParty, getGuestUrl, loginStaff, openAuction } from "./fixtures";
+import { auctionState, bidViaApi, closeAuction, enterParty, freshClientIp, getGuestUrl, loginStaff, openAuction } from "./fixtures";
 
 const PHONE_ONLY = "phone viewport only";
 
@@ -59,8 +59,9 @@ test.describe("guest app · leilões", () => {
     // 2. A track.
     await tap(page.getByRole("button").filter({ hasText: /^.*licitar$|bid$/i }).first());
     await expect(page).toHaveURL(/\/track\//);
-    // "O meu @" is preselected with the @ picked at the front door.
-    await expect(page.getByRole("textbox", { name: /o meu @|my @/i })).not.toHaveValue("");
+    // "Público · @" is preselected with the @ picked at the front door: nothing to type.
+    await expect(page.getByRole("button", { name: /público · @|public · @/i })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: /o meu @|my @/i })).toHaveCount(0);
     // 3. Card, 4. "Licitar 2 €" (the minimum is preselected).
     await tap(page.getByRole("radio", { name: /cartão|card/i }));
     await tap(page.getByRole("button", { name: /^licitar \d|^bid \d/i }));
@@ -96,6 +97,10 @@ test.describe("guest app · leilões", () => {
     const card = await page.request.get(`/api/guest/auction/${slotId}/card?format=story`);
     expect(card.ok()).toBeTruthy();
     expect(card.headers()["content-type"]).toContain("image/png");
+    // The outbid toast sits over "Fechar" and pauses while the pointer rests
+    // on it (it appeared under the last tap): move away and let it go first.
+    await page.mouse.move(8, 8);
+    await expect(page.getByText(/foste ultrapassado|you were outbid/i)).toHaveCount(0, { timeout: 15_000 });
     await page.getByRole("button", { name: /^fechar$|^close$/i }).click();
 
     // The DJ plays it; "As minhas licitações" says it played.
@@ -118,6 +123,49 @@ test.describe("guest app · leilões", () => {
     expect(text).not.toMatch(/\b(aposta|apostar|odds|ganhar)\b/);
   });
 
+  test("login: o mesmo número noutro telemóvel entra direto, com o mesmo @", async ({ page, browser }) => {
+    const guestUrl = await getGuestUrl(page);
+    await page.goto(guestUrl);
+    const first = await enterParty(page);
+    const mine = (await (await page.request.get("/api/guest/profile")).json()) as { handle: string | null };
+    expect(mine.handle).toBe(first.handle);
+
+    // Another phone: number + code, no @ to pick, same account.
+    const other = await browser.newContext({ viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true });
+    try {
+      const page2 = await other.newPage();
+      const ip = freshClientIp();
+      await page2.route("**/api/guest/phone", (route) =>
+        route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": ip } }),
+      );
+      await page2.goto(guestUrl);
+      await page2.locator("#gate-phone").fill(first.digits);
+      await page2.getByRole("button", { name: /enviar código|send code/i }).click();
+      const dev = (await page2.getByText(/código de teste|test code/i).textContent({ timeout: 15_000 })) ?? "";
+      await page2.getByRole("textbox", { name: /código de 6 dígitos|6-digit code/i }).fill(/\d{6}/.exec(dev)?.[0] ?? "");
+      await expect(page2.getByRole("navigation")).toBeVisible({ timeout: 20_000 });
+      await expect(page2.locator("#gate-handle")).toHaveCount(0);
+      const theirs = (await (await page2.request.get("/api/guest/profile")).json()) as { handle: string | null };
+      expect(theirs.handle).toBe(first.handle);
+      // The @ chosen first is for good.
+      const change = await page2.request.post("/api/guest/profile", { data: { handle: "outro-nome" } });
+      expect(change.status()).toBe(409);
+    } finally {
+      await other.close();
+    }
+  });
+
+  test("saldo: painel no canto superior direito, com as regras e Levantar", async ({ page }) => {
+    await openGuest(page);
+    const pill = page.getByRole("button", { name: /^saldo|^balance/i });
+    await expect(pill).toBeVisible();
+    await pill.click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByText(/^disponível$|^available$/i)).toBeVisible();
+    await expect(sheet.getByText(/próximo leilão|next auction/i).first()).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /levantar saldo|withdraw balance/i })).toBeDisabled();
+  });
+
   test("últimos 30 segundos: o ecrã pisca vermelho e branco", async ({ page, request }) => {
     await openAuction(request, 25);
     await openGuest(page);
@@ -132,7 +180,7 @@ test.describe("guest app · leilões", () => {
     // Wait for the search page: the home button also ends in "licitar".
     await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: /licitar$|bid$/i }).first().click();
-    await expect(page.getByRole("textbox", { name: /o meu @|my @/i })).not.toHaveValue("");
+    await expect(page.getByRole("button", { name: /público · @|public · @/i })).toBeVisible();
     await page.getByRole("radio", { name: /mb way/i }).click();
     await page.getByRole("textbox", { name: /mb way/i }).fill("912345678");
     await page.getByRole("button", { name: /^licitar \d|^bid \d/i }).click();

@@ -8,8 +8,11 @@ const querySchema = z.object({ sessionId: z.string().uuid() }).strict();
 /**
  * GET /api/cockpit/session/end-preview?sessionId= — what "Terminar set"
  * gives back (B7 Definições): every guest of tonight with money in open
- * bids, in winners not played yet or in their balance (a winner already
- * playing counts as played), plus any older tier request still active.
+ * bids, in winners not played yet or in runner-up money waiting for an
+ * auction (a winner already playing counts as played), plus any older
+ * tier request still active. It goes back to their balance, which they
+ * withdraw within 7 days (balances are no longer refunded at the end of
+ * the night, 2026-10-10).
  * `count` = people who get money back, `refundCents` = how much.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -27,17 +30,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const res = await getPool().query<{ n: string; total: string }>(
-      `with tonight as (
-         select distinct guest_id from public.wallet_entries where session_id = $1
-       ),
-       balance as (
-         select w.guest_id, sum(w.amount_cents) as cents
-           from public.wallet_entries w
-           join tonight t on t.guest_id = w.guest_id
-          where w.venue_id = (select venue_id from public.sessions where id = $1)
-          group by w.guest_id
-       ),
-       held as (
+      `with held as (
          select c.guest_id, sum(c.amount_cents) as cents
            from public.auction_contributions c
            join public.auction_slots s on s.id = c.slot_id
@@ -45,9 +38,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             and s.play_status is distinct from 'playing'
           group by c.guest_id
        ),
+       rolling as (
+         select sh.guest_id, sum(sh.amount_cents) as cents
+           from public.auction_rollover_shares sh
+           join public.auction_rollovers r on r.id = sh.rollover_id
+          where r.session_id = $1 and r.status = 'held'
+          group by sh.guest_id
+       ),
        per_guest as (
          select guest_id, sum(cents) as cents
-           from (select * from balance union all select * from held) x
+           from (select * from held union all select * from rolling) x
           group by guest_id
        ),
        legacy as (
