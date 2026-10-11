@@ -4,7 +4,9 @@
   "private": true,
   "packageManager": "pnpm@12.8.1",
   "scripts": {
-    "dev": "tsx scripts/dev-check.ts && next dev --turbopack -p 3000",
+    "dev": "tsx scripts/dev-check.ts && pnpm run \"/^dev:/\"",
+    "dev:next": "next dev --turbopack -p 3000",
+    "dev:worker": "pnpm worker",
     "worker": "tsx worker/index.ts",
     "build": "next build",
     "start": "next start",

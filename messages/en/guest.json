@@ -405,6 +405,7 @@
     "screenEyebrow": "Tonight's auctions",
     "screenTitle": "Auction",
     "slotAt": "{time} auction",
+    "slotClosing": "Closing",
     "upcomingTitle": "Next auctions",
     "opensIn": "Opens in {time}",
     "from": "From {amount}",

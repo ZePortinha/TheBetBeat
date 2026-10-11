@@ -37,7 +37,7 @@ import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
 import { WinCelebration } from "./win-celebration";
-import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, useAuction, type AuctionState } from "./use-auction";
+import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, pickSlot, useAuction, type AuctionState } from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
 
 type SheetState = { slot: PublicSlot; target: BidTargetInput; current: number; title: string } | null;
@@ -253,7 +253,7 @@ function SlotPicker({ slots, selectedId, serverNow, onPick }: { slots: PublicSlo
   const t = useTranslations("guest.auction");
   const locale = useLocale();
   return (
-    <div className="grid grid-flow-col auto-cols-fr gap-2" role="radiogroup" aria-label={t("chooseSlot")}>
+    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("chooseSlot")}>
       {slots.map((s) => (
         <Pressable
           key={s.id}
@@ -266,7 +266,9 @@ function SlotPicker({ slots, selectedId, serverNow, onPick }: { slots: PublicSlo
           )}
         >
           <span className="truncate text-sm font-semibold text-text-primary">{slotName(s, t, locale)}</span>
-          <span className="tnum text-xs text-text-secondary">{countdown(s.closesAt, serverNow)}</span>
+          <span className="tnum text-xs text-text-secondary">
+            {Date.parse(s.closesAt) <= serverNow ? t("slotClosing") : countdown(s.closesAt, serverNow)}
+          </span>
         </Pressable>
       ))}
     </div>
@@ -309,7 +311,7 @@ export function AuctionScreen({ token }: { token: string }) {
   const [sheet, setSheet] = React.useState<SheetState>(null);
 
   if (!state) return <Skeleton height={360} rounded="card" />;
-  const selected = state.open.find((s) => s.id === chosenSlotId) ?? state.open[0] ?? null;
+  const selected = pickSlot(state, chosenSlotId, serverNow);
   // With nothing open the next one is the big countdown; the list shows the rest.
   const later = selected ? state.upcoming : state.upcoming.slice(1);
 
@@ -391,7 +393,7 @@ export function AuctionContextBar({ token }: { token: string }) {
   const locale = useLocale();
   const { state, serverNow, chosenSlotId } = useAuction();
   if (!state) return <Skeleton height={56} rounded="card" />;
-  const slot = state.open.find((s) => s.id === chosenSlotId) ?? state.open[0] ?? null;
+  const slot = pickSlot(state, chosenSlotId, serverNow);
   return (
     <Link
       href={`/s/${token}/auction`}
@@ -773,7 +775,7 @@ export function BidScreen({
   const { state, serverNow, chosenSlotId, chooseSlot } = useAuction();
 
   if (!state || !ready) return <Skeleton height={320} rounded="card" />;
-  const slot = state.open.find((s) => s.id === chosenSlotId) ?? state.open[0] ?? null;
+  const slot = pickSlot(state, chosenSlotId, serverNow);
   const mine = slot ? state.me?.bids.find((b) => b.slotId === slot.id && b.owner) : undefined;
   // Same rules as the server (lib/auction/transition): harder transitions start higher.
   const assessment = assessTransition(track, state.nowPlaying, state.rules.transition);
