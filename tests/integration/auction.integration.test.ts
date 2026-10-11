@@ -463,6 +463,26 @@ describe("money", () => {
     expect(g.rows[0]!.phone_verified_at).not.toBeNull();
   }, 60_000);
 
+  it("an @ already in the database cannot be picked again, not even two at once (2026-10-11)", async () => {
+    const [a, b, c] = await Promise.all([createGuest(), createGuest(), createGuest()]);
+    const handle = `marta${RUN}`;
+    expect(await phoneHandles.checkHandle(db.getPool(), handle, a, null)).toBe("ok");
+    expect(await phoneHandles.claimHandle(db.getPool(), a, handle, null)).toBe("ok");
+    // Another guest, any case: taken. The owner itself: still fine.
+    expect(await phoneHandles.checkHandle(db.getPool(), handle.toUpperCase(), b, null)).toBe("taken");
+    expect(await phoneHandles.claimHandle(db.getPool(), b, handle, null)).toBe("taken");
+    expect(await phoneHandles.checkHandle(db.getPool(), handle, a, null)).toBe("ok");
+    // Word rules come before the database.
+    expect(await phoneHandles.claimHandle(db.getPool(), b, `caralho${RUN}`, null)).toBe("not_allowed");
+    expect(await phoneHandles.claimHandle(db.getPool(), b, "betbeat", null)).toBe("taken");
+    // Two phones racing for the same new @: exactly one gets it.
+    const race = `rui${RUN}`;
+    const results = await Promise.all([b, c].map((g) => phoneHandles.claimHandle(db.getPool(), g, race, null)));
+    expect(results.sort()).toEqual(["ok", "taken"]);
+    const holders = await db.query(`select 1 from public.guests where lower(handle) = lower($1)`, [race]);
+    expect(holders.rowCount).toBe(1);
+  }, 60_000);
+
   it("end of night: open bids come back to the balance, which is NOT refunded tonight", async () => {
     const now = T0 + 2_100_000;
     const slot = await newSlot(now);

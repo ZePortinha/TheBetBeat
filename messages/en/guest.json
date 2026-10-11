@@ -290,7 +290,8 @@
     "handle_taken": "That @ belongs to another number. If it is yours, sign in with your number in the account to get it back, or pick another.",
     "login_failed": "We couldn't sign you in right now. Ask for a new code.",
     "handle_locked": "Your @ stays linked to your number for good.",
-    "login_required": "Sign in with your number to bid."
+    "login_required": "Sign in with your number to bid.",
+    "handle_not_allowed": "That @ is not allowed. Pick another name."
   },
   "auction": {
     "dockCta": "Bid a track",
@@ -474,6 +475,9 @@
     "handlePlaceholder": "your-name",
     "handleInvalid": "Use 2 to 24 letters, numbers, dot, hyphen or _.",
     "handleTaken": "That @ is taken. Pick another one.",
+    "handleNotAllowed": "That @ is not allowed. Pick another name.",
+    "handleChecking": "Checking…",
+    "handleAvailable": "Available",
     "enter": "Enter"
   }
 }

@@ -8,6 +8,8 @@ import "server-only";
  */
 
 import type { Pool, PoolClient } from "pg";
+import { isOffensiveHandle } from "./blocked-words";
+import { isReservedHandle } from "./reserved-handles";
 
 type Db = Pool | PoolClient;
 
@@ -39,4 +41,67 @@ export async function handleTaken(db: Db, handle: string, phoneHash: string | nu
   );
   const owner = res.rows[0]?.phone_hash;
   return owner !== undefined && owner !== phoneHash;
+}
+
+export type HandleCheck = "ok" | "taken" | "not_allowed";
+
+/**
+ * The word rules alone (no database): a slur or insult is "not_allowed";
+ * a reserved name answers like a taken @, so nobody learns it is special.
+ */
+export function handleRules(handle: string): HandleCheck {
+  if (isOffensiveHandle(handle)) return "not_allowed";
+  if (isReservedHandle(handle)) return "taken";
+  return "ok";
+}
+
+/**
+ * True when someone else already uses the @ (2026-10-11): the @ of
+ * another number, or of another guest in `guests`, ignoring case. Guests
+ * signed in with the same proven number are the same person.
+ */
+export async function handleInUse(db: Db, handle: string, guestId: string, phoneHash: string | null): Promise<boolean> {
+  if (await handleTaken(db, handle, phoneHash)) return true;
+  const res = await db.query(
+    `select 1 from public.guests
+      where lower(handle) = lower($1) and id <> $2
+        and ($3::text is null or phone_hash is distinct from $3)
+      limit 1`,
+    [handle, guestId, phoneHash],
+  );
+  return (res.rowCount ?? 0) > 0;
+}
+
+/** Rules, then the database: what the guest would get if they picked it now. */
+export async function checkHandle(db: Db, handle: string, guestId: string, phoneHash: string | null): Promise<HandleCheck> {
+  const rule = handleRules(handle);
+  if (rule !== "ok") return rule;
+  return (await handleInUse(db, handle, guestId, phoneHash)) ? "taken" : "ok";
+}
+
+/**
+ * Gives the guest the @ if it passes the rules and nobody uses it. The
+ * check and the write share one transaction behind a lock on the @, so
+ * two phones picking the same @ at the same moment cannot both get it.
+ */
+export async function claimHandle(pool: Pool, guestId: string, handle: string, phoneHash: string | null): Promise<HandleCheck> {
+  const rule = handleRules(handle);
+  if (rule !== "ok") return rule;
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query(`select pg_advisory_xact_lock(hashtext($1))`, [`handle:${handle.toLowerCase()}`]);
+    if (await handleInUse(client, handle, guestId, phoneHash)) {
+      await client.query("rollback");
+      return "taken";
+    }
+    await client.query(`update public.guests set handle = $2 where id = $1`, [guestId, handle]);
+    await client.query("commit");
+    return "ok";
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }

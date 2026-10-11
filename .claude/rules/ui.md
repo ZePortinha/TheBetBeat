@@ -13,7 +13,9 @@ Use the `apple-design` skill for anything that moves or is touched.
 - All UI strings come from `messages/*.json` (next-intl) — never hardcoded.
   pt-PT everywhere; EN too on the guest app.
 - Touch targets ≥ 44px (guest) / 56px (cockpit); ~10px hit slop; press feedback
-  on pointer-down (scale 0.97, 100ms); drag-away cancels.
+  on pointer-down (scale 0.97, 100ms); the action fires on pointer-down too
+  (owner, 2026-10-11), except rows in scrolling lists and share/permission/
+  clipboard actions, which keep release (`activateOn="release"`).
 - Interaction checklist (B10.6) applies to every screen: immediate response,
   zero artificial latency, interruptible animations, 1:1 gestures with pointer
   capture, physics on release (velocity handoff + momentum projection 0.998),

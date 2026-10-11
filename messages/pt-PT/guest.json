@@ -290,7 +290,8 @@
     "handle_taken": "Esse @ já pertence a outro número. Se é teu, entra com o teu número na conta para o recuperar, ou escolhe outro.",
     "login_failed": "Não conseguimos entrar na tua conta agora. Pede um código novo.",
     "handle_locked": "O teu @ fica para sempre ligado ao teu número.",
-    "login_required": "Entra com o teu número para licitar."
+    "login_required": "Entra com o teu número para licitar.",
+    "handle_not_allowed": "Esse @ não é permitido. Escolhe outro nome."
   },
   "auction": {
     "dockCta": "Licitar faixa",
@@ -474,6 +475,9 @@
     "handlePlaceholder": "o-teu-nome",
     "handleInvalid": "Usa 2 a 24 letras, números, ponto, hífen ou _.",
     "handleTaken": "Esse @ já está a ser usado. Escolhe outro.",
+    "handleNotAllowed": "Esse @ não é permitido. Escolhe outro nome.",
+    "handleChecking": "A verificar…",
+    "handleAvailable": "Disponível",
     "enter": "Entrar"
   }
 }

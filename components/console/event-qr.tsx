@@ -53,6 +53,7 @@ export function EventQr({ url, fileName }: { url: string; fileName: string }) {
           <div className="flex flex-col gap-2">
             <button
               type="button"
+              data-press="release"
               onClick={() => void download()}
               className="flex min-h-11 items-center gap-2 rounded-full bg-accent-500 px-4 text-sm font-semibold text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
             >
@@ -62,6 +63,8 @@ export function EventQr({ url, fileName }: { url: string; fileName: string }) {
             {typeof navigator !== "undefined" && "share" in navigator ? (
               <button
                 type="button"
+                // The share sheet only opens from a finished tap on phones.
+                data-press="release"
                 onClick={() => void share()}
                 className="flex min-h-11 items-center gap-2 rounded-full bg-surface-3 px-4 text-sm font-semibold text-text-primary transition-transform duration-100 active:scale-[0.97]"
               >

@@ -29,6 +29,7 @@ import {
   cx,
   usePressable,
   usePressAnimation,
+  type ActivateOn,
   type PressEvent,
 } from "@/components/ui/pressable";
 
@@ -79,6 +80,8 @@ export interface ButtonProps
   fullWidth?: boolean;
   hitSlop?: number;
   repeatWindowMs?: number;
+  /** "release" only for rows in scrolling lists and share/permission/clipboard actions. */
+  activateOn?: ActivateOn;
   /** Visual-state override for Storybook/docs only. */
   forcePressed?: boolean;
 }
@@ -92,6 +95,7 @@ export function Button({
   fullWidth = false,
   hitSlop,
   repeatWindowMs,
+  activateOn,
   forcePressed = false,
   className,
   type = "button",
@@ -104,6 +108,7 @@ export function Button({
     disabled: inert,
     hitSlop,
     repeatWindowMs,
+    activateOn,
   });
   const isPressed = forcePressed || pressed;
   const pressAnimation = usePressAnimation(isPressed);
@@ -275,6 +280,8 @@ export function HoldButton({
         className,
       )}
       style={{ WebkitTouchCallout: "none" }}
+      // Its own press handling: the page-wide press activation skips it.
+      data-pressable="hold"
       animate={pressAnimation.animate}
       transition={pressAnimation.transition}
       onContextMenu={(event) => event.preventDefault()}
