@@ -147,8 +147,12 @@ const WHOLE = [
   "kkk",
 ];
 
-/** Accents and case out, digits read as letters, separators out, runs collapsed. */
-function variants(raw: string): string[] {
+/**
+ * Accents and case out, digits read as letters, separators out, runs
+ * collapsed. Exported so other free text (bid messages) can share the
+ * same matching instead of keeping a second list.
+ */
+export function variants(raw: string): string[] {
   const base = raw
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -184,8 +188,8 @@ function collapse(s: string): string {
 // "pora" (inside "incorporar") or "ass" into "as".
 const WHOLE_SET = new Set(WHOLE);
 
-/** The parts of an @ as the guest wrote them: split at separators and digit runs. */
-function parts(raw: string): string[] {
+/** The parts of a text as written: split at separators, spaces and digit runs. */
+export function parts(raw: string): string[] {
   const clean = raw
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -194,13 +198,19 @@ function parts(raw: string): string[] {
   return clean.split(/[._\s-]+|\d+/).filter(Boolean);
 }
 
-/** True when the @ carries a word from the lists above. */
-export function isOffensiveHandle(handle: string): boolean {
-  const whole = variants(handle);
+/**
+ * True when the text carries a word from the lists above. Works for an @
+ * and for any short guest text (spaces split it into parts too).
+ */
+export function hasBlockedWord(text: string): boolean {
+  const whole = variants(text);
   if (whole.some((v) => WHOLE_SET.has(v))) return true;
   if (whole.some((v) => ANYWHERE.some((w) => v.includes(w)))) return true;
-  for (const part of parts(handle)) {
+  for (const part of parts(text)) {
     if (variants(part).some((v) => WHOLE_SET.has(v))) return true;
   }
   return false;
 }
+
+/** The @ check (same lists, same matching). */
+export const isOffensiveHandle = hasBlockedWord;

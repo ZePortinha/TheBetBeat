@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOffensiveHandle } from "./blocked-words";
+import { hasBlockedWord, isOffensiveHandle } from "./blocked-words";
 
 describe("isOffensiveHandle", () => {
   it("blocks insults and slurs in Portuguese and English, disguised or not", () => {
@@ -60,5 +60,14 @@ describe("isOffensiveHandle", () => {
     ]) {
       expect(isOffensiveHandle(h), h).toBe(false);
     }
+  });
+});
+
+describe("hasBlockedWord (free text)", () => {
+  it("checks short messages word by word", () => {
+    expect(hasBlockedWord("vai cona")).toBe(true);
+    expect(hasBlockedWord("f0d4-s3")).toBe(true);
+    expect(hasBlockedWord("boa noite!")).toBe(false);
+    expect(hasBlockedWord("sexta top")).toBe(false);
   });
 });
