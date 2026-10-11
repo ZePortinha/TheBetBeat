@@ -228,15 +228,13 @@ function Switch({
       <span
         className={cx(
           "relative block h-8 w-14 shrink-0 rounded-full transition-colors duration-100",
-          checked ? "bg-accent-500/35" : "bg-surface-3",
+          checked ? "bg-accent-500" : "bg-surface-3",
         )}
         aria-hidden
       >
+        {/* iOS switch: the track carries the state, the knob stays white. */}
         <motion.span
-          className={cx(
-            "absolute top-1 block size-6 rounded-full",
-            checked ? "bg-accent-500" : "bg-text-tertiary",
-          )}
+          className="absolute top-1 block size-6 rounded-full bg-text-primary shadow-md"
           animate={{ x: checked ? 26 : 4 }}
           transition={springDefault}
         />
@@ -693,7 +691,7 @@ export function SettingsScreen({ sessionId }: { sessionId: string | null }) {
                     data-genre={genre}
                     data-blocked={blocked || undefined}
                     className={cx(
-                      "flex min-h-12 items-center gap-2 rounded-chip border px-4 text-base font-semibold",
+                      "flex min-h-14 items-center gap-2 rounded-full border px-5 text-base font-semibold",
                       "transition-colors duration-100",
                       blocked
                         ? "border-ember-500/50 bg-ember-500/15 text-ember-500 line-through"

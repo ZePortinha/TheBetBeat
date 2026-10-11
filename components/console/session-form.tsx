@@ -341,7 +341,7 @@ export function SessionForm({
         <button
           type="submit"
           disabled={pending || Object.keys(liveErrors).length > 0}
-          className="min-h-11 rounded-button bg-accent-500 px-6 text-base font-semibold
+          className="min-h-11 rounded-full bg-accent-500 px-6 text-base font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]
             disabled:opacity-60"
         >

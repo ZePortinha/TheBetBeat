@@ -48,7 +48,7 @@ export function InviteForm({ venueId }: { venueId: string }) {
         <button
           type="submit"
           disabled={pending}
-          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-full bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]
             disabled:opacity-60"
         >

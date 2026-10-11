@@ -613,3 +613,37 @@ Product owner asked for better animation quality on the logo, the auction ending
 - **The balance's 7 days (rule chosen where the brief was silent):** the balance is no longer refunded at the end of the night. Each euro can be withdrawn ("Levantar saldo", back to the MB WAY or card it came from) or used in another auction for 7 days from when it landed in the balance (club setting `keepBalanceDays`, default 7). After that it goes back to the payment method on its own, oldest money first (hourly worker job). Never forfeited, so "if it doesn't play, the guest doesn't pay" (B1/B4 #2) holds. The old "keep the balance for another night" switch is gone.
 - **Legal note:** holding guests' money for up to 7 days may count as stored value (e-money rules). It was off for that reason before; it is on now by the owner's call. Check with a lawyer before launch.
 - **Balance panel** top right for every signed-in guest, even at 0 €: available, money on its way to the next auction, the withdraw-by date, the two rules (2.º / 3.º+), and "Levantar saldo".
+## 2026-10-10 - Apple design review (apple-design skill, every surface)
+
+Product owner asked for a full review of the site against the `apple-design`
+skill. Screens shot at 393×852, 1194×834, 1440×900 and 1920×1080 on the
+local Supabase stack. Most of the system already followed the skill
+(Pressable, springs from `lib/motion.ts`, material, type scale). Fixed:
+
+- **Focus ring layer:** the global `:focus-visible` rule was unlayered, so it
+  beat every Tailwind utility (utilities live in a cascade layer) and drew a
+  second red ring around inputs that style their own focus (search field).
+  Moved into `@layer base`.
+- **Destructive text buttons:** `variant="ghost" className="text-ember-500"`
+  rendered white (the variant's `text-text-primary` wins). New
+  `destructiveGhost` variant; the cockpit's Cancelar/Rejeitar use it.
+- **Cockpit touch targets:** every cockpit button is now `lg` (56px, rule
+  in `.claude/rules/ui.md`). The schedule rows stack time + price above the
+  two actions, and the slot kind is one nowrap chip ("Pico da noite" broke
+  word by word).
+- **Switches:** iOS anatomy, the track carries the state and the knob stays
+  white (green track for "Pedidos abertos", red for settings toggles).
+- **Shape consistency:** console action buttons, cockpit genre chips and the
+  wallet end-of-night choice are capsules like every other button.
+- **Pointer-down feedback:** slot picker, wallet choice and the "Aparecer
+  como" chips were raw `<button onClick>` (no press feedback, no drag-away
+  cancel); now `Pressable`. Press scale is 0.97 everywhere (0.95 / 0.99
+  outliers removed; the auction context bar gained feedback).
+- **Slow loops (§14):** the gold "you lead" shine plays twice, then rests,
+  instead of an endless ~0.3 Hz sweep.
+- **Reduced transparency:** ad-hoc `backdrop-blur` chips (now-playing hero)
+  go solid like `.material`.
+
+Left on purpose: the red glow on the live auction card and the gold
+"you lead" state are the owner's look; the win celebration belongs to the
+"Correções de telemóvel e partilhas" thread.

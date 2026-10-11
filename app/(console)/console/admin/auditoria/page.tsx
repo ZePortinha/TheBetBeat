@@ -171,14 +171,14 @@ export default async function AdminAuditPage({
         </label>
         <button
           type="submit"
-          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-full bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
         >
           {t("filters.apply")}
         </button>
         <Link
           href="/console/admin/auditoria"
-          className="min-h-10 rounded-button border border-line-subtle bg-surface-2 px-4
+          className="min-h-10 rounded-full border border-line-subtle bg-surface-2 px-4
             py-2.5 text-sm text-text-primary hover:bg-surface-3"
         >
           {t("filters.clear")}
