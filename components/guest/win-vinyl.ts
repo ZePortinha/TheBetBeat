@@ -113,7 +113,9 @@ function vinylDisc(R: number, px: number, cover: CanvasImageSource | null): Canv
   return c;
 }
 
-export function createVinyl(cover: CanvasImageSource | null, halo: Canvas2D | null): Vinyl {
+/** `cover` is read every frame: art that lands after the start is pressed in then. */
+export function createVinyl(cover: () => CanvasImageSource | null, halo: Canvas2D | null): Vinyl {
+  let pressed: CanvasImageSource | null = null;
   const plates = new Map<number, Canvas2D | null>();
   const discs = new Map<number, Canvas2D | null>();
   const at = <T,>(map: Map<number, T>, key: number, make: () => T): T => {
@@ -130,8 +132,13 @@ export function createVinyl(cover: CanvasImageSource | null, halo: Canvas2D | nu
       const spin = t * 1.55;
       const px = Math.min(1024, Math.ceil(2 * R));
       const key = Math.round(R);
+      const art = cover();
+      if (art !== pressed) {
+        pressed = art;
+        discs.clear();
+      }
       const plate = at(plates, key, () => vinylPlate(R, px));
-      const disc = at(discs, key, () => vinylDisc(R, px, cover));
+      const disc = at(discs, key, () => vinylDisc(R, px, art));
       ctx.save();
       ctx.translate(cx, cy);
       ctx.globalCompositeOperation = "lighter";

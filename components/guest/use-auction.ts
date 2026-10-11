@@ -162,6 +162,16 @@ export function useAuction() {
   return value;
 }
 
+/** The auction the guest picked, else the first one still running, else the first open. */
+export function pickSlot(state: PublicAuctionState, chosenSlotId: string | null, serverNow: number) {
+  return (
+    state.open.find((s) => s.id === chosenSlotId) ??
+    state.open.find((s) => Date.parse(s.closesAt) > serverNow) ??
+    state.open[0] ??
+    null
+  );
+}
+
 /** mm:ss (or h:mm:ss) until `atIso`, never negative. */
 export function countdown(atIso: string, serverNow: number): string {
   const total = Math.max(0, Math.ceil((Date.parse(atIso) - serverNow) / 1000));
