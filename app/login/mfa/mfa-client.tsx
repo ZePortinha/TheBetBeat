@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { devMfaAction } from "./actions";
 
 interface Labels {
   enrollIntro: string;
@@ -12,6 +13,7 @@ interface Labels {
   error: string;
   loading: string;
   qrAlt: string;
+  devHint: string | null;
 }
 
 type Mode = "loading" | "enroll" | "verify";
@@ -20,7 +22,16 @@ type Mode = "loading" | "enroll" | "verify";
  * TOTP MFA for managers/admins (B12.3): enrolls a factor on first login
  * (QR + secret), then challenges on every session until AAL2.
  */
-export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
+export function MfaClient({
+  next,
+  labels,
+  devCode,
+}: {
+  next: string;
+  labels: Labels;
+  /** Development-only test code (null in production); see lib/security/dev-mfa.ts. */
+  devCode: string | null;
+}) {
   const supabase = useRef(createClient()).current;
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("loading");
@@ -65,7 +76,21 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
   const submit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!factorId || busy) return;
+      if (busy) return;
+      if (devCode && code.trim() === devCode) {
+        setBusy(true);
+        setError(false);
+        const { ok } = await devMfaAction({ code: code.trim() });
+        if (!ok) {
+          setError(true);
+          setBusy(false);
+          return;
+        }
+        router.push(next);
+        router.refresh();
+        return;
+      }
+      if (!factorId) return;
       setBusy(true);
       setError(false);
       const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({
@@ -88,7 +113,7 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
       }
       router.push(next);
     },
-    [factorId, busy, code, next, router, supabase],
+    [factorId, busy, code, devCode, next, router, supabase],
   );
 
   if (mode === "loading") {
@@ -100,6 +125,11 @@ export function MfaClient({ next, labels }: { next: string; labels: Labels }) {
       <p className="text-sm text-text-secondary">
         {mode === "enroll" ? labels.enrollIntro : labels.verifyIntro}
       </p>
+      {labels.devHint ? (
+        <p className="rounded-card bg-surface-3 px-3 py-2 text-center text-xs text-text-secondary">
+          {labels.devHint}
+        </p>
+      ) : null}
       {mode === "enroll" && qrSvg ? (
         <div className="self-center rounded-card bg-white p-3">
           {/* Supabase returns an SVG data URI for the otpauth QR. */}

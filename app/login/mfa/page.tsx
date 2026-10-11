@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { safeNextPath } from "@/lib/security/redirect";
+import { devMfaCode } from "@/lib/security/dev-mfa";
 import { MfaClient } from "./mfa-client";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,6 +17,8 @@ export default async function MfaPage({
 }) {
   const t = await getTranslations("common.auth.mfa");
   const params = await searchParams;
+  // Development only (null in production): the test code, shown as a hint.
+  const devCode = devMfaCode();
 
   return (
     <AuthShell title={t("title")}>
@@ -29,7 +32,9 @@ export default async function MfaPage({
           error: t("error"),
           loading: t("loading"),
           qrAlt: t("qrAlt"),
+          devHint: devCode ? t("devHint", { code: devCode }) : null,
         }}
+        devCode={devCode}
       />
     </AuthShell>
   );
