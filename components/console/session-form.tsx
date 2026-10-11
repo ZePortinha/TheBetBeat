@@ -45,7 +45,7 @@ export interface SessionFormProps {
 
 const inputCls =
   "w-full rounded-button border border-line-subtle bg-surface-3 px-3 py-2 " +
-  "text-base text-text-primary focus:border-accent-500 focus:outline-none " +
+  "text-base text-text-primary focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25 " +
   "disabled:opacity-60";
 
 function Field({
@@ -341,7 +341,7 @@ export function SessionForm({
         <button
           type="submit"
           disabled={pending || Object.keys(liveErrors).length > 0}
-          className="min-h-11 rounded-button bg-accent-500 px-6 text-base font-semibold
+          className="min-h-11 rounded-full bg-accent-500 px-6 text-base font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]
             disabled:opacity-60"
         >

@@ -3,10 +3,11 @@ import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { buildLoginCodeMessage, getSmsProvider } from "@/lib/notifications";
 import { decrypt, encrypt, hashPhone, hashSmsCode } from "@/lib/security/crypto";
-import { checkSmsCode, newSmsCode, SMS_CODE_TTL_MS } from "@/lib/security/otp";
+import { checkSmsCode, newSmsCode, SMS_CODE_TTL_MS, SMS_CODES_PER_DAY, SMS_CODES_PER_HOUR } from "@/lib/security/otp";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { linkPhoneHandle } from "@/lib/guests/phone-handle";
+import { resolvePhoneAccount, sessionForGuest, type GuestSession } from "@/lib/guests/account";
 import { apiError, clientIp, rateLimitedResponse } from "../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../_lib/auth";
 import { guestListPartyHref } from "../_lib/guest-list";
@@ -14,16 +15,20 @@ import { guestListPartyHref } from "../_lib/guest-list";
 export const dynamic = "force-dynamic";
 
 /**
- * Guest phone sign-in (2026-10-05). Optional: never required to pay
- * (B1/B4 #3). The verified number is kept encrypted (B12.5) and pre-fills
+ * Guest phone sign-in (2026-10-05; the party's login since 2026-10-08,
+ * one account per number since 2026-10-10). The verified number is kept encrypted (B12.5) and pre-fills
  * MB WAY. `partyHref` is the live party whose guest list holds the number
  * (only ever revealed after the SMS code proved the number).
  *
  *   GET                       the saved number (own row only) + partyHref
+ *                             + the guest's @ (null until they pick one)
  *   POST { phone, turnstile } sends a 6-digit code by SMS
- *   POST { phone, code }      verifies it, saves the number, + partyHref
- *   DELETE                    forgets the number; phone_hash stays for the
- *                             night limits (B4.7)
+ *   POST { phone, code }      verifies it, saves the number, + partyHref;
+ *                             a number that already has an account returns
+ *                             that guest's session (this browser switches)
+ *   DELETE                    forgets the saved copy of the number (MB WAY
+ *                             pre-fill); the account and its login stay,
+ *                             phone_hash stays for the night limits (B4.7)
  */
 
 const bodySchema = z
@@ -45,7 +50,8 @@ export async function GET(request: Request) {
     phone_encrypted: string | null;
     phone_hash: string | null;
     phone_verified_at: Date | null;
-  }>(`select phone_encrypted, phone_hash, phone_verified_at from public.guests where id = $1`, [
+    handle: string | null;
+  }>(`select phone_encrypted, phone_hash, phone_verified_at, handle from public.guests where id = $1`, [
     identity.guestId,
   ]);
   const row = res.rows[0];
@@ -57,7 +63,7 @@ export async function GET(request: Request) {
   }
   const verified = phone !== null && Boolean(row?.phone_verified_at);
   const partyHref = verified && row?.phone_hash ? await guestListPartyHref(row.phone_hash) : null;
-  return NextResponse.json({ phone, verified, partyHref });
+  return NextResponse.json({ phone, verified, partyHref, handle: row?.handle ?? null });
 }
 
 export async function POST(request: Request) {
@@ -83,6 +89,9 @@ export async function POST(request: Request) {
     if (!rateLimit(`sms-verify:${guestId}`, LIMITS.smsVerify.limit, LIMITS.smsVerify.windowMs).ok) {
       return rateLimitedResponse();
     }
+    // Each guess takes its attempt atomically BEFORE the comparison: a
+    // burst of parallel guesses cannot all read "0 attempts" and get more
+    // than SMS_CODE_MAX_ATTEMPTS tries at the code.
     const res = await pool.query<{
       id: string;
       code_hash: string;
@@ -90,11 +99,14 @@ export async function POST(request: Request) {
       expires_at: Date;
       consumed_at: Date | null;
     }>(
-      `select id, code_hash, attempts, expires_at, consumed_at
-         from public.guest_phone_codes
-        where guest_id = $1 and phone_hash = $2
-        order by created_at desc
-        limit 1`,
+      `update public.guest_phone_codes c
+          set attempts = c.attempts + 1
+        where c.id = (
+          select id from public.guest_phone_codes
+           where guest_id = $1 and phone_hash = $2
+           order by created_at desc
+           limit 1)
+        returning c.id, c.code_hash, c.attempts - 1 as attempts, c.expires_at, c.consumed_at`,
       [guestId, phoneHash],
     );
     const row = res.rows[0];
@@ -110,13 +122,7 @@ export async function POST(request: Request) {
       hashSmsCode(code, guestId, phoneHash),
       Date.now(),
     );
-    if (check === "mismatch") {
-      await pool.query(
-        `update public.guest_phone_codes set attempts = attempts + 1 where id = $1`,
-        [row.id],
-      );
-      return apiError("code_invalid", 422);
-    }
+    if (check === "mismatch") return apiError("code_invalid", 422);
     if (check !== "ok") {
       return apiError(check === "expired" ? "code_expired" : "code_attempts", 422);
     }
@@ -129,23 +135,41 @@ export async function POST(request: Request) {
     );
     if (used.rowCount === 0) return apiError("code_expired", 422);
 
+    // The number is the account (lib/guests/account.ts): a number seen
+    // before signs this browser in as its guest, with its @ and balance.
+    const account = await resolvePhoneAccount(pool, guestId, phoneHash);
+    const accountId = account.accountId;
     await pool.query(
       `update public.guests
           set phone_encrypted = $2, phone_hash = $3, phone_verified_at = now()
         where id = $1`,
-      [guestId, encrypt(phone), phoneHash],
+      [accountId, encrypt(phone), phoneHash],
     );
     await pool.query(
-      `insert into public.audit_log (actor, action, entity, entity_id)
-       values ($1, 'guest.phone_verified', 'guest', $2)`,
-      [`guest:${guestId}`, guestId],
+      `insert into public.audit_log (actor, action, entity, entity_id, payload)
+       values ($1, $2, 'guest', $3, $4)`,
+      [
+        `guest:${guestId}`,
+        account.kind === "switch" ? "guest.phone_signed_in" : "guest.phone_verified",
+        accountId,
+        JSON.stringify(account.kind === "switch" ? { fromGuestId: guestId } : {}),
+      ],
     );
-    // The number owns one @: this device gets it back (or the number keeps this one).
-    await linkPhoneHandle(pool, guestId, phoneHash);
+    // The number owns one @: a returning number comes back with its @, so
+    // the entry screen does not ask for one again.
+    const handle = await linkPhoneHandle(pool, accountId, phoneHash);
+    let session: GuestSession | null = null;
+    if (account.kind === "switch") {
+      session = await sessionForGuest(accountId);
+      if (!session) return apiError("login_failed", 502);
+    }
     return NextResponse.json({
       phone,
       verified: true,
       partyHref: await guestListPartyHref(phoneHash),
+      handle,
+      // Only after the code proved the number: that guest's own session.
+      ...(session ? { session } : {}),
     });
   }
 
@@ -154,13 +178,29 @@ export async function POST(request: Request) {
   const limited = [
     rateLimit(`sms:${guestId}`, LIMITS.smsCode.limit, LIMITS.smsCode.windowMs),
     rateLimit(`sms:${phoneHash}`, LIMITS.smsCode.limit, LIMITS.smsCode.windowMs),
-    rateLimit(`sms-ip:${clientIp(request)}`, LIMITS.login.limit, LIMITS.login.windowMs),
+    rateLimit(`sms-ip:${clientIp(request)}`, LIMITS.smsIp.limit, LIMITS.smsIp.windowMs),
   ].some((r) => !r.ok);
   if (limited) return rateLimitedResponse();
 
   // Every SMS costs money: anti-bot like a payment start (B12.4).
   const human = await verifyTurnstile(parsed.data.turnstileToken ?? "missing", clientIp(request));
   if (!human) return apiError("bot_check_failed", 403);
+
+  // Durable caps (the in-memory limits above reset on restart and are per
+  // instance): a number gets at most 5 codes an hour and 10 a day, so the
+  // 5 guesses per code cannot be multiplied into a brute force.
+  const recent = await pool.query<{ hour: string; day: string; mine: string }>(
+    `select count(*) filter (where created_at > now() - interval '1 hour') as hour,
+            count(*) as day,
+            count(*) filter (where guest_id = $2) as mine
+       from public.guest_phone_codes
+      where (phone_hash = $1 or guest_id = $2) and created_at > now() - interval '1 day'`,
+    [phoneHash, guestId],
+  );
+  const counts = recent.rows[0];
+  if (counts && (Number(counts.hour) >= SMS_CODES_PER_HOUR || Number(counts.day) >= SMS_CODES_PER_DAY || Number(counts.mine) >= SMS_CODES_PER_DAY)) {
+    return rateLimitedResponse();
+  }
 
   await ensureGuestRow(guestId);
   const smsCode = newSmsCode();
@@ -191,7 +231,7 @@ export async function DELETE(request: Request) {
 
   const pool = getPool();
   await pool.query(
-    `update public.guests set phone_encrypted = null, phone_verified_at = null where id = $1`,
+    `update public.guests set phone_encrypted = null where id = $1`,
     [identity.guestId],
   );
   await pool.query(

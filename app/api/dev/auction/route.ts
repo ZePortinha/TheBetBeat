@@ -13,11 +13,15 @@ export const dynamic = "force-dynamic";
  *       auction closing in N seconds (any other open auction is cancelled)
  *   { action: "close", slotId }                 that auction ends now (+ tick)
  *   { action: "tick" }                          one worker tick, right now
+ *   { action: "forget-mic", sessionId }         earlier mic announcements
+ *       leave the rolling hour (the cap would otherwise turn the next big
+ *       win into "screen only" when the suite runs twice within an hour)
  */
 const bodySchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("open"), sessionId: z.string().uuid(), closesInSec: z.number().int().min(5).max(7200) }).strict(),
   z.object({ action: z.literal("close"), slotId: z.string().uuid() }).strict(),
   z.object({ action: z.literal("tick") }).strict(),
+  z.object({ action: z.literal("forget-mic"), sessionId: z.string().uuid() }).strict(),
 ]);
 
 export async function POST(request: Request) {
@@ -30,6 +34,14 @@ export async function POST(request: Request) {
   const now = Date.now();
 
   if (body.action === "tick") return NextResponse.json(await tickAuctions(now));
+  if (body.action === "forget-mic") {
+    const res = await getPool().query(
+      `update public.auction_slots set closed_at = closed_at - interval '1 hour'
+        where session_id = $1 and announce and closed_at > to_timestamp($2 / 1000.0) - interval '1 hour'`,
+      [body.sessionId, now],
+    );
+    return NextResponse.json({ forgotten: res.rowCount ?? 0 });
+  }
   if (body.action === "close") {
     await getPool().query(
       `update public.auction_slots set closes_at = to_timestamp($2 / 1000.0) where id = $1 and status = 'open'`,

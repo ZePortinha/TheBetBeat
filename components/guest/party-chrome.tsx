@@ -15,6 +15,7 @@ import { useTranslations } from "next-intl";
 import { AudioLines, Gavel, Trophy, UserRound } from "lucide-react";
 import { cx } from "@/components/ui/pressable";
 import { AuctionOverlays, WalletPill } from "./auction-screens";
+import { PhoneGate } from "./phone-gate";
 import { AuctionProvider, useAuction } from "./use-auction";
 
 interface PartyValue {
@@ -62,7 +63,7 @@ function TabBar({ token }: { token: string }) {
   );
 
   return (
-    <nav aria-label={t("label")} className="material fixed inset-x-0 bottom-0 z-40">
+    <nav aria-label={t("label")} data-guest-dock="" className="material fixed inset-x-0 bottom-0 z-40">
       <div className="mx-auto grid h-[4.25rem] w-full max-w-md grid-cols-3 box-content pb-[env(safe-area-inset-bottom)]">
         {side("home", base, AudioLines)}
         {/* The auction: raised, bigger, the gavel. A live dot while one is open. */}
@@ -73,7 +74,7 @@ function TabBar({ token }: { token: string }) {
         >
           <span
             className={cx(
-              "absolute -top-7 flex size-[4.25rem] items-center justify-center rounded-full bg-accent-500 text-text-on-accent ring-4 ring-bg-base transition-transform duration-100 group-active:scale-95",
+              "absolute -top-7 flex size-[4.25rem] items-center justify-center rounded-full bg-accent-500 text-text-on-accent ring-4 ring-bg-base transition-transform duration-100 group-active:scale-[0.97]",
               active === "auction" ? "shadow-glow-accent" : "shadow-lg",
             )}
           >
@@ -96,17 +97,23 @@ export function PartyChrome({
   token,
   venueName,
   sessionId,
+  phoneRequired,
   children,
-}: PartyValue & { sessionId: string; children: React.ReactNode }) {
+}: PartyValue & { sessionId: string; phoneRequired: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   // Task screens (one request, the account) keep their own back header.
   const showTabs = !/\/requests\/[^/]+$|\/account$/.test(pathname);
+  // The front door: number + SMS code (and a new number's @) before the party.
+  const [entered, setEntered] = React.useState(!phoneRequired);
+  const enter = React.useCallback(() => setEntered(true), []);
+
+  if (!entered) return <PhoneGate venueName={venueName} onEntered={enter} />;
 
   return (
     <PartyContext.Provider value={{ token, venueName }}>
       <AuctionProvider token={token} sessionId={sessionId}>
         {children}
-        <AuctionOverlays />
+        <AuctionOverlays venueName={venueName} />
         {showTabs ? <TabBar token={token} /> : null}
       </AuctionProvider>
     </PartyContext.Provider>

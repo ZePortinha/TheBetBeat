@@ -28,7 +28,7 @@ import {
   expireUnpaidRequest,
   markTrackFinished,
 } from "@/lib/domain/service";
-import { parsePaymentPurpose, reconcilePendingMbway } from "@/lib/payments/service";
+import { parsePaymentPurpose, reconcilePendingMbway, refundMbwayOrphans } from "@/lib/payments/service";
 import { issuePendingAuctionInvoices, tickAuctions } from "@/lib/auction/service";
 import { measureWantedBpms } from "@/lib/catalog/service";
 
@@ -307,6 +307,7 @@ export async function scanDeadlines(
     lastMbwayPoll = now;
     try {
       await reconcilePendingMbway(now);
+      await refundMbwayOrphans(now);
     } catch (error) {
       result.errors += 1;
       logScanError("payments", "mbway-poll", error);

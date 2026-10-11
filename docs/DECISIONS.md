@@ -518,3 +518,154 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
 - Instagram: the winner screen shares a 1080x1920 story image through the phone's share sheet (where Instagram lives). There is no Instagram web intent, so on desktop the image is saved instead.
+
+## 2026-10-06 - Real MB WAY made safe for production
+
+Product owner: MB WAY must be real and production-ready (top priority). ifthenpay was already wired in (2026-10-06, `c003e67`); this round closes the gaps that would lose or double money in production.
+
+- **Refund endpoint fixed.** Refunds called `https://api.ifthenpay.com/v2/payments/refund`, which neither ifthenpay's helpdesk ("API - Refunds": `ifthenpay.com/api/endpoint/payments/refund`) nor their own Pipedream connector (`api.ifthenpay.com/endpoint/payments/refund`) uses. Now `https://api.ifthenpay.com/endpoint/payments/refund`. `pnpm mbway:smoke` proves it with the real keys before go-live.
+- **Journal instead of an in-memory memo** (`psp_operations`, migration 0013). ifthenpay has no idempotency keys, and the refund worker relied on the provider returning an already-done refund as is. The memo was lost on restart, so a retried refund paid the guest twice. Keys are now journaled in Postgres, outside the caller's transaction.
+- **Unknown outcomes are never retried automatically.** Timeout, network error, 5xx or an unreadable body → `PaymentOutcomeUnknownError`; the refund worker alerts the admin at once instead of retrying. A 4xx or a refusal code (0, -1) means nothing moved, so those still retry with backoff. Refund timeout raised to 30 s to make unknowns rarer.
+- **Refund cap per payment.** Done + in-flight + unknown refunds of one MB WAY payment can never exceed what was charged (advisory lock per payment). Payments made before the journal have no charge row and no cap.
+- **Orphan payments refunded.** A push whose call timed out can still be approved by the guest. The callback now carries `orderId`; a confirmed payment with no payments row is marked on its charge, and the worker refunds it in full after a minute (B1.2). No ledger entries: that money never entered the books; the audit log keeps the trail.
+- Not done: MB WAY sandbox. ifthenpay gives test keys on request; the contract and keys are the product owner's.
+
+## 2026-10-06 - Overnight security round
+
+- **Column-level grants** (migration 0014). RLS limits rows, not columns: a guest could set its own `phone_verified_at` and take any @handle, and a manager could set `betbeat_fee_bps = 0`. Clients now write only an allowlist of columns; everything else goes through server routes. `db:audit` fails on any other client-writable column.
+- **Client IP = the entry `TRUSTED_PROXY_HOPS` from the right** of X-Forwarded-For; the left end is client-controlled and gave bots a fresh rate-limit bucket per request.
+- **Managers need AAL2 on the cockpit API too**, not only on pages; without it only DJ memberships count.
+- **Temporary staff passwords must be changed** at first sign-in (`app_metadata.must_change_password`, min 12 characters).
+- **Mock payments stay allowed in production** while there is no ifthenpay contract (product owner, 2026-10-06), so demos keep working. They credit money that does not exist: switch to `PAYMENT_PROVIDER=ifthenpay` before any real night.
+
+## 2026-10-07 — "Populares" shows only songs a guest can bid on
+
+- **Context:** E2E bids failed with `track_not_found`: "Populares" (tonight's
+  most-bid songs) listed catalog songs even with the catalog closed, and library
+  songs without their `blocked` flag, so both looked available but were refused
+  on bid.
+- **Decision:** catalog songs appear there only while the night's catalog is
+  open; library songs carry `blocked` (shown unavailable). E2E bids pick a song
+  from the club's library, which every catalog mode accepts.
+- **Also:** the dev-only `/api/dev/auction` gains `forget-mic` so the mic test
+  does not depend on how many announcements earlier runs used this hour.
+## 2026-10-07 - Quality pass: performance, accessibility, SEO, polish
+
+Measured in a cloud session without Docker: Postgres 16 with stubbed `auth`/`realtime` schemas plus a tiny local stand-in for Supabase Auth/PostgREST, production build, Lighthouse 12 (mobile) and axe on 33 screens at their B10 viewports.
+
+- Contrast (axe): destructive fills use `ember-700` (white text was 3.4:1 on `ember-500`); red text on `surface-3` chips uses `accent-300`. The cockpit content area is a `<main>`; the landing footer nav has its own label; the empty revenue header cell is a `<td>`.
+- Boot intro plays once per tab: a nonce'd inline script reads a `sessionStorage` flag before first paint, so reloads and the "/" → party hand-off no longer replay the 2 s splash. A fresh tab still gets it (the E2E intro test opens a fresh context).
+- /casas hero: entrance is a CSS animation instead of `whileInView` opacity, so the headline paints with the HTML instead of waiting for hydration. Below-the-fold blocks keep `Reveal`.
+- SEO: localized metadata (`common.meta`), `metadataBase`, Open Graph + Twitter card with a generated 1200x630 share image (Inter subsets in `assets/fonts`, OFL), canonical URLs, `robots.txt`, `sitemap.xml`. Only `/` and `/casas` are indexable; party pages (`/s/…`, signed tokens), `/entrar`, display, cockpit, console and login are `noindex`. Lighthouse SEO on those pages reads lower on purpose.
+- Icons: `favicon.ico`, `icon.svg`, a full-bleed `apple-icon.png`, and a maskable 512 icon in both manifests (`id`, `scope`, `lang` added).
+- 404 page and a root error boundary; the "QR já não é válido" screen and the /entrar "not on the list" note now link to "/" (camera + live events). The /casas "Entrar na festa" links to "/" too: since 2026-10-06 that is the guests' entry, and /entrar only works for guest lists.
+- Venue display: the "Próximo leilão" heading is hidden when nothing is open or scheduled (it was a heading over an empty row on the TV).
+- Guest layout preconnects to Supabase (anonymous sign-in and realtime start there).
+- `htmlLimitedBots: /.*/` in next.config: Next 15 streamed the page metadata into `<body>` for every client; it now goes in `<head>` (link previews and audits that do not run JS were missing the description).
+- /casas copy caught up with the auction-first guest app (2026-10-06): the hero, step 2 and the guarantee no longer describe the old "Na Fila / Em Breve / A Seguir" tiers; they describe bidding and the balance refund, in the same words the guest app uses.
+- Storybook stories used real artists and track titles; replaced with the fictional seed names (A2.5).
+- List cover images load lazily; the MFA QR alt text moved to translations.
+
+## 2026-10-07 - Big moments: intro, last 30 s, gavel, winner
+
+Product owner asked for better animation quality on the logo, the auction ending and the win. Reviewed frame by frame on `/dev/motion` (dev-only stage; `?scene=intro|final|win`).
+
+- Countdowns (guest card, teaser, strip, venue display, "next opens") roll digit by digit like a mechanical clock (`TickingCountdown`, springDefault); only changed digits move. The leader's amount rolls the same way. The looping `animate-pulse` on the last minute is gone (B10.6: no loops except live indicators).
+- Last 30 s: the edge glow beats once per second, on the second the digits roll, driven per tick with Web Animations on opacity (`FinalStretchFrame`). The old 1 s box-shadow keyframes repainted the whole viewport every frame and drifted out of step with the clock. Last 10 s: each beat is the BetBeat lub-dub. The digits tick (scale 1.08 → 1) on the beat; cards just run hot (static red border + glow) instead of flashing. Last 5 s of an auction I am in: a 12 ms haptic tick per second. Never more than two pulses a second (under the 3 Hz flash limit). Reduced motion: steady red edge, digits cross-fade.
+- Closing: the gavel strikes (springMomentum: a blow may overshoot) with a ring from the point of impact and one 40 ms buzz for guests in the auction, timed to the impact.
+- Logo intro: on leaving, the mark comes towards the viewer (scale 1.9) and dissolves as the black lifts, instead of a flat fade. The CSS safety fallback moved to 2.8 s so it no longer cuts the exit.
+- Winner: a bottom scrim keeps the amount, track and hint readable over the confetti and rays.
+- Party screens arrive with a 240 ms rise + fade (`template.tsx`, CSS only).
+- The intro's nonce'd inline script carries `suppressHydrationWarning` (browsers hide nonce attributes after load, which React reported as a mismatch).
+- Losing the lead shakes the auction card once (the iOS "no"); taking it lifts it slightly. The leader's amount rolls like the countdown.
+- The venue display also shows the gavel strike at 0:00.
+- Party-screen entrance plays only on navigation, not on the first load (keeps LCP and the server markup intact).
+- Toasts sit above the guest tab bar and its raised gavel (`body:has([data-guest-dock])`); before, "Foste ultrapassado" covered the Leilão button for 4 s.
+
+## 2026-10-07 - Second polish pass: cockpit and console
+
+- One `BrandMark` (the icon's concentric beats) replaces the "BB" text in the cockpit rail and sits next to the console wordmark.
+- Cockpit auction board: countdown and leader amount roll like the guest and venue screens (no beat; the DJ needs calm, not urgency).
+- A missing value ("—") is never painted in the money color: console `Stat` and the cockpit acceptance tile show it in tertiary.
+- Console "Receita por hora" says "Sem receita neste período." instead of an empty plot; averages use pt-PT decimals ("2,5"); time inputs no longer clip.
+- Console and MFA fields get the same focus ring as the staff login (accent border + 4 px soft ring); before, the only keyboard cue was a 1 px border change.
+- Cockpit "Payout" reads "Liquidação" (the brief's glossary, already used by the console).
+- Deferred: loading `@supabase/supabase-js` (66 kB gzip, in every guest first load) on demand. It touches `lib/realtime/client.ts` and `guest-providers.tsx`, which PR #1 rewrites; do it after PR #1 lands.
+## 2026-10-08 - Phone fixes from the owner's test night
+
+- **Phone sign-in at the door (owner's call):** after the QR, the party always asks for the phone number and the SMS code. A number seen before comes back with its @ and goes straight in; a new number picks its @ once. This overrides the old "no registration" reading of B1/B4 #3 for the guest app. Exception: a production build still on `SMS_PROVIDER=mock` skips the door (nobody would receive a code), so a demo deploy never locks guests out. Rejected: keeping sign-in optional (owner wants every guest identified by number).
+- **Not done yet, on purpose:** with real SMS live, the bid form will stop asking for an @ and offer two buttons, anonymous bid or public bid. It waits for Twilio (owner, 2026-10-08).
+- **Winner celebration in 2D:** the three.js stage froze some phones and took a while to load. Replaced by a Canvas 2D scene (mirror ball, multi-colour stage lights that strobe at most twice per second, champagne, confetti) drawn as a pure function of time. three and @types/three were removed. Rejected: a lighter 3D scene (still a big download and GPU cost on cheap phones).
+- **Multi-colour lights** go beyond the one-accent rule (B10/design-taste) inside the celebration only: the owner asked for flashing coloured lights. The rest of the app keeps the single red.
+- **Instagram video:** the winner shares a 7 s video of the same scene, recorded in the guest's browser (MediaRecorder on a 720x1280 canvas, MP4/H.264 where the phone supports it, else WebM), starting 1.6 s after the screen opens so it never competes with the opening burst. Browsers without MediaRecorder share the story PNG as before. The album art comes through `/api/guest/auction/[slotId]/cover` (same origin, winners only, Deezer CDN hosts only) so the canvas can be exported. Rejected: server-side video rendering (needs ffmpeg and a render queue).
+- **Ranking share** is an image (`/api/guest/ranking/card`, 1080x1920), as asked. It shows only what the Ranking tab already shows to everyone at the party.
+- **Faster winner screen:** once an auction the guest is in reaches 0:00, the app asks for the result every 400 ms (for up to 10 s) instead of waiting for the 3 s poll. Measured: the winner screen opens about 0.9 s after the close.
+- **Last-30-seconds frame** belongs to the page now (inside the guest column, rounded, under the tab bar, scrolls with the content) instead of being glued to the screen edges.
+- **Backing someone** no longer needs an @ (ported from PR #3), and the amounts in the backing sheet are labelled as the song's new total.
+
+## 2026-10-10 - Phone login, runner-up rollover and the 7-day balance (owner's brief)
+
+- **The number is the account.** The first guest that proves a number with the SMS code owns it (`phone_accounts`, migration 17). Any other phone or browser that proves the same number is signed in as that guest, so the @, the balance and the bids follow the number. Supabase has no admin call that mints a session, so `lib/guests/account.ts` gives the account an internal address (`<guest id>@guests.betbeat.invalid`, never shown, never mailed), asks Auth for a one-time magic-link token and redeems it server-side; `/api/guest/phone` returns that session only after the code proved the number, and the browser calls `setSession`. Rejected: Supabase's own phone auth (needs Twilio configured inside Supabase and bypasses our SMS provider and limits); merging two guests' money (risky; with the login enforced, a fresh device has no money to merge).
+- **Production note:** each sign-in on a new device redeems one token from the server's IP. Raise Auth's "token verifications" rate limit in the Supabase dashboard before a busy night (default 30 per 5 min per IP).
+- **Enforced on the server:** a bid needs a guest signed in with their number (`login_required`), except in a production build still on the mock SMS provider. The @ picked at the first login is for good (`handle_locked`). Paying with another MB WAY number never changes the account's number. "Esquecer este número" became "Sair neste telemóvel" (signs this browser out; the account stays).
+- **Bid form:** signed in with an @, it offers "Público · @handle", "Anónimo" or a table; nothing to type. This replaces the @ prompt that waited for SMS (2026-10-08).
+- **Runner-up rollover:** whoever ends an auction second has that money moved into the next auction of the night as its opening bid, same track, same name on screen. Win it: spent as usual (refunded if not played). Second again: it rolls again. Third or lower: the money already came back to the balance when they were outbid. A backed bid rolls with each backer's part. Between the close and the next opening the money is held out of the balance (`auction_rollovers`); the worker places it as soon as that auction opens. It goes back to the balance when there is no next auction, the rolled amount cannot beat what someone already bid there, the guest already bids there, or the night ends. Rejected: rolling into an auction already led by more (it would have to sit below the leader, which the money model does not allow).
+- **The balance's 7 days (rule chosen where the brief was silent):** the balance is no longer refunded at the end of the night. Each euro can be withdrawn ("Levantar saldo", back to the MB WAY or card it came from) or used in another auction for 7 days from when it landed in the balance (club setting `keepBalanceDays`, default 7). After that it goes back to the payment method on its own, oldest money first (hourly worker job). Never forfeited, so "if it doesn't play, the guest doesn't pay" (B1/B4 #2) holds. The old "keep the balance for another night" switch is gone.
+- **Legal note:** holding guests' money for up to 7 days may count as stored value (e-money rules). It was off for that reason before; it is on now by the owner's call. Check with a lawyer before launch.
+- **Balance panel** top right for every signed-in guest, even at 0 €: available, money on its way to the next auction, the withdraw-by date, the two rules (2.º / 3.º+), and "Levantar saldo".
+## 2026-10-10 - Apple design review (apple-design skill, every surface)
+
+Product owner asked for a full review of the site against the `apple-design`
+skill. Screens shot at 393×852, 1194×834, 1440×900 and 1920×1080 on the
+local Supabase stack. Most of the system already followed the skill
+(Pressable, springs from `lib/motion.ts`, material, type scale). Fixed:
+
+- **Focus ring layer:** the global `:focus-visible` rule was unlayered, so it
+  beat every Tailwind utility (utilities live in a cascade layer) and drew a
+  second red ring around inputs that style their own focus (search field).
+  Moved into `@layer base`.
+- **Destructive text buttons:** `variant="ghost" className="text-ember-500"`
+  rendered white (the variant's `text-text-primary` wins). New
+  `destructiveGhost` variant; the cockpit's Cancelar/Rejeitar use it.
+- **Cockpit touch targets:** every cockpit button is now `lg` (56px, rule
+  in `.claude/rules/ui.md`). The schedule rows stack time + price above the
+  two actions, and the slot kind is one nowrap chip ("Pico da noite" broke
+  word by word).
+- **Switches:** iOS anatomy, the track carries the state and the knob stays
+  white (green track for "Pedidos abertos", red for settings toggles).
+- **Shape consistency:** console action buttons, cockpit genre chips and the
+  wallet end-of-night choice are capsules like every other button.
+- **Pointer-down feedback:** slot picker, wallet choice and the "Aparecer
+  como" chips were raw `<button onClick>` (no press feedback, no drag-away
+  cancel); now `Pressable`. Press scale is 0.97 everywhere (0.95 / 0.99
+  outliers removed; the auction context bar gained feedback).
+- **Slow loops (§14):** the gold "you lead" shine plays twice, then rests,
+  instead of an endless ~0.3 Hz sweep.
+- **Reduced transparency:** ad-hoc `backdrop-blur` chips (now-playing hero)
+  go solid like `.material`.
+
+Left on purpose: the red glow on the live auction card and the gold
+"you lead" state are the owner's look; the win celebration belongs to the
+"Correções de telemóvel e partilhas" thread.
+
+## 2026-10-11 - Six open PRs integrated on one branch
+
+None of PRs #1 to #6 had reached main and several conflicted, so they were
+merged in this order on `claude/project-thread-cp9ey2`: #1, #3, #2, #4, #6,
+#5. Where two touched the same place, the newer brief won:
+
+- **Last-30-s frame:** PR #2's per-second beat (`FinalStretchFrame`, opacity
+  only) with PR #4's placement on the guest app (inside the column, rounded,
+  under the tab bar): new `page` prop. The TV keeps the screen-edge frame.
+  The card and digits stay steady red (PR #2), not pulsing.
+- **Winner celebration:** PR #4's "Gold & Smoke" scene as is.
+- **Login and balance:** PR #6 (phone is the account, @ locked, 7-day
+  balance, runner-up rollover). PR #1's reserved-@ check stays on the bid
+  and profile routes; the old end-of-night keep/refund choice is gone.
+- **Destructive buttons:** PR #5's capsule shape, PR #2's `ember-700` fill
+  (white on `ember-500` failed AA contrast).
+- **Migrations:** 13-16 from PR #1, 17 from PR #6, no collisions.
+- **E2E:** PR #3's flows enter by phone now (`enterParty`); the intro test
+  reads the guest link without opening `/`, since the intro plays once per
+  tab (PR #2).
+

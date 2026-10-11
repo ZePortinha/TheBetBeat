@@ -37,7 +37,7 @@ function RequestsSwitch({
       aria-label={label}
       onPress={() => onToggle(!open)}
       className={cx(
-        "flex min-h-12 items-center gap-2 rounded-full border px-2 py-1",
+        "flex min-h-14 items-center gap-2 rounded-full border px-2 py-1",
         open
           ? "border-green-500/40 bg-green-500/10"
           : "border-amber-500/40 bg-amber-500/10",
@@ -46,15 +46,13 @@ function RequestsSwitch({
       <span
         className={cx(
           "relative block h-8 w-14 rounded-full transition-colors duration-100",
-          open ? "bg-green-500/35" : "bg-surface-3",
+          open ? "bg-green-500" : "bg-surface-3",
         )}
         aria-hidden
       >
+        {/* iOS switch: the track carries the state, the knob stays white. */}
         <motion.span
-          className={cx(
-            "absolute top-1 block size-6 rounded-full",
-            open ? "bg-green-500" : "bg-amber-500",
-          )}
+          className="absolute top-1 block size-6 rounded-full bg-text-primary shadow-md"
           animate={{ x: open ? 26 : 4 }}
           transition={springDefault}
         />

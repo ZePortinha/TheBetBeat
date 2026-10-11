@@ -27,7 +27,7 @@ const filterSchema = z
 
 const inputCls =
   "rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm " +
-  "text-text-primary focus:border-accent-500 focus:outline-none";
+  "text-text-primary focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25";
 
 /** Escape LIKE wildcards so a filter is a literal prefix/substring. */
 function likeEscape(s: string): string {
@@ -171,14 +171,14 @@ export default async function AdminAuditPage({
         </label>
         <button
           type="submit"
-          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-full bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
         >
           {t("filters.apply")}
         </button>
         <Link
           href="/console/admin/auditoria"
-          className="min-h-10 rounded-button border border-line-subtle bg-surface-2 px-4
+          className="min-h-10 rounded-full border border-line-subtle bg-surface-2 px-4
             py-2.5 text-sm text-text-primary hover:bg-surface-3"
         >
           {t("filters.clear")}

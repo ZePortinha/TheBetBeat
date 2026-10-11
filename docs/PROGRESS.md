@@ -15,6 +15,71 @@
 | 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing/catalog credentials unavailable → adapters stay mocked behind interfaces; Sentry/PostHog wiring, load-test run, B12 review pending |
 | 9 — Delivery | docs done | README, `docs/OPERATIONS.md`, `docs/SECURITY.md`, DECISIONS updated. Final `db:audit` result still to paste into SECURITY.md |
 
+## 2026-10-11 - PRs #1-#6 integrated (branch claude/project-thread-cp9ey2)
+
+One branch from main with the six open PRs merged (#1, #3, #2, #4, #6, #5)
+and the conflicts resolved (see DECISIONS 2026-10-11). Verified in the cloud
+container on the real local Supabase stacks: typecheck, lint, i18n:check,
+`pnpm test` (494), `SUPABASE_TEST=1 pnpm test` (161), `pnpm db:audit`, and
+`pnpm test:e2e` (all 61 run green on Chromium; the phone project ran on
+Chromium, not WebKit). Still to check on a real phone: the Instagram video
+share and the celebration's frame rate (PR #4).
+
+## Real MB WAY hardening (cloud session — 2026-10-06)
+
+Branch `claude/mbway-integracao-real-rz5b2z`. ifthenpay refund endpoint fixed;
+PSP journal (migration 0013) for exactly-once pushes/refunds across restarts,
+refund cap per payment, unknown outcomes alert instead of retrying, orphan
+payments auto-refunded; `pnpm mbway:smoke` go-live check. Green: typecheck,
+lint, `pnpm test` (459), `tests/integration/psp-journal.integration.test.ts`
+on a plain Postgres 16. Still to run locally: `pnpm db:reset`, `pnpm db:audit`,
+`SUPABASE_TEST=1 pnpm test`; with the real keys, `pnpm mbway:smoke` (see
+docs/INTEGRATIONS.md, steps 5–6). Details in DECISIONS.
+
+## Security hardening (cloud session, overnight — 2026-10-06)
+
+Same branch. Column grants (migration 0014) stop guests and managers writing
+protected columns through PostgREST (verified phone, @handle, BetBeat fee);
+`db:audit` now checks column privileges. Also: client IP from the right end of
+X-Forwarded-For (`TRUSTED_PROXY_HOPS`), Origin check on API writes, MFA (AAL2)
+on the cockpit API for managers, safe post-login/MFA redirects, preview SSRF
+allowlist, reserved @handles, durable SMS caps, per-IP caps + 1 s cache on
+public reads, coalesced realtime hints, forced change of temporary staff
+passwords, cockpit caches cleared at sign-in, Turnstile on staff sign-in
+(and Supabase Auth CAPTCHA ready behind `NEXT_PUBLIC_SUPABASE_CAPTCHA`),
+/api body caps, race-free SMS code attempts, sign-in limits in Postgres
+(migration 0015), indexes for the busiest payment/refund/ledger lookups
+(migration 0016), and integration tests for parallel bids, parallel duplicate
+webhooks and DJ accept/reject races. Green: typecheck, lint,
+`pnpm test` (479), db:audit and the RLS/domain/auction/worker/journal
+integration suites (47 tests) on a plain Postgres 16 with a Supabase stub.
+Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
+`pnpm test:e2e`; restart Supabase (config.toml: min password 12).
+## 2026-10-10 - Phone login and balance with rollover (branch claude/login-telemovel-saldo-y25pn1)
+
+Owner's brief (see DECISIONS 2026-10-10): the number is the account on any
+phone, the @ is chosen once, second place rolls into the next auction, third
+or lower stays in a balance withdrawable for 7 days, balance panel top right.
+Built on the phone gate from PR #4 (ported). Verified in the cloud container
+on the real local Supabase stack: typecheck, lint, 465 unit tests,
+`SUPABASE_TEST=1 pnpm test` 151/151 (rollover scenarios + cross-device login
+with a real Auth session), `pnpm db:audit`, and E2E on Chromium: guest spec
+green incl. the new login and balance-panel tests. Known E2E reds from main
+(fixed by PR #3's library-only track pick): cockpit "vencedor 7 €" and
+"recusar devolve 600" climb to a catalog track's 12,50 € floor. To do with
+real SMS: try the second-phone login on two real phones.
+
+## 2026-10-08 - Phone fixes and sharing (branch claude/correcoes-telemovel-partilhas-a9exxo)
+
+From the owner's test on a phone (see DECISIONS 2026-10-08): last-30-s frame
+on the page, 2D winner scene (~0.9 s after the close), winner video for
+Instagram, ranking redesign + Story image, backing without an @, phone
+sign-in at the party door. Verified in the cloud container on the real local
+Supabase stack: typecheck, lint, unit tests (incl. `tests/unit/win-scene.test.ts`),
+`tests/e2e/guest.spec.ts` on the phone viewport (Chromium), and Playwright
+screenshots of each screen. To check on a real phone: the video share on
+iOS Safari and Android Chrome (H.264 MP4), and the celebration's frame rate.
+
 ## This round (cloud session, no Docker / Supabase — 2026-10-02)
 
 Branch `cloud/finish-surfaces` (also pushed to the session branch). Everything
@@ -49,6 +114,34 @@ that does not need a database was finished and verified:
 - Steps 4–8 still pending: `pnpm simulate` strict < 1 s latency, screenshots + B10.6 checklist,
   QR decode, subagent reviews.
 
+## E2E verification (cloud session, 2026-10-07)
+
+Local Supabase + `pnpm dev` + `pnpm worker`, Chromium for every project (the
+phone project's WebKit is not installed in the cloud image), the Deezer catalog
+answered by a fictional stub (no network to api.deezer.com there).
+
+- `pnpm typecheck`, `pnpm lint`, `pnpm test` (452) green.
+- `pnpm test:e2e`: 56 passed, 104 skipped by project gating; a second and third
+  run on the same DB, without `db:reset`, also green. Gated `E2E_END_SET=1`
+  tests ("manter premido" on iPad, "Terminar sessão" in the console) pass on a
+  fresh DB.
+- Fixed: `track_not_found` (search listed catalog songs under "Populares" while
+  the catalog was closed, and the fixture bid on the last song of any section);
+  the outbid toast covering the winner screen's "Fechar"; the 150 € mic test
+  failing on a second run within the hour (3 announcements/hour cap); the end-set
+  test reading the wallet through the guest API after the night ended.
+- `SUPABASE_TEST=1 pnpm test`: 146 integration tests green, twice in a row,
+  with `pnpm worker` STOPPED (a running worker picks up the suite's failed
+  refunds and auctions and makes those tests fail). The suite also writes
+  fictional "AU …" tracks into the seeded night: `pnpm db:reset` before
+  looking at the screens. `pnpm db:audit` green.
+- MVP flow walked end to end with screenshots (enter by QR, bid, outbid,
+  raise, Vencedor, DJ accepts and plays, Ranking).
+- New `tests/e2e/flows.spec.ts` (phone): entering from "Eventos em direto",
+  finding a song by typing and bidding on it, backing the leading song. It
+  found a bug, fixed: a guest without an @ yet could not back a song (the
+  hidden "Como apareces" left the button disabled). Suite now 59 passed.
+
 ## To verify locally (needs `supabase start` + `pnpm db:reset` + `pnpm dev` + `pnpm worker`)
 
 In this order; fix selectors/labels as needed, then record results here:
@@ -79,6 +172,14 @@ In this order; fix selectors/labels as needed, then record results here:
 7. Display Phase 6 criterion: decode the QR from `docs/screens/display-16x9.png`.
 8. Money + security subagent reviews (A2.10) before closing Phase 8.
 
+## Quality pass (cloud session, 2026-10-07)
+
+Branch `claude/metricas-acabamento-9ep3sj`. See DECISIONS "Quality pass". Lighthouse mobile
+before → after on the production build: "/" perf 86 → 98, best practices 96 → 100; /casas perf
+95 → 98, best practices 96 → 100, SEO 90 → 100; axe: 0 violations on
+all 33 screens (was 9 across cockpit, console, landing, 404). Remaining best-practice flags on
+party pages come from the measurement setup (Turnstile blocked by the sandbox, no realtime).
+
 ## Next step
 
 Phase 8: wire Sentry (with `beforeSend` scrubbing) and PostHog behind env,
@@ -92,8 +193,8 @@ SMS, invoicing and catalog adapters when credentials arrive.
 - Supabase CLI 2.78.1 (2.119 available) — fine for local dev.
 - Real PSP/SMS/invoicing/catalog credentials not available; Phase 8 ships
   sandbox-ready adapters + docs instead of live validation.
-- Turnstile is not enforced on anonymous session creation nor rendered on the
-  staff login form (see `docs/SECURITY.md` B12.4) — Phase 8.
+- Turnstile on anonymous session creation needs Supabase CAPTCHA on in production plus
+  `NEXT_PUBLIC_SUPABASE_CAPTCHA=1` (off locally). See `docs/SECURITY.md` B12.4.
 - `price.changed` broadcasts not yet emitted (screens refetch quotes on
   `queue.changed`); wire a quote-service hook if live tickers are wanted.
 - TierQuote.reason lacks an `order_conflict` code: a tier made unavailable by

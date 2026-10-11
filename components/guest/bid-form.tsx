@@ -143,11 +143,16 @@ export function BidForm({
   const [display, setDisplay] = React.useState<Display>({ mode: "handle", handle: "" });
   // My @ (the number's @ once it is proven, on any device).
   const myHandle = React.useRef("");
+  // Signed in with an @ (2026-10-10): "público" is that @, nothing to type.
+  const [ownHandle, setOwnHandle] = React.useState<string | null>(null);
   React.useEffect(() => {
     void apiFetch<{ handle: string | null }>("/api/guest/profile").then((res) => {
       const handle = res.ok ? (res.data.handle ?? "") : "";
       myHandle.current = handle;
-      if (handle) setDisplay((d) => (d.mode === "handle" && !d.handle ? { mode: "handle", handle } : d));
+      if (handle) {
+        setOwnHandle(handle);
+        setDisplay((d) => (d.mode === "handle" && !d.handle ? { mode: "handle", handle } : d));
+      }
     });
   }, []);
   const [method, setMethod] = React.useState<PaymentMethod>(methods[0] ?? "mbway");
@@ -161,7 +166,9 @@ export function BidForm({
   const fromWallet = Math.min(walletCents, add);
   const toPay = add - fromWallet;
   const phoneValid = /^9\d{8}$/.test(phoneDigits);
+  // Backing someone keeps their name on the song: no "Como apareces" to fill.
   const displayValid =
+    target.kind === "back" ||
     display.mode === "anonymous" ||
     (display.mode === "handle" && /^@?[a-z0-9][a-z0-9._-]{1,23}$/i.test(display.handle)) ||
     (display.mode === "table" && display.table.trim().length > 0);
@@ -194,7 +201,7 @@ export function BidForm({
           slotId: slot.id,
           totalCents: effectiveTotal,
           target,
-          display,
+          display: target.kind === "back" ? { mode: "anonymous" } : display,
           ...(toPay > 0 ? { method } : {}),
           ...(toPay > 0 && method === "mbway" ? { phone: `+351${phoneDigits}` } : {}),
           ...(toPay > 0 ? { turnstileToken: turnstileToken ?? "missing" } : {}),
@@ -262,8 +269,9 @@ export function BidForm({
     <div className="flex flex-col gap-5">
       {/* Quick totals (+1 € / +5 € / +10 €) — no keyboard on a dark floor. */}
       <div>
-        <p className="label mb-2 text-text-secondary">{t("yourBid")}</p>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("yourBid")}>
+        {/* Backing: the amounts are the song's new total; "O teu apoio" below is my part. */}
+        <p className="label mb-2 text-text-secondary">{target.kind === "back" ? t("backTotal") : t("yourBid")}</p>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={target.kind === "back" ? t("backTotal") : t("yourBid")}>
           {totals.map((amount) => (
             <Pressable
               key={amount}
@@ -288,25 +296,25 @@ export function BidForm({
         <div>
           <p className="label mb-2 text-text-secondary">{t("appearAs")}</p>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
+            <Pressable
+              aria-pressed={display.mode === "handle"}
               className={chip(display.mode === "handle")}
-              onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
+              onPress={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
             >
-              {t("appearHandle")}
-            </button>
-            <button type="button" className={chip(display.mode === "anonymous")} onClick={() => setDisplay({ mode: "anonymous" })}>
+              {ownHandle ? t("appearPublic", { handle: ownHandle }) : t("appearHandle")}
+            </Pressable>
+            <Pressable aria-pressed={display.mode === "anonymous"} className={chip(display.mode === "anonymous")} onPress={() => setDisplay({ mode: "anonymous" })}>
               {t("appearAnonymous")}
-            </button>
-            <button
-              type="button"
+            </Pressable>
+            <Pressable
+              aria-pressed={display.mode === "table"}
               className={chip(display.mode === "table")}
-              onClick={() => setDisplay({ mode: "table", table: display.mode === "table" ? display.table : "" })}
+              onPress={() => setDisplay({ mode: "table", table: display.mode === "table" ? display.table : "" })}
             >
               {t("appearTable")}
-            </button>
+            </Pressable>
           </div>
-          {display.mode === "handle" ? (
+          {display.mode === "handle" && !ownHandle ? (
             <div className="mt-2 flex min-h-12 items-center gap-1 rounded-button border border-line-subtle bg-surface-3 px-3 focus-within:border-accent-500">
               <span className="text-base text-text-tertiary">@</span>
               <input

@@ -1,6 +1,7 @@
 /**
  * Console stat tile — money/number aggregates (B9 Receita / Análise).
- * Gold is reserved for money per B10.2.
+ * Gold is reserved for money per B10.2. A missing value ("—") stays
+ * quiet: tertiary, never in the money color.
  */
 
 export function Stat({
@@ -17,6 +18,7 @@ export function Stat({
   /** Stable E2E hook for the tile (the value element gets `${testId}-value`). */
   testId?: string;
 }) {
+  const empty = value === "—";
   return (
     <div
       data-testid={testId}
@@ -26,7 +28,7 @@ export function Stat({
       <p
         data-testid={testId ? `${testId}-value` : undefined}
         className={`font-display text-[length:var(--text-24)] font-bold tnum ${
-          money ? "text-accent-400" : "text-text-primary"
+          empty ? "text-text-tertiary" : money ? "text-accent-400" : "text-text-primary"
         }`}
       >
         {value}

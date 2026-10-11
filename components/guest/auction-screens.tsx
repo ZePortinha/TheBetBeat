@@ -7,19 +7,19 @@
  *  - AuctionTeaser + NightWinners on the home: the live auction one tap
  *    away, "A seguir" and the last 3 winners.
  *  - AuctionContextBar: which auction the guest is choosing a track for.
- *  - WalletPill: the balance, small, top right, only when there is one.
+ *  - WalletPill: the balance panel, top right, for every signed-in guest.
  *  - AuctionOverlays: last-30-s flash, buzz and the winner celebration on
  *    every tab.
  *  - BidScreen: a track from search → bid on the chosen auction.
- *  - RankingPodium: the top 3 on a podium, everyone else below, quieter.
  *  - MyBids: my bids tonight.
  */
 
 import * as React from "react";
+import { useAnimate, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { AudioWaveform, Crown, Gavel, Sparkles, Trophy, Wallet } from "lucide-react";
+import { AudioWaveform, Crown, Gavel, Sparkles, Wallet } from "lucide-react";
 import type { PublicSlot, PublicWinner, UpcomingSlot } from "@/lib/auction/service";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pressable, cx } from "@/components/ui/pressable";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
+import { FinalStretchFrame } from "@/components/ui/final-stretch-frame";
+import { GavelStrike } from "@/components/ui/gavel-strike";
+import { TickingCountdown } from "@/components/ui/ticking-countdown";
+import { durations } from "@/lib/motion";
 import { apiFetch } from "./api";
 import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
@@ -100,7 +104,9 @@ function LeaderSpotlight({ top, mine }: { top: NonNullable<PublicSlot["top"]>; m
           <p className="truncate text-sm text-text-secondary">{top.trackArtist}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="tnum text-3xl font-bold text-accent-400">{formatEurosDisplay(top.totalCents)}</p>
+          <p className="text-3xl font-bold text-accent-400">
+            <TickingCountdown timer={false} value={formatEurosDisplay(top.totalCents)} />
+          </p>
           <p className="text-xs text-text-tertiary">{t("backers", { count: top.backers })}</p>
         </div>
       </div>
@@ -141,9 +147,25 @@ function AuctionCard({
   const mine = state.me?.bids.find((b) => b.slotId === slot.id && b.owner);
   const leading = mine?.status === "leading";
   const top = slot.top;
+  const reduced = useReducedMotion() ?? false;
+  const [card, animate] = useAnimate<HTMLElement>();
+  const wasLeading = React.useRef(leading);
+
+  // Losing the lead shakes the card once (the iOS "no"); taking it lifts it.
+  React.useEffect(() => {
+    const before = wasLeading.current;
+    wasLeading.current = leading;
+    if (reduced || !card.current || before === leading || !mine) return;
+    if (before && !leading) {
+      animate(card.current, { x: [0, -10, 9, -6, 4, 0] }, { duration: 0.45, ease: "easeOut" });
+    } else if (!before && leading) {
+      animate(card.current, { scale: [1, 1.02, 1] }, { duration: durations.slow, ease: "easeInOut" });
+    }
+  }, [leading, mine, reduced, animate, card]);
 
   return (
     <article
+      ref={card}
       className={cx(
         "rounded-sheet border border-accent-500/40 bg-surface-1 p-5 shadow-glow-accent",
         finalStretch && "auction-flash-card",
@@ -158,14 +180,13 @@ function AuctionCard({
         {slot.kind !== "regular" ? <SpecialChip /> : null}
       </div>
 
-      <p
-        className={cx(
-          "tnum mt-3 text-5xl font-bold",
-          finalStretch ? "auction-flash-text" : lastMinute ? "text-ember-500 motion-safe:animate-pulse" : "text-text-primary",
-        )}
-        aria-live="off"
-      >
-        {countdown(slot.closesAt, serverNow)}
+      <p className="mt-3 flex items-center gap-3 text-5xl font-bold">
+        <TickingCountdown
+          value={countdown(slot.closesAt, serverNow)}
+          beat={finalStretch}
+          className={finalStretch ? "auction-flash-text" : lastMinute ? "text-ember-500" : "text-text-primary"}
+        />
+        {ended ? <GavelStrike buzz={Boolean(mine)} className="text-accent-400" /> : null}
       </p>
       <p className={cx("mt-1 text-sm", lastMinute ? "font-semibold text-ember-500" : "text-text-secondary")}>
         {ended ? t("closing") : lastMinute ? t("lastMinute") : t("closesAt", { time: clockTime(slot.closesAt, locale) })}
@@ -234,20 +255,19 @@ function SlotPicker({ slots, selectedId, serverNow, onPick }: { slots: PublicSlo
   return (
     <div className="grid grid-flow-col auto-cols-fr gap-2" role="radiogroup" aria-label={t("chooseSlot")}>
       {slots.map((s) => (
-        <button
+        <Pressable
           key={s.id}
-          type="button"
           role="radio"
           aria-checked={s.id === selectedId}
-          onClick={() => onPick(s.id)}
+          onPress={() => onPick(s.id)}
           className={cx(
-            "flex min-h-16 flex-col items-start justify-center rounded-card border px-3 py-2 text-left transition-colors",
+            "flex min-h-16 flex-col items-start justify-center rounded-card border px-3 py-2 text-left transition-colors duration-100",
             s.id === selectedId ? "border-accent-500 bg-surface-2" : "border-line-subtle bg-surface-1",
           )}
         >
           <span className="truncate text-sm font-semibold text-text-primary">{slotName(s, t, locale)}</span>
           <span className="tnum text-xs text-text-secondary">{countdown(s.closesAt, serverNow)}</span>
-        </button>
+        </Pressable>
       ))}
     </div>
   );
@@ -316,7 +336,9 @@ export function AuctionScreen({ token }: { token: string }) {
           <p className="mt-3 text-lg font-semibold text-text-primary">{t("noAuction")}</p>
           {state.next ? (
             <>
-              <p className="tnum mt-3 text-5xl font-bold text-text-primary">{countdown(state.next.opensAt, serverNow)}</p>
+              <p className="mt-3 text-5xl font-bold text-text-primary">
+                <TickingCountdown value={countdown(state.next.opensAt, serverNow)} />
+              </p>
               <p className="mt-2 text-sm text-text-secondary">
                 {t("nextOpens", {
                   time: clockTime(state.next.opensAt, locale),
@@ -374,7 +396,7 @@ export function AuctionContextBar({ token }: { token: string }) {
     <Link
       href={`/s/${token}/auction`}
       className={cx(
-        "flex min-h-14 items-center gap-3 rounded-card border px-4 py-2",
+        "flex min-h-14 items-center gap-3 rounded-card border px-4 py-2 transition-transform duration-100 active:scale-[0.97]",
         slot ? "border-accent-500/40 bg-surface-1" : "border-line-subtle bg-surface-1",
         slot && inFinalStretch(slot.closesAt, serverNow) && "auction-flash-card",
       )}
@@ -394,7 +416,16 @@ export function AuctionContextBar({ token }: { token: string }) {
               : t("noAuctionHint")}
         </span>
       </span>
-      {slot ? <span className="tnum shrink-0 text-xl font-bold text-text-primary">{countdown(slot.closesAt, serverNow)}</span> : null}
+      {slot ? (
+        <TickingCountdown
+          value={countdown(slot.closesAt, serverNow)}
+          beat={inFinalStretch(slot.closesAt, serverNow)}
+          className={cx(
+            "shrink-0 text-xl font-bold",
+            inFinalStretch(slot.closesAt, serverNow) ? "auction-flash-text" : "text-text-primary",
+          )}
+        />
+      ) : null}
     </Link>
   );
 }
@@ -417,7 +448,7 @@ export function AuctionTeaser({ token }: { token: string }) {
     return (
       <Link
         href={`/s/${token}/auction`}
-        className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 active:scale-[0.99]"
+        className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 transition-transform duration-100 active:scale-[0.97]"
       >
         <Gavel size={20} className="shrink-0 text-accent-400" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -455,8 +486,12 @@ export function AuctionTeaser({ token }: { token: string }) {
             </p>
           ) : null}
         </div>
-        <p className={cx("tnum shrink-0 text-3xl font-bold", finalStretch ? "auction-flash-text" : "text-text-primary")}>
-          {countdown(slot.closesAt, serverNow)}
+        <p className="shrink-0 text-3xl font-bold">
+          <TickingCountdown
+            value={countdown(slot.closesAt, serverNow)}
+            beat={finalStretch}
+            className={finalStretch ? "auction-flash-text" : "text-text-primary"}
+          />
         </p>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -540,11 +575,19 @@ export function NightWinners() {
 /* ------------------------------------------------------------------ */
 
 /** Last 30 s flash (and one buzz if I am in it), the winner celebration. */
-export function AuctionOverlays() {
+export function AuctionOverlays({ venueName }: { venueName: string }) {
   const { state, serverNow, celebrate, dismissCelebration } = useAuction();
   const buzzed = React.useRef(new Set<string>());
   const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
   const flashingKey = flashing.map((s) => s.id).join(",");
+  const secondsLeft = flashing.length
+    ? Math.min(...flashing.map((s) => Math.max(0, Math.ceil((Date.parse(s.closesAt) - serverNow) / 1000))))
+    : null;
+  const inIt = flashing.some((s) => state?.me?.bids.some((b) => b.slotId === s.id));
+  // Last five seconds of an auction I am in: one light tick per second, on the beat.
+  React.useEffect(() => {
+    if (inIt && secondsLeft !== null && secondsLeft > 0 && secondsLeft <= 5) navigator.vibrate?.(12);
+  }, [inIt, secondsLeft]);
   React.useEffect(() => {
     for (const id of flashingKey ? flashingKey.split(",") : []) {
       if (buzzed.current.has(id)) continue;
@@ -556,7 +599,7 @@ export function AuctionOverlays() {
   const wonCover = [state?.upNext, ...(state?.recentWinners ?? [])].find((w) => w?.slotId === celebrate)?.coverUrl ?? null;
   return (
     <>
-      {flashing.length > 0 ? <div aria-hidden className="auction-flash-frame" /> : null}
+      {secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} page /> : null}
       {celebrate && won ? (
         <WinCelebration
           slotId={won.slotId}
@@ -564,6 +607,7 @@ export function AuctionOverlays() {
           trackArtist={won.trackArtist}
           totalCents={won.totalCents}
           coverUrl={wonCover}
+          venueName={venueName}
           onClose={dismissCelebration}
         />
       ) : null}
@@ -572,74 +616,109 @@ export function AuctionOverlays() {
 }
 
 /**
- * The balance, small, top right — only while there is one (outbid money,
- * a late MB WAY). Tap: refund it now, or the end-of-night choice.
+ * The balance panel, top right (owner, 2026-10-10): always there once the
+ * guest is signed in, even at 0 €. Tap: what is available, what is on its
+ * way to the next auction (second place rolls on), until when it can be
+ * withdrawn, and "Levantar" back to the MB WAY or card it came from.
  */
 export function WalletPill({ token }: { token: string }) {
   const t = useTranslations("guest.auction");
+  const locale = useLocale();
   const { state, refetch } = useAuction();
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [withdrawn, setWithdrawn] = React.useState<number | null>(null);
   const cents = state?.me?.walletCents ?? 0;
-  if (cents <= 0 && !open) return null;
-  const keepAllowed = state?.rules.keepBalanceAllowed ?? false;
-  const kept = keepAllowed && (state?.me?.keepBalance ?? false);
+  const held = state?.me?.heldCents ?? 0;
+  const deadline = state?.me?.balanceDeadline ?? null;
+  const days = state?.rules.keepBalanceDays ?? 7;
+  if (!state?.me) return null;
 
-  async function refund() {
+  async function withdraw() {
     setBusy(true);
-    await apiFetch("/api/guest/wallet/refund", { method: "POST", body: JSON.stringify({ token }) });
+    const res = await apiFetch<{ refundedCents: number }>("/api/guest/wallet/refund", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    });
     setBusy(false);
-    setOpen(false);
+    if (res.ok) {
+      navigator.vibrate?.(20);
+      setWithdrawn(res.data.refundedCents);
+    }
     void refetch();
   }
-  async function choose(next: boolean) {
-    await apiFetch("/api/guest/wallet/keep", { method: "POST", body: JSON.stringify({ token, keep: next }) });
-    void refetch();
-  }
+
+  const date = deadline
+    ? new Intl.DateTimeFormat(locale, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Lisbon",
+      }).format(new Date(deadline))
+    : null;
 
   return (
     <>
       <Pressable
-        onPress={() => setOpen(true)}
-        aria-label={`${t("wallet")} ${formatEurosDisplay(cents)}`}
-        className="flex h-8 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-sm font-semibold text-text-primary ring-1 ring-line-strong data-pressed:bg-surface-3"
+        onPress={() => {
+          setWithdrawn(null);
+          setOpen(true);
+        }}
+        aria-label={`${t("wallet")} ${formatEurosDisplay(cents)}${held > 0 ? `, ${t("walletHeld", { amount: formatEurosDisplay(held) })}` : ""}`}
+        className="relative flex h-9 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-sm font-semibold text-text-primary ring-1 ring-line-strong transition-transform duration-100 data-pressed:scale-[0.97] data-pressed:bg-surface-3"
       >
         <Wallet size={14} className="text-accent-400" aria-hidden />
         <span className="tnum">{formatEurosDisplay(cents)}</span>
+        {held > 0 ? (
+          <span aria-hidden className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-accent-500 ring-2 ring-bg-base" />
+        ) : null}
       </Pressable>
       <BottomSheet open={open} onOpenChange={setOpen} title={t("walletTitle")}>
-        <div className="flex flex-col gap-4 pt-1">
-          <p className="tnum text-5xl font-bold text-text-primary">{formatEurosDisplay(cents)}</p>
-          <p className="text-sm text-text-secondary">
-            {kept ? t("walletKeptHint", { days: state?.rules.keepBalanceDays ?? 30 }) : t("walletHint")}
-          </p>
-          {keepAllowed ? (
-            <div>
-              <p className="text-xs text-text-secondary">{t("endOfNight")}</p>
-              <div className="mt-1.5 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("endOfNight")}>
-                {[false, true].map((option) => (
-                  <button
-                    key={String(option)}
-                    type="button"
-                    role="radio"
-                    aria-checked={kept === option}
-                    onClick={() => void choose(option)}
-                    className={cx(
-                      "min-h-11 rounded-button border px-3 text-sm font-semibold",
-                      kept === option
-                        ? "border-accent-500 bg-surface-2 text-text-primary"
-                        : "border-line-subtle bg-surface-1 text-text-secondary",
-                    )}
-                  >
-                    {option ? t("keepForNext") : t("refundAtEnd")}
-                  </button>
-                ))}
+        <div className="flex flex-col gap-5 pt-1">
+          <div>
+            <p className="label text-text-tertiary">{t("walletAvailable")}</p>
+            <p className="tnum mt-1 text-5xl font-bold tracking-tight text-text-primary">{formatEurosDisplay(cents)}</p>
+            <p className="mt-1.5 text-sm text-text-secondary">
+              {date ? t("walletDeadline", { date }) : t("walletEmpty")}
+            </p>
+          </div>
+
+          {held > 0 ? (
+            <div className="flex items-start gap-3 rounded-card bg-surface-2 px-4 py-3">
+              <Gavel size={18} className="mt-0.5 shrink-0 text-accent-400" aria-hidden />
+              <div className="min-w-0">
+                <p className="tnum text-base font-semibold text-text-primary">
+                  {t("walletHeld", { amount: formatEurosDisplay(held) })}
+                </p>
+                <p className="mt-0.5 text-sm text-text-secondary">{t("walletHeldHint")}</p>
               </div>
             </div>
           ) : null}
-          <Button fullWidth variant="secondary" loading={busy} disabled={cents <= 0} onPress={() => void refund()}>
-            {t("walletRefundNow")}
-          </Button>
+
+          <ol className="flex flex-col gap-2 text-sm text-text-secondary">
+            <li className="flex gap-2">
+              <span className="tnum w-8 shrink-0 font-semibold text-accent-400">2.º</span>
+              {t("walletRuleSecond")}
+            </li>
+            <li className="flex gap-2">
+              <span className="tnum w-8 shrink-0 font-semibold text-text-tertiary">3.º+</span>
+              {t("walletRuleThird", { days })}
+            </li>
+          </ol>
+
+          {withdrawn !== null ? (
+            <p role="status" className="text-center text-sm font-medium text-text-primary">
+              {withdrawn > 0 ? t("walletWithdrawn", { amount: formatEurosDisplay(withdrawn) }) : t("walletWithdrawFailed")}
+            </p>
+          ) : null}
+          <div>
+            <Button fullWidth size="lg" loading={busy} disabled={cents <= 0} onPress={() => void withdraw()}>
+              {t("walletWithdraw")}
+            </Button>
+            <p className="mt-2 text-center text-xs text-text-tertiary">{t("walletWithdrawHint", { days })}</p>
+          </div>
         </div>
       </BottomSheet>
     </>
@@ -665,8 +744,9 @@ export function MyBids({ empty }: { empty?: React.ReactNode }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-semibold text-text-primary">{b.trackTitle}</p>
             <p className="truncate text-sm text-text-secondary">
-              {t(`bidStatus.${b.status}`)}
+              {b.rolledOn && b.status === "lost" ? t("bidStatus.rolledOn") : t(`bidStatus.${b.status}`)}
               {b.owner ? "" : ` · ${t("backed")}`}
+              {b.rolled ? ` · ${t("rolledIn")}` : ""}
             </p>
           </div>
           <p className="tnum shrink-0 text-sm font-semibold text-text-primary">
@@ -839,91 +919,6 @@ function TransitionAssistant({
           {assessment.multiplierBps > 10_000 ? <span className="text-text-tertiary"> {t("why")}</span> : null}
         </p>
       ) : null}
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Ranking                                                             */
-/* ------------------------------------------------------------------ */
-
-const PODIUM = {
-  1: { order: "order-2", step: "h-32", avatar: "size-20 text-2xl bg-accent-500 text-text-on-accent shadow-glow-accent", amount: "text-xl text-accent-400" },
-  2: { order: "order-1", step: "h-24", avatar: "size-14 text-lg bg-surface-3 text-text-primary ring-1 ring-line-strong", amount: "text-base text-text-primary" },
-  3: { order: "order-3", step: "h-16", avatar: "size-14 text-lg bg-surface-3 text-text-primary ring-1 ring-line-strong", amount: "text-base text-text-primary" },
-} as const;
-
-/** "@rita" → "R", "Mesa 12" → "M", anonymous → "?". */
-function initialOf(label: string | null): string {
-  const letter = label?.replace(/^@/, "").trim().charAt(0);
-  return letter ? letter.toUpperCase() : "?";
-}
-
-function PodiumStep({ place, label, cents }: { place: 1 | 2 | 3; label: string | null; cents: number }) {
-  const t = useTranslations("guest.auction");
-  const look = PODIUM[place];
-  const name = label ?? t("anonymous");
-  return (
-    <li className={cx("flex min-w-0 flex-col items-center", look.order)} aria-label={t("place", { place, name, amount: formatEurosDisplay(cents) })}>
-      {place === 1 ? <Crown size={22} className="mb-1 text-amber-500" aria-hidden /> : null}
-      <span aria-hidden className={cx("flex items-center justify-center rounded-full font-bold", look.avatar)}>
-        {initialOf(label)}
-      </span>
-      <p aria-hidden className="mt-2 w-full truncate text-center text-sm font-semibold text-text-primary">
-        {name}
-      </p>
-      <p aria-hidden className={cx("tnum text-center font-bold", look.amount)}>
-        {formatEurosDisplay(cents)}
-      </p>
-      <div
-        aria-hidden
-        className={cx(
-          "mt-2 flex w-full justify-center rounded-t-card border-x border-t pt-2",
-          look.step,
-          place === 1 ? "border-accent-500/50 bg-linear-to-b from-accent-500/40 to-accent-500/5" : "border-line-subtle bg-surface-2",
-        )}
-      >
-        <span className="tnum text-2xl font-bold text-text-secondary">{place}</span>
-      </div>
-    </li>
-  );
-}
-
-/** Top 3 on a podium; everyone else below, smaller and quieter. */
-export function RankingPodium() {
-  const t = useTranslations("guest.auction");
-  const { state } = useAuction();
-  if (!state) return <Skeleton height={280} rounded="card" />;
-  if (state.ranking.length === 0) {
-    return <EmptyState icon={Trophy} title={t("rankingEmpty")} hint={t("rankingEmptyHint")} />;
-  }
-  const podium = state.ranking.slice(0, 3);
-  const rest = state.ranking.slice(3);
-  return (
-    <section aria-label={t("rankingTitle")} className="flex flex-col gap-6">
-      <ol className="grid grid-cols-3 items-end gap-2 pt-2">
-        {podium.map((r, i) => (
-          <PodiumStep key={`${r.label ?? "anon"}-${i}`} place={(i + 1) as 1 | 2 | 3} label={r.label} cents={r.spentCents} />
-        ))}
-      </ol>
-      {rest.length > 0 ? (
-        <section aria-label={t("rankingRest")}>
-          <p className="label text-text-tertiary">{t("rankingRest")}</p>
-          <ol start={4} className="mt-1">
-            {rest.map((r, i) => (
-              <li
-                key={`${r.label ?? "anon"}-${i}`}
-                className="flex items-center gap-3 border-b border-line-subtle py-2.5 text-sm last:border-b-0"
-              >
-                <span className="tnum w-6 shrink-0 text-text-tertiary">{i + 4}</span>
-                <span className="min-w-0 flex-1 truncate text-text-secondary">{r.label ?? t("anonymous")}</span>
-                <span className="tnum shrink-0 text-text-tertiary">{formatEurosDisplay(r.spentCents)}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
-      <p className="text-xs text-text-tertiary">{t("rankingHint")}</p>
     </section>
   );
 }

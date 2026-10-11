@@ -2,9 +2,9 @@
 
 /**
  * Guest phone sign-in (2026-10-05): number, then the 6-digit SMS code,
- * then signed in. Optional: requesting and paying never wait for it
- * (B1/B4 #3). The verified number is kept encrypted server-side and
- * pre-fills MB WAY in the payment sheet.
+ * then signed in. The number is the account (2026-10-10): a number seen
+ * before signs this browser in as that guest. The verified number is kept
+ * encrypted server-side and pre-fills MB WAY in the payment sheet.
  *
  * Without a `token` (the /entrar page) it is the party login: once the
  * number is proven, the guest lands in the live party whose guest list
@@ -12,12 +12,14 @@
  */
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Check, MessageSquareText, SearchX, Smartphone, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/client";
 import { apiFetch, errorMessage } from "./api";
 import { BackHeader } from "./back-header";
 import { useGuest } from "./guest-providers";
@@ -28,13 +30,15 @@ interface PhoneDto {
   phone: string | null;
   verified: boolean;
   partyHref: string | null;
+  /** The number already has an account: this browser signs in as it. */
+  session?: { accessToken: string; refreshToken: string };
 }
 
 const field =
   "min-h-14 w-full rounded-card bg-surface-1 text-text-primary outline-none " +
   "transition-shadow duration-100 focus-within:ring-2 focus-within:ring-accent-500";
 
-function Intro({
+export function Intro({
   Icon,
   title,
   hint,
@@ -131,17 +135,25 @@ export function PhoneLoginScreen({ token }: { token?: string }) {
       return fail(res);
     }
     navigator.vibrate?.(20);
+    if (res.data.session) {
+      // A number seen before: this browser becomes that guest.
+      setBusy(true);
+      const { error: sessionError } = await createClient().auth.setSession({
+        access_token: res.data.session.accessToken,
+        refresh_token: res.data.session.refreshToken,
+      });
+      setBusy(false);
+      if (sessionError) return setError(tErr("login_failed"));
+    }
     land(res.data.partyHref);
   }
 
-  async function forget() {
+  /** Sign out on this phone only: the account (number, @, balance) stays. */
+  async function signOut() {
     setBusy(true);
     setError(null);
-    const res = await apiFetch<{ ok: boolean }>("/api/guest/phone", { method: "DELETE" });
-    setBusy(false);
-    if (!res.ok) return fail(res);
-    setDigits("");
-    setStep("phone");
+    await createClient().auth.signOut({ scope: "local" });
+    window.location.assign(token ? `/s/${token}` : "/entrar");
   }
 
   const errorLine = error ? (
@@ -199,7 +211,16 @@ export function PhoneLoginScreen({ token }: { token?: string }) {
             {t("sendCode")}
           </Button>
           <p className="text-center text-sm text-text-tertiary">
-            {partyMode ? t("partyQrNote") : t("optionalNote")}
+            {partyMode ? (
+              <>
+                {t("partyQrNote")}{" "}
+                <Link href="/" className="font-semibold text-accent-400 underline-offset-2 hover:underline">
+                  {t("partyQrLink")}
+                </Link>
+              </>
+            ) : (
+              t("optionalNote")
+            )}
           </p>
         </section>
       ) : null}
@@ -298,10 +319,10 @@ export function PhoneLoginScreen({ token }: { token?: string }) {
             variant="ghost"
             fullWidth
             loading={busy}
-            onPress={() => void forget()}
+            onPress={() => void signOut()}
             className="text-ember-500!"
           >
-            {t("forget")}
+            {t("signOut")}
           </Button>
         </section>
       ) : null}

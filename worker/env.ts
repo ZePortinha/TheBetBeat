@@ -46,7 +46,7 @@ const workerEnvSchema = z.object({
   /** Sweep cron that enqueues pending payouts of ended sessions (B4.5). */
   WORKER_PAYOUT_SCAN_CRON: cron.default("*/2 * * * *"),
   /** Daily: wallet balances unused for the club's keepBalanceDays go back. */
-  WORKER_WALLET_EXPIRY_CRON: cron.default("30 5 * * *"),
+  WORKER_WALLET_EXPIRY_CRON: cron.default("5 * * * *"),
 
   /** Timezone for the pg-boss schedules. Storage stays UTC (B11). */
   WORKER_CRON_TZ: z.string().min(1).default("UTC"),

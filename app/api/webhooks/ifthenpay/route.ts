@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPaymentProvider } from "@/lib/payments";
 import { IFTHENPAY_REF_PREFIX } from "@/lib/payments/ifthenpay";
-import { recordWebhook } from "@/lib/payments/service";
+import { noteOrphanMbwayPayment, recordWebhook } from "@/lib/payments/service";
 import { correlationId } from "../../guest/_lib/http";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +18,15 @@ export const dynamic = "force-dynamic";
  * Trust nothing in the URL: the anti-phishing key is compared in constant
  * time, then the payment is re-checked with ifthenpay's status API before
  * it is recorded. Duplicate callbacks are no-ops inside recordWebhook.
+ *
+ * A confirmed payment with no payments row is an orphan (the push call
+ * timed out after ifthenpay sent it): it is marked on its journal row by
+ * orderId and the worker refunds it in full.
  */
 const querySchema = z.object({
   key: z.string().min(1).max(256),
   requestId: z.string().regex(/^[A-Za-z0-9]{6,64}$/),
+  orderId: z.string().regex(/^[a-z0-9]{1,15}$/).optional(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
 });
 
@@ -54,14 +59,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  await recordWebhook(
+  const now = Date.now();
+  const recorded = await recordWebhook(
     {
       id: `ifthenpay:${parsed.data.requestId}:paid`,
       providerRef,
       type: "payment.confirmed",
       raw: { requestId: parsed.data.requestId, amount: parsed.data.amount },
     },
-    Date.now(),
+    now,
   );
+  if (recorded.action === "unknown_provider_ref") {
+    const ours = parsed.data.orderId ? await noteOrphanMbwayPayment(parsed.data.orderId, providerRef, now) : false;
+    console.error(`[webhook:ifthenpay] ${id} confirmed payment with no payment row (${ours ? "orphan, will refund" : "unknown order"})`);
+  }
   return NextResponse.json({ received: true });
 }

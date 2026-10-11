@@ -37,6 +37,7 @@ import { closeOutcome, decideBid, minNextBid } from "./bidding";
 import { parseAuctionConfig, type AuctionConfig } from "./config";
 import { displayLabel, recognitionFor, type DisplayChoice } from "./recognition";
 import { planNight } from "./schedule";
+import { balanceDeadline, canPlaceRollover, expiredCents, rolloverShares, runnerUp, type Credit } from "./rollover";
 import { assessTransition, startingPriceCents } from "./transition";
 
 type Db = Pick<PoolClient, "query">;
@@ -290,10 +291,22 @@ async function returnContributionsInTx(
   return res.rows.map((r) => r.guest_id);
 }
 
+/** Outbid: its money went back; the total it reached ranks it at the close. */
+async function markOutbidInTx(client: PoolClient, bidId: string, now: number): Promise<void> {
+  await client.query(
+    `update public.auction_bids
+        set status = 'outbid', last_total_cents = total_cents, last_outbid_at = to_timestamp($2 / 1000.0),
+            total_cents = 0, updated_at = now()
+      where id = $1`,
+    [bidId, now],
+  );
+}
+
 /**
- * Refunds a guest's whole wallet at a venue to the payment methods it came
- * from (newest top-up first). Exactly-once per allocation key; a PSP
- * failure leaves the money in the wallet and the refund row `failed`.
+ * Refunds a guest's wallet at a venue (all of it, or at most `maxCents`)
+ * to the payment methods it came from (newest top-up first). Exactly-once
+ * per allocation key; a PSP failure leaves the money in the wallet and
+ * the refund row `failed`.
  */
 export async function refundWalletInTx(
   client: PoolClient,
@@ -301,9 +314,10 @@ export async function refundWalletInTx(
   venueId: string,
   sessionId: string | null,
   now: number,
+  maxCents = Number.MAX_SAFE_INTEGER,
 ): Promise<number> {
   await lockWallet(client, guestId, venueId);
-  let remaining = await walletBalance(client, guestId, venueId);
+  let remaining = Math.min(maxCents, await walletBalance(client, guestId, venueId));
   if (remaining <= 0) return 0;
   const payments = await client.query<{ id: string; provider_ref: string; session_id: string | null; refundable: string }>(
     `select p.id, p.provider_ref, p.session_id,
@@ -355,10 +369,16 @@ export async function refundWalletInTx(
   return refunded;
 }
 
-/** Guest asked for their balance back ("Devolver saldo"). */
-export async function refundWallet(guestId: string, venueId: string, sessionId: string | null, now: number): Promise<number> {
+/** Guest asked for their balance back ("Levantar"), or part of it expired. */
+export async function refundWallet(
+  guestId: string,
+  venueId: string,
+  sessionId: string | null,
+  now: number,
+  maxCents?: number,
+): Promise<number> {
   return runAndPublish(async (client) => {
-    const value = await refundWalletInTx(client, guestId, venueId, sessionId, now);
+    const value = await refundWalletInTx(client, guestId, venueId, sessionId, now, maxCents);
     return { value, publishes: value > 0 ? toGuests([guestId], "wallet.changed", {}) : [] };
   }, now);
 }
@@ -541,10 +561,7 @@ async function placeInTx(
   const publishes: OutgoingBroadcast[] = [...slotChanged(slot.session_id, slot.id)];
   if (leader && leader.id !== bid.id) {
     const returnedTo = await returnContributionsInTx(client, leader, now);
-    await client.query(
-      `update public.auction_bids set status = 'outbid', total_cents = 0, updated_at = now() where id = $1`,
-      [leader.id],
-    );
+    await markOutbidInTx(client, leader.id, now);
     const notify = new Set([...returnedTo, leader.owner_guest_id]);
     notify.delete(req.guestId);
     publishes.push(...toGuests(notify, "auction.outbid", { slotId: slot.id }));
@@ -867,7 +884,275 @@ async function closeSlotInTx(
     [leader.id],
   );
   publishes.push(...toGuests(backers.rows.map((b) => b.guest_id), "auction.won", { slotId: slot.id }));
+  publishes.push(...(await holdRunnerUpInTx(client, slot, leader.id, now)));
   return { value: true, publishes };
+}
+
+/* ------------------------------------------------------------------ */
+/* Runner-up rollover (owner's brief, 2026-10-10)                      */
+/* ------------------------------------------------------------------ */
+
+interface RolloverRow {
+  id: string;
+  from_slot_id: string;
+  from_bid_id: string;
+  to_slot_id: string | null;
+  session_id: string;
+  venue_id: string;
+  owner_guest_id: string;
+  amount_cents: number;
+  status: "held" | "placed" | "released";
+}
+
+type ReleaseReason =
+  | "no_next_auction"
+  | "below_minimum"
+  | "outbid_already"
+  | "already_bidding"
+  | "night_ended"
+  | "track_unavailable";
+
+/** The next auction of the night after `afterMs` that can still take bids. */
+async function nextSlotId(db: Db, sessionId: string, afterMs: number, excludeId: string): Promise<string | null> {
+  const res = await db.query<{ id: string }>(
+    `select id from public.auction_slots
+      where session_id = $1 and id <> $3 and status in ('scheduled', 'open', 'paused')
+        and closes_at > to_timestamp($2 / 1000.0)
+      order by closes_at asc limit 1`,
+    [sessionId, afterMs, excludeId],
+  );
+  return res.rows[0]?.id ?? null;
+}
+
+/**
+ * At the close: the runner-up's money (each contributor's part of its last
+ * total, as far as their balance still holds it) leaves the balance and
+ * waits for the next auction, where the worker places it as the opening
+ * bid (placeHeldRollovers). Runs inside the close, under the slot lock.
+ */
+async function holdRunnerUpInTx(
+  client: PoolClient,
+  slot: SlotRow,
+  winnerBidId: string,
+  now: number,
+): Promise<OutgoingBroadcast[]> {
+  const losers = await client.query<{ id: string; owner_guest_id: string; last_total_cents: number }>(
+    `select id, owner_guest_id, last_total_cents from public.auction_bids where slot_id = $1 and id <> $2`,
+    [slot.id, winnerBidId],
+  );
+  const second = runnerUp(losers.rows.map((b) => ({ ...b, lastTotalCents: b.last_total_cents })));
+  if (!second) return [];
+
+  // Its last total: the contributions returned together the last time it was outbid.
+  const parts = await client.query<{ guest_id: string; amount_cents: number }>(
+    `select guest_id, amount_cents from public.auction_contributions
+      where bid_id = $1 and returned_at = (select max(returned_at) from public.auction_contributions where bid_id = $1)`,
+    [second.id],
+  );
+  // Wallet locks in a fixed order (guest id) so two closes never deadlock.
+  const guests = [...new Set(parts.rows.map((p) => p.guest_id))].sort();
+  const balances = new Map<string, number>();
+  for (const g of guests) {
+    await lockWallet(client, g, slot.venue_id);
+    balances.set(g, await walletBalance(client, g, slot.venue_id));
+  }
+  const shares = rolloverShares(
+    parts.rows.map((p) => ({ guestId: p.guest_id, amountCents: p.amount_cents })),
+    balances,
+  );
+  const amount = shares.reduce((sum, s) => sum + s.amountCents, 0);
+  if (amount <= 0) return [];
+
+  const target = await nextSlotId(client, slot.session_id, slot.closes_at.getTime(), slot.id);
+  const inserted = await client.query<{ id: string }>(
+    `insert into public.auction_rollovers
+       (from_slot_id, from_bid_id, to_slot_id, session_id, venue_id, owner_guest_id, amount_cents)
+     values ($1, $2, $3, $4, $5, $6, $7)
+     on conflict (from_slot_id) do nothing returning id`,
+    [slot.id, second.id, target, slot.session_id, slot.venue_id, second.owner_guest_id, amount],
+  );
+  const rolloverId = inserted.rows[0]?.id;
+  if (!rolloverId) return [];
+  for (const share of shares) {
+    await client.query(
+      `insert into public.auction_rollover_shares (rollover_id, guest_id, amount_cents) values ($1, $2, $3)`,
+      [rolloverId, share.guestId, share.amountCents],
+    );
+    await client.query(
+      `insert into public.wallet_entries (venue_id, guest_id, session_id, amount_cents, reason, rollover_id)
+       values ($1, $2, $3, $4, 'rollover_hold', $5)`,
+      [slot.venue_id, share.guestId, slot.session_id, -share.amountCents, rolloverId],
+    );
+  }
+  await client.query(
+    `insert into public.audit_log (actor, action, entity, entity_id, venue_id, payload)
+     values ('system:auction', 'auction.rollover_held', 'auction_rollover', $1, $2, $3)`,
+    [rolloverId, slot.venue_id, JSON.stringify({ fromSlotId: slot.id, toSlotId: target, amountCents: amount })],
+  );
+  const notify = shares.map((s) => s.guestId);
+  if (!target) {
+    const released = await releaseRolloverInTx(client, rolloverId, "no_next_auction", now);
+    return [...released, ...toGuests(notify, "wallet.changed", {})];
+  }
+  return toGuests(notify, "wallet.changed", {});
+}
+
+/** The held money goes back to each contributor's balance. */
+async function releaseRolloverInTx(
+  client: PoolClient,
+  rolloverId: string,
+  reason: ReleaseReason,
+  now: number,
+): Promise<OutgoingBroadcast[]> {
+  const res = await client.query<RolloverRow>(
+    `update public.auction_rollovers
+        set status = 'released', release_reason = $2, settled_at = to_timestamp($3 / 1000.0)
+      where id = $1 and status = 'held'
+      returning *`,
+    [rolloverId, reason, now],
+  );
+  const r = res.rows[0];
+  if (!r) return [];
+  const shares = await client.query<{ guest_id: string; amount_cents: number }>(
+    `select guest_id, amount_cents from public.auction_rollover_shares where rollover_id = $1`,
+    [rolloverId],
+  );
+  for (const s of shares.rows) {
+    await client.query(
+      `insert into public.wallet_entries (venue_id, guest_id, session_id, amount_cents, reason, rollover_id)
+       values ($1, $2, $3, $4, 'rollover_released', $5)`,
+      [r.venue_id, s.guest_id, r.session_id, s.amount_cents, rolloverId],
+    );
+  }
+  await client.query(
+    `insert into public.audit_log (actor, action, entity, entity_id, venue_id, payload)
+     values ('system:auction', 'auction.rollover_released', 'auction_rollover', $1, $2, $3)`,
+    [rolloverId, r.venue_id, JSON.stringify({ reason })],
+  );
+  return toGuests(shares.rows.map((s) => s.guest_id), "wallet.changed", {});
+}
+
+/**
+ * Places one held rollover as the opening bid of its auction, once that
+ * auction is open. Same track, same name on screen; it must beat whatever
+ * is there by the club's increment. An auction that ended without it
+ * passes the rollover to the next one; no next one → back to the balance.
+ */
+async function placeRolloverInTx(
+  client: PoolClient,
+  rolloverId: string,
+  now: number,
+): Promise<{ value: "placed" | "released" | "waiting"; publishes: OutgoingBroadcast[] }> {
+  const waiting = { value: "waiting" as const, publishes: [] };
+  const peek = await client.query<RolloverRow>(`select * from public.auction_rollovers where id = $1`, [rolloverId]);
+  const target = peek.rows[0]?.to_slot_id ?? null;
+  // Slot first, then the rollover: the same lock order as a bid.
+  const slot = target ? await lockSlot(client, target) : null;
+  const res = await client.query<RolloverRow>(
+    `select * from public.auction_rollovers where id = $1 for update`,
+    [rolloverId],
+  );
+  const r = res.rows[0];
+  if (!r || r.status !== "held" || r.to_slot_id !== target) return waiting;
+  const release = async (reason: ReleaseReason) => ({
+    value: "released" as const,
+    publishes: await releaseRolloverInTx(client, r.id, reason, now),
+  });
+
+  if (!slot || slot.status === "closed" || slot.status === "cancelled" || slot.closes_at.getTime() <= now) {
+    // Its auction went by (cancelled, missed): the next one, if any.
+    const next = await nextSlotId(client, r.session_id, Math.max(now, slot?.closes_at.getTime() ?? now), target ?? r.from_slot_id);
+    if (!next) return release("no_next_auction");
+    await client.query(`update public.auction_rollovers set to_slot_id = $2 where id = $1`, [r.id, next]);
+    return waiting;
+  }
+  if (slot.status !== "open" || now < slot.opens_at.getTime()) return waiting;
+  const night = await loadNight(client, slot.session_id);
+  if (!night) return waiting;
+  // The DJ paused requests: it waits (the auction may still reopen).
+  if (!night.requestsOpen) return waiting;
+
+  const from = (await client.query<BidRow & { transition: string | null }>(
+    `select * from public.auction_bids where id = $1`,
+    [r.from_bid_id],
+  )).rows[0];
+  if (!from) return release("track_unavailable");
+  const mine = await client.query(`select 1 from public.auction_bids where slot_id = $1 and owner_guest_id = $2`, [
+    slot.id,
+    r.owner_guest_id,
+  ]);
+  if ((mine.rowCount ?? 0) > 0) return release("already_bidding");
+
+  const leader = await leaderOf(client, slot.id);
+  const check = canPlaceRollover(
+    r.amount_cents,
+    minNextBid(leader?.total_cents ?? null, slot.min_price_cents, night.config),
+    leader !== null,
+  );
+  if (!check.ok) return release(check.reason);
+
+  const publishes: OutgoingBroadcast[] = [...slotChanged(slot.session_id, slot.id)];
+  if (leader) {
+    const returnedTo = await returnContributionsInTx(client, leader, now);
+    await markOutbidInTx(client, leader.id, now);
+    const notify = new Set([...returnedTo, leader.owner_guest_id]);
+    publishes.push(...toGuests(notify, "auction.outbid", { slotId: slot.id }));
+  }
+  const bid = await client.query<{ id: string }>(
+    `insert into public.auction_bids
+       (slot_id, session_id, venue_id, owner_guest_id, library_track_id, catalog_track_id, track_title, track_artist,
+        track_genre, track_bpm, track_key, track_duration_sec, total_cents, display_mode, display_label, status,
+        transition, rolled_from_bid_id)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'leading', $16, $17)
+     returning id`,
+    [slot.id, slot.session_id, slot.venue_id, r.owner_guest_id, from.library_track_id, from.catalog_track_id,
+      from.track_title, from.track_artist, from.track_genre, from.track_bpm, from.track_key, from.track_duration_sec,
+      r.amount_cents, from.display_mode, from.display_label, from.transition, from.id],
+  );
+  const bidId = bid.rows[0]?.id as string;
+  const shares = await client.query<{ guest_id: string; amount_cents: number }>(
+    `select guest_id, amount_cents from public.auction_rollover_shares where rollover_id = $1 order by guest_id`,
+    [r.id],
+  );
+  // The money already left the balances at the hold: contributions only.
+  for (const s of shares.rows) {
+    await client.query(
+      `insert into public.auction_contributions (bid_id, slot_id, guest_id, amount_cents, total_after_cents)
+       values ($1, $2, $3, $4, $5)`,
+      [bidId, slot.id, s.guest_id, s.amount_cents, r.amount_cents],
+    );
+  }
+  await client.query(
+    `update public.auction_rollovers set status = 'placed', to_bid_id = $2, settled_at = to_timestamp($3 / 1000.0)
+      where id = $1`,
+    [r.id, bidId, now],
+  );
+  await client.query(
+    `insert into public.audit_log (actor, action, entity, entity_id, venue_id, payload)
+     values ('system:auction', 'auction.rollover_placed', 'auction_rollover', $1, $2, $3)`,
+    [r.id, r.venue_id, JSON.stringify({ toSlotId: slot.id, bidId, amountCents: r.amount_cents })],
+  );
+  publishes.push(...toGuests(shares.rows.map((s) => s.guest_id), "wallet.changed", {}));
+  return { value: "placed", publishes };
+}
+
+/** Worker pass: every held rollover whose auction is open (or went by). */
+export async function placeHeldRollovers(now: number): Promise<{ placed: number; released: number }> {
+  const held = await getPool().query<{ id: string }>(
+    `select r.id from public.auction_rollovers r
+       left join public.auction_slots s on s.id = r.to_slot_id
+      where r.status = 'held'
+        and (s.id is null or s.status in ('open', 'closed', 'cancelled') or s.closes_at <= to_timestamp($1 / 1000.0))
+      order by r.created_at`,
+    [now],
+  );
+  const result = { placed: 0, released: 0 };
+  for (const { id } of held.rows) {
+    const outcome = await runAndPublish((client) => placeRolloverInTx(client, id, now), now);
+    if (outcome === "placed") result.placed += 1;
+    if (outcome === "released") result.released += 1;
+  }
+  return result;
 }
 
 /** The winner did not play (rejected, 15 min passed, night over): money back to the wallets. */
@@ -1041,12 +1326,13 @@ export interface TickResult {
   refunded: number;
   played: number;
   expiredTopUps: number;
+  rolledOver: number;
 }
 
 /** One pass (worker loop, ~1 s): plan, open, close, refund unplayed, auto-play, expire top-ups. */
 export async function tickAuctions(now: number): Promise<TickResult> {
   const pool = getPool();
-  const result: TickResult = { planned: 0, opened: 0, closed: 0, refunded: 0, played: 0, expiredTopUps: 0 };
+  const result: TickResult = { planned: 0, opened: 0, closed: 0, refunded: 0, played: 0, expiredTopUps: 0, rolledOver: 0 };
 
   const live = await pool.query<{ id: string }>(`select id from public.sessions where status = 'live'`);
   for (const { id } of live.rows) result.planned += await ensureNightPlan(id, now);
@@ -1076,6 +1362,10 @@ export async function tickAuctions(now: number): Promise<TickResult> {
   for (const { id } of due.rows) {
     if (await runAndPublish((client) => closeSlotInTx(client, id, now), now)) result.closed += 1;
   }
+
+  // Runner-ups' money: the opening bid of the next auction once it opens.
+  const rolled = await placeHeldRollovers(now);
+  result.rolledOver = rolled.placed;
 
   // Winners the DJ did not play in time: money back to the wallets.
   const waiting = await pool.query<{ id: string; session_id: string; closed_at: Date }>(
@@ -1133,17 +1423,19 @@ export async function tickAuctions(now: number): Promise<TickResult> {
 
 /**
  * Night over (DJ or auto-close): unplayed winners and open bids go back to
- * the wallets, a playing winner counts as played, and every wallet that
- * took part tonight is refunded to its payment method (keeping a balance
- * for another night needs a legal review first — off).
+ * the wallets, a playing winner counts as played, and runner-up money still
+ * waiting for an auction goes back to the balance. The balance is NOT
+ * refunded tonight (owner, 2026-10-10): it stays withdrawable for the
+ * club's `keepBalanceDays` (7) and only then goes back to the payment
+ * method on its own (expireBalances, worker job).
  */
-export async function finishNightAuctions(sessionId: string, now: number): Promise<{ walletsRefunded: number }> {
+export async function finishNightAuctions(sessionId: string, now: number): Promise<{ rolloversReleased: number }> {
   return runAndPublish(async (client) => {
     const night = await loadNight(client, sessionId);
-    if (!night) return { value: { walletsRefunded: 0 }, publishes: [] };
+    if (!night) return { value: { rolloversReleased: 0 }, publishes: [] };
     const publishes: OutgoingBroadcast[] = [];
     const slots = await client.query<SlotRow>(
-      `select * from public.auction_slots where session_id = $1 for update`,
+      `select * from public.auction_slots where session_id = $1 order by id for update`,
       [sessionId],
     );
     for (const slot of slots.rows) {
@@ -1161,20 +1453,12 @@ export async function finishNightAuctions(sessionId: string, now: number): Promi
         publishes.push(...(await markPlayedInTx(client, slot, night, now)));
       }
     }
-    // A kept balance waits for the guest's next night, their "Devolver" or
-    // the keepBalanceDays expiry (expireKeptBalances, daily worker job).
-    const guests = await client.query<{ guest_id: string }>(
-      `select distinct w.guest_id from public.wallet_entries w
-         left join public.wallet_preferences p on p.guest_id = w.guest_id and p.venue_id = $2
-        where w.session_id = $1 and not ($3 and coalesce(p.keep_balance, false))`,
-      [sessionId, night.venueId, night.config.keepBalanceAllowed],
+    const held = await client.query<{ id: string }>(
+      `select id from public.auction_rollovers where session_id = $1 and status = 'held' order by created_at`,
+      [sessionId],
     );
-    let walletsRefunded = 0;
-    for (const g of guests.rows) {
-      if ((await refundWalletInTx(client, g.guest_id, night.venueId, sessionId, now)) > 0) walletsRefunded += 1;
-    }
-    publishes.push(...toGuests(guests.rows.map((g) => g.guest_id), "wallet.changed", {}));
-    return { value: { walletsRefunded }, publishes };
+    for (const r of held.rows) publishes.push(...(await releaseRolloverInTx(client, r.id, "night_ended", now)));
+    return { value: { rolloversReleased: held.rows.length }, publishes };
   }, now);
 }
 
@@ -1255,7 +1539,6 @@ export interface PublicAuctionState {
     lastMinuteWarningSec: number;
     screenNameCents: number;
     showAmountOnScreen: boolean;
-    keepBalanceAllowed: boolean;
     keepBalanceDays: number;
     transition: AuctionConfig["transition"];
   };
@@ -1429,7 +1712,6 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
       lastMinuteWarningSec: config.lastMinuteWarningSec,
       screenNameCents: config.recognition.screenNameCents,
       showAmountOnScreen: config.recognition.showAmountOnScreen,
-      keepBalanceAllowed: config.keepBalanceAllowed,
       keepBalanceDays: config.keepBalanceDays,
       transition: config.transition,
     },
@@ -1440,8 +1722,10 @@ export type MyBidStatus = "leading" | "outbid" | "next" | "playing" | "played" |
 
 export interface MyAuctionState {
   walletCents: number;
-  /** The guest's end-of-night choice (honoured only when the club allows it). */
-  keepBalance: boolean;
+  /** Runner-up money waiting to open the next auction (out of the balance). */
+  heldCents: number;
+  /** When the oldest euro of the balance goes back to the payment method on its own. */
+  balanceDeadline: string | null;
   bids: Array<{
     slotId: string;
     bidId: string;
@@ -1455,6 +1739,10 @@ export interface MyAuctionState {
     myCents: number;
     totalCents: number;
     status: MyBidStatus;
+    /** Opened by the runner-up money of an earlier auction. */
+    rolled: boolean;
+    /** Ended second: its money moved on to the next auction. */
+    rolledOn: boolean;
   }>;
   pending: Array<{ intentId: string; slotId: string; targetTotalCents: number; createdAt: string }>;
 }
@@ -1497,44 +1785,49 @@ export async function issuePendingAuctionInvoices(limit = 20): Promise<number> {
   return issued;
 }
 
+const DAY_MS = 86_400_000;
+
+/** Money that entered a guest's balance at a venue (for the N-day clock). */
+async function walletCredits(db: Db, guestId: string, venueId: string, sinceMs: number): Promise<Credit[]> {
+  const res = await db.query<{ amount_cents: number; created_at: Date }>(
+    `select amount_cents, created_at from public.wallet_entries
+      where guest_id = $1 and venue_id = $2 and amount_cents > 0 and created_at > to_timestamp($3 / 1000.0)
+      order by created_at desc`,
+    [guestId, venueId, sinceMs],
+  );
+  return res.rows.map((r) => ({ amountCents: r.amount_cents, atMs: r.created_at.getTime() }));
+}
+
 /**
- * Kept balances expire: money left in a wallet with no movement for the
- * club's `keepBalanceDays` (30 by default) goes back to the payment
- * method. Daily worker job; it also sweeps any balance stranded otherwise.
+ * The balance's N days (owner, 2026-10-10: 7 by default, club setting
+ * `keepBalanceDays`): every euro can be withdrawn for N days from when it
+ * landed in the balance; whatever is still there after that goes back to
+ * the payment method on its own (oldest money first). Hourly worker job.
  */
-export async function expireKeptBalances(now: number): Promise<{ refunded: number }> {
-  const DAY_MS = 86_400_000;
-  // Pre-filter at the 1-day floor; each club's own limit is checked below.
-  const res = await getPool().query<{ guest_id: string; venue_id: string; last_at: Date; auction: unknown }>(
-    `select w.guest_id, w.venue_id, max(w.created_at) as last_at, v.settings -> 'auction' as auction
+export async function expireBalances(now: number): Promise<{ refunded: number }> {
+  const res = await getPool().query<{ guest_id: string; venue_id: string; balance: string; auction: unknown }>(
+    `select w.guest_id, w.venue_id, sum(w.amount_cents)::bigint as balance, v.settings -> 'auction' as auction
        from public.wallet_entries w
        join public.venues v on v.id = w.venue_id
       group by w.guest_id, w.venue_id, v.id
-     having sum(w.amount_cents) > 0 and max(w.created_at) < to_timestamp($1 / 1000.0)`,
+     having sum(w.amount_cents) > 0 and min(w.created_at) < to_timestamp($1 / 1000.0)`,
     [now - DAY_MS],
   );
   let refunded = 0;
   for (const r of res.rows) {
     const days = safeAuctionConfig(r.auction ?? {}).keepBalanceDays;
-    if (r.last_at.getTime() > now - days * DAY_MS) continue;
-    if ((await refundWallet(r.guest_id, r.venue_id, null, now)) > 0) refunded += 1;
+    const credits = await walletCredits(getPool(), r.guest_id, r.venue_id, now - days * DAY_MS);
+    const expired = expiredCents(Number(r.balance), credits, now, days);
+    if (expired <= 0) continue;
+    if ((await refundWallet(r.guest_id, r.venue_id, null, now, expired)) > 0) refunded += 1;
   }
   return { refunded };
-}
-
-/** End-of-night choice for the balance: keep it here for another night, or refund it. */
-export async function setKeepBalance(guestId: string, venueId: string, keep: boolean): Promise<void> {
-  await getPool().query(
-    `insert into public.wallet_preferences (guest_id, venue_id, keep_balance) values ($1, $2, $3)
-     on conflict (guest_id, venue_id) do update set keep_balance = excluded.keep_balance, updated_at = now()`,
-    [guestId, venueId, keep],
-  );
 }
 
 /** The guest's own view: wallet, every bid they own or backed tonight, waiting top-ups. */
 export async function myAuctionState(sessionId: string, venueId: string, guestId: string): Promise<MyAuctionState> {
   const pool = getPool();
-  const [walletCents, bidsRes, pendingRes, prefRes] = await Promise.all([
+  const [walletCents, bidsRes, pendingRes, heldRes, auctionRes] = await Promise.all([
     walletBalance(pool, guestId, venueId),
     pool.query<{
       slot_id: string;
@@ -1551,13 +1844,16 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
       slot_status: SlotRow["status"];
       play_status: SlotRow["play_status"];
       won: boolean;
+      rolled: boolean;
+      rolled_on: boolean;
     }>(
       `select s.id as slot_id, b.id as bid_id, s.kind, s.closes_at, b.track_title, b.track_artist,
               b.owner_guest_id = $2 as owner, coalesce(b.library_track_id, b.catalog_track_id) as library_track_id,
               coalesce((select sum(amount_cents) from public.auction_contributions
                          where bid_id = b.id and guest_id = $2 and returned_at is null), 0)::bigint as my_cents,
               b.total_cents, b.status as bid_status, s.status as slot_status, s.play_status,
-              s.winning_bid_id = b.id as won
+              s.winning_bid_id = b.id as won, b.rolled_from_bid_id is not null as rolled,
+              exists (select 1 from public.auction_rollovers r where r.from_bid_id = b.id and r.status <> 'released') as rolled_on
          from public.auction_bids b
          join public.auction_slots s on s.id = b.slot_id
         where s.session_id = $1
@@ -1573,11 +1869,18 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
         order by i.created_at desc`,
       [guestId, sessionId],
     ),
-    pool.query<{ keep_balance: boolean }>(
-      `select keep_balance from public.wallet_preferences where guest_id = $1 and venue_id = $2`,
+    pool.query<{ n: string }>(
+      `select coalesce(sum(sh.amount_cents), 0)::bigint as n
+         from public.auction_rollover_shares sh join public.auction_rollovers r on r.id = sh.rollover_id
+        where sh.guest_id = $1 and r.venue_id = $2 and r.status = 'held'`,
       [guestId, venueId],
     ),
+    pool.query<{ auction: unknown }>(`select settings -> 'auction' as auction from public.venues where id = $1`, [venueId]),
   ]);
+  const days = safeAuctionConfig(auctionRes.rows[0]?.auction ?? {}).keepBalanceDays;
+  const deadline = walletCents > 0
+    ? balanceDeadline(walletCents, await walletCredits(pool, guestId, venueId, 0), days)
+    : null;
 
   const statusOf = (r: (typeof bidsRes.rows)[number]): MyBidStatus => {
     if (r.won) {
@@ -1592,7 +1895,8 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
 
   return {
     walletCents,
-    keepBalance: prefRes.rows[0]?.keep_balance ?? false,
+    heldCents: Number(heldRes.rows[0]?.n ?? 0),
+    balanceDeadline: deadline === null ? null : new Date(deadline).toISOString(),
     bids: bidsRes.rows.map((r) => ({
       slotId: r.slot_id,
       bidId: r.bid_id,
@@ -1605,6 +1909,8 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
       myCents: Number(r.my_cents),
       totalCents: r.total_cents,
       status: statusOf(r),
+      rolled: r.rolled,
+      rolledOn: r.rolled_on,
     })),
     pending: pendingRes.rows.map((p) => ({
       intentId: p.id,

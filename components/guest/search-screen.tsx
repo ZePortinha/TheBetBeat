@@ -154,7 +154,7 @@ export function SearchScreen({ token }: { token: string }) {
                 >
                   {album.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- catalog covers come from the provider's CDN
-                    <img src={album.coverUrl} alt="" className="size-12 shrink-0 rounded-chip object-cover" />
+                    <img src={album.coverUrl} alt="" loading="lazy" decoding="async" className="size-12 shrink-0 rounded-chip object-cover" />
                   ) : (
                     <span aria-hidden className="size-12 shrink-0 rounded-chip bg-surface-3" />
                   )}

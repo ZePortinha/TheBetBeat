@@ -122,15 +122,18 @@ export async function GET(request: Request) {
       `select coalesce(lt.id, t.id) as id, coalesce(lt.title, t.title) as title, coalesce(lt.artist, t.artist) as artist,
               coalesce(lt.genre, t.genre) as genre, coalesce(lt.bpm, t.bpm) as bpm,
               coalesce(lt.camelot_key, t.camelot_key) as camelot_key, t.cover_url,
-              case when lt.id is null then 'catalog' else 'library' end as source
+              case when lt.id is null then 'catalog' else 'library' end as source,
+              coalesce(lt.blocked, false) as blocked
          from public.auction_bids b
          left join public.library_tracks lt on lt.id = b.library_track_id
          left join public.tracks t on t.id = b.catalog_track_id
-        where b.session_id = $1 and (lt.id is not null or t.id is not null)
-        group by 1, 2, 3, 4, 5, 6, 7, 8
+        -- Catalog songs only while the DJ keeps the catalog open: a bid on one
+        -- with the catalog closed would be refused (track_not_found).
+        where b.session_id = $1 and (lt.id is not null or (t.id is not null and $2))
+        group by 1, 2, 3, 4, 5, 6, 7, 8, 9
         order by count(distinct b.owner_guest_id) desc
         limit 6`,
-      [ctx.sessionId],
+      [ctx.sessionId, night.catalogOpen],
     ),
     pool.query<TrackRow>(
       `select id, title, artist, genre, bpm, camelot_key, blocked

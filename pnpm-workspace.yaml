@@ -8,3 +8,8 @@ allowBuilds:
   "@parcel/watcher": false
   "@swc/core": false
   unrs-resolver: false
+
+# Security overrides (pnpm audit, 2026-10-06). next pins postcss 8.4.31,
+# which has the sourceMappingURL file-read advisories; 8.5 is API-compatible.
+overrides:
+  postcss: ^8.5.29

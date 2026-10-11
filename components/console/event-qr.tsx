@@ -54,7 +54,7 @@ export function EventQr({ url, fileName }: { url: string; fileName: string }) {
             <button
               type="button"
               onClick={() => void download()}
-              className="flex min-h-11 items-center gap-2 rounded-button bg-accent-500 px-4 text-sm font-semibold text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
+              className="flex min-h-11 items-center gap-2 rounded-full bg-accent-500 px-4 text-sm font-semibold text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
             >
               <Download size={16} aria-hidden />
               {t("download")}
@@ -63,7 +63,7 @@ export function EventQr({ url, fileName }: { url: string; fileName: string }) {
               <button
                 type="button"
                 onClick={() => void share()}
-                className="flex min-h-11 items-center gap-2 rounded-button bg-surface-3 px-4 text-sm font-semibold text-text-primary transition-transform duration-100 active:scale-[0.97]"
+                className="flex min-h-11 items-center gap-2 rounded-full bg-surface-3 px-4 text-sm font-semibold text-text-primary transition-transform duration-100 active:scale-[0.97]"
               >
                 <Share2 size={16} aria-hidden />
                 {t("share")}
@@ -77,7 +77,7 @@ export function EventQr({ url, fileName }: { url: string; fileName: string }) {
           type="button"
           data-testid="event-qr-generate"
           onClick={() => setShown(true)}
-          className="flex min-h-11 items-center gap-2 self-start rounded-button bg-accent-500 px-5 text-base font-semibold text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
+          className="flex min-h-11 items-center gap-2 self-start rounded-full bg-accent-500 px-5 text-base font-semibold text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
         >
           <QrCode size={18} aria-hidden />
           {t("generate")}

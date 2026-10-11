@@ -119,7 +119,7 @@ function Cover({
       className={cx("relative block size-12 shrink-0 overflow-hidden rounded-cover", tone)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={coverUrl} alt="" className="size-full object-cover" />
+      <img src={coverUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
     </span>
   ) : (
     <Disc seed={title} className={cx("size-12 shrink-0", tone)} />
