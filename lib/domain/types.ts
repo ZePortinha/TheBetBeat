@@ -131,7 +131,7 @@ export const DEFAULT_SESSION_CONFIG: SessionConfig = {
     SOON: { minCents: 1500, maxCents: 12000 },
     NEXT: { minCents: 2500, maxCents: 20000 },
   },
-  betbeatFeeBps: 2000,
+  betbeatFeeBps: 1100, // flat platform fee (lib/ledger/split PLATFORM_FEE_BPS)
   venueShareBps: 5000,
   minFitScore: 0,
   noRepeatWindowMin: 60,

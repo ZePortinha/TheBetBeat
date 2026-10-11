@@ -111,6 +111,12 @@ export class MockCatalogProvider implements CatalogProvider {
     return [...titleMatches, ...artistMatches].slice(0, max);
   }
 
+  /** Tracks whose genre is the style (or contains it), in catalog order. */
+  async byStyle(style: string, limit = DEFAULT_SEARCH_LIMIT): Promise<CatalogTrack[]> {
+    const { matchesStyle } = await import("./styles");
+    return this.tracks.filter((t) => matchesStyle(t.genre, [style])).slice(0, limit);
+  }
+
   async getTrack(providerTrackId: string): Promise<CatalogTrack | null> {
     return this.byId.get(providerTrackId) ?? null;
   }

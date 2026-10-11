@@ -29,6 +29,8 @@ export interface SessionStatement {
   betbeatFee: number;
   /** Venue earnings recognized (before payout). */
   venueNet: number;
+  /** Promoter earnings recognized (before payout); 0 without a promoter. */
+  promoterNet: number;
   /** DJ earnings recognized (before payout). */
   djNet: number;
 }
@@ -80,15 +82,17 @@ export function deriveBalances(entries: readonly LedgerEntryRow[]): Balances {
  *
  * - psp_clearing debits only come from captures           → gmv
  * - betbeat_revenue credits only come from recognition    → betbeatFee
- * - venue_payable / dj_payable credits, recognition only  → venueNet / djNet
+ * - venue_payable / promoter_payable / dj_payable credits, recognition only
+ *                                                         → venueNet / promoterNet / djNet
  * - guest_escrow debits come from recognition + refunds   → refunds =
- *   escrow debits − (betbeatFee + venueNet + djNet)
+ *   escrow debits − (betbeatFee + venueNet + promoterNet + djNet)
  */
 export function sessionStatement(entries: readonly LedgerEntryRow[]): SessionStatement {
   let pspDebits = 0n;
   let escrowDebits = 0n;
   let revenueCredits = 0n;
   let venueCredits = 0n;
+  let promoterCredits = 0n;
   let djCredits = 0n;
 
   for (const entry of entries) {
@@ -106,6 +110,9 @@ export function sessionStatement(entries: readonly LedgerEntryRow[]): SessionSta
       case ACCOUNTS.venuePayable:
         if (amount < 0n) venueCredits += -amount;
         break;
+      case ACCOUNTS.promoterPayable:
+        if (amount < 0n) promoterCredits += -amount;
+        break;
       case ACCOUNTS.djPayable:
         if (amount < 0n) djCredits += -amount;
         break;
@@ -114,12 +121,13 @@ export function sessionStatement(entries: readonly LedgerEntryRow[]): SessionSta
     }
   }
 
-  const recognized = revenueCredits + venueCredits + djCredits;
+  const recognized = revenueCredits + venueCredits + promoterCredits + djCredits;
   return {
     gmv: toSafeNumber(pspDebits, "gmv"),
     refunds: toSafeNumber(escrowDebits - recognized, "refunds"),
     betbeatFee: toSafeNumber(revenueCredits, "betbeatFee"),
     venueNet: toSafeNumber(venueCredits, "venueNet"),
+    promoterNet: toSafeNumber(promoterCredits, "promoterNet"),
     djNet: toSafeNumber(djCredits, "djNet"),
   };
 }

@@ -8,6 +8,7 @@ import {
   parseRekordboxXml,
   type ImportResult,
 } from "@/lib/catalog/import";
+import { insertLibraryTracks } from "@/lib/catalog/library";
 import { apiError, authorizeSession, requireStaffApi } from "../../_lib/auth";
 
 /**
@@ -75,37 +76,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     const imported = await withTransaction(async (client) => {
-      let count = 0;
-      // Batched inserts (500 tracks per statement). A song already in the
-      // library (same title + artist, any case) is skipped, so re-importing
-      // an updated rekordbox export never duplicates the library.
-      const BATCH = 500;
-      for (let i = 0; i < result.tracks.length; i += BATCH) {
-        const slice = result.tracks.slice(i, i + BATCH);
-        const res = await client.query(
-          `insert into public.library_tracks (venue_id, title, artist, genre, bpm, camelot_key, duration_sec)
-           select distinct on (lower(t.title), lower(t.artist))
-                  $1, t.title, t.artist, t.genre, t.bpm, t.camelot_key, t.duration_sec
-             from unnest($2::text[], $3::text[], $4::text[], $5::numeric[], $6::text[], $7::int[])
-                  as t(title, artist, genre, bpm, camelot_key, duration_sec)
-            where not exists (
-              select 1 from public.library_tracks l
-               where l.venue_id = $1 and lower(l.title) = lower(t.title) and lower(l.artist) = lower(t.artist))`,
-          [
-            scope.venueId,
-            slice.map((t) => t.title),
-            slice.map((t) => t.artist),
-            slice.map((t) => t.genre ?? "unknown"),
-            slice.map((t) => t.bpm),
-            slice.map((t) => t.camelotKey),
-            slice.map((t) => t.durationSec),
-          ],
-        );
-        count += res.rowCount ?? 0;
-      }
+      // A song already in the library (same title + artist, any case) is
+      // skipped, so re-importing an updated rekordbox export never
+      // duplicates the library.
+      const count = await insertLibraryTracks(
+        client,
+        scope.venueId,
+        result.tracks.map((t) => ({
+          title: t.title,
+          artist: t.artist,
+          album: t.album ?? null,
+          genre: t.genre ?? "unknown",
+          bpm: t.bpm,
+          camelotKey: t.camelotKey,
+          year: t.year ?? null,
+          durationSec: t.durationSec,
+        })),
+      );
       await client.query(
         `insert into public.audit_log (actor, action, entity, entity_id, venue_id, payload)
-         values ($1, 'library.imported', 'venue', $2, $2, $3)`,
+         values ($1, 'library.imported', 'venue', $2::text, $2::uuid, $3)`,
         [
           auth.ctx.actor,
           scope.venueId,

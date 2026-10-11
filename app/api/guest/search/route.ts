@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { loadNight } from "@/lib/auction/service";
-import { searchAlbums, searchCatalog, trendingCatalog, type CatalogAlbumHit, type CatalogHit } from "@/lib/catalog/service";
+import {
+  searchAlbums,
+  searchCatalog,
+  styleCatalog,
+  trendingCatalog,
+  type CatalogAlbumHit,
+  type CatalogHit,
+} from "@/lib/catalog/service";
+import { eventStyleFirst, inBpmRange, matchesStyle } from "@/lib/catalog/styles";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { apiError, rateLimitedResponse } from "../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../_lib/auth";
@@ -32,7 +40,7 @@ const PAGE_SIZE = 25;
 
 export interface SearchResponse {
   sections: Array<{
-    key: "results" | "catalog" | "trending" | "fits" | "popular" | "recent";
+    key: "style" | "results" | "catalog" | "trending" | "fits" | "popular" | "recent";
     tracks: SearchTrackDto[];
   }>;
   /** The catalog has more results for this query (next `page`). */
@@ -110,9 +118,20 @@ export async function GET(request: Request) {
     return NextResponse.json(response);
   }
 
-  // Empty query → curated sections (B6.2): trending, what fits, tonight's bids, new in the library.
-  const [trending, allRes, popularRes, recentRes] = await Promise.all([
+  // Empty query → curated sections (B6.2): the event's style first (the
+  // admin's criteria), then trending, what fits, tonight's bids, new in the library.
+  const eventRes = await pool.query<{ genres: string[]; bpm_min: number | null; bpm_max: number | null }>(
+    `select genres, bpm_min, bpm_max from public.sessions where id = $1`,
+    [ctx.sessionId],
+  );
+  const styles = eventRes.rows[0]?.genres ?? [];
+  const bpmMin = eventRes.rows[0]?.bpm_min ?? null;
+  const bpmMax = eventRes.rows[0]?.bpm_max ?? null;
+  const [trending, styleHits, allRes, popularRes, recentRes] = await Promise.all([
     night.catalogOpen ? trendingCatalog(20).catch(() => [] as CatalogHit[]) : Promise.resolve([] as CatalogHit[]),
+    night.catalogOpen && styles.length > 0
+      ? styleCatalog(styles, 12).catch(() => [] as CatalogHit[])
+      : Promise.resolve([] as CatalogHit[]),
     pool.query<TrackRow>(
       `select id, title, artist, genre, bpm, camelot_key, blocked
          from public.library_tracks where venue_id = $1 and blocked = false limit 400`,
@@ -143,6 +162,7 @@ export async function GET(request: Request) {
     ),
   ]);
   measureLater(trending);
+  measureLater(styleHits);
 
   const easiest = { easy: 0, medium: 1, unknown: 2, hard: 3 } as const;
   const fits = allRes.rows
@@ -151,12 +171,30 @@ export async function GET(request: Request) {
     .sort((a, b) => easiest[a.transition] - easiest[b.transition])
     .slice(0, 8);
 
+  // The club's songs of the event's style (inside its BPM range first),
+  // then catalog songs of that style; nothing twice.
+  const styleLibrary = eventStyleFirst(
+    allRes.rows.map((row) => dto(row, "library")).filter((d) => d.available && matchesStyle(d.genre, styles)),
+    styles,
+    bpmMin,
+    bpmMax,
+  );
+  const inStyleLibrary = new Set(styleLibrary.map((d) => keyOf(d.title, d.artist)));
+  const styleTracks = [
+    ...styleLibrary,
+    ...styleHits
+      .filter((h) => !inStyleLibrary.has(keyOf(h.title, h.artist)) && inBpmRange(h.bpm, bpmMin, bpmMax))
+      .map((h) => dto(fromHit(h), "catalog")),
+  ].slice(0, 12);
+  const styled = (tracks: SearchTrackDto[]) => eventStyleFirst(tracks, styles, bpmMin, bpmMax);
+
   const response: SearchResponse = {
     sections: [
-      { key: "trending" as const, tracks: trending.map((h) => dto(fromHit(h), "catalog")) },
-      { key: "fits" as const, tracks: fits },
+      { key: "style" as const, tracks: styleTracks },
+      { key: "trending" as const, tracks: styled(trending.map((h) => dto(fromHit(h), "catalog"))) },
+      { key: "fits" as const, tracks: styled(fits) },
       { key: "popular" as const, tracks: popularRes.rows.map((r) => dto(r, r.source)) },
-      { key: "recent" as const, tracks: recentRes.rows.map((r) => dto(r, "library")) },
+      { key: "recent" as const, tracks: styled(recentRes.rows.map((r) => dto(r, "library"))) },
     ].filter((s) => s.tracks.length > 0),
   };
   return NextResponse.json(response);

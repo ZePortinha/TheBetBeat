@@ -669,3 +669,41 @@ merged in this order on `claude/project-thread-cp9ey2`: #1, #3, #2, #4, #6,
   reads the guest link without opening `/`, since the intro plays once per
   tab (PR #2).
 
+
+## 2026-10-11 - DJ library, BPM on the auction, event form, promoter split
+
+Owner's ask: the DJ sees the BPM of the song being bid on; a library of
+their own by artist, album and style; the admin's event creation with the
+split between DJ and promoter and/or club on top of the fixed 11% fee, and
+event criteria (music style) that decide the first recommendations.
+
+- **Fee:** BetBeat's fee is a flat 11% (`PLATFORM_FEE_BPS`), no longer a
+  per-venue contract. New events take it; an edited event keeps the fee it
+  was created with; migration 18 moves every venue to 1100 and Admin ›
+  Casas shows it read-only. Existing events' snapshots are untouched.
+- **Split:** fee off the gross, then the club's % and the promoter's % of
+  the rest, the DJ gets what is left (rounding remainder too). New ledger
+  account `promoter_payable`, `promoter` payouts at the end of the night,
+  `promoterNet` on the statement. Club + promoter ≤ 100% (DB check too).
+  The promoter is a name on the event (no account yet): its payout is
+  created pending like the others; paying it needs its IBAN (Phase 8).
+- **Library scope:** the library stays per club (`library_tracks.venue_id`),
+  not per DJ: guests bid on the club's songs and every DJ of the club
+  shares it. Added album, year, cover and the catalog id. A song guests
+  already bid on is blocked instead of deleted (bids and receipts point at
+  it).
+- **Event criteria:** styles (`sessions.genres`, any style, common ones
+  offered) and an optional BPM range. They only ORDER recommendations: a
+  new first section "Estilo da noite" (library songs of the style inside
+  the BPM range first, then catalog songs of the style when the catalog is
+  open), and the other sections put the style first. Nothing is refused for
+  being off-style; the DJ's genre blocks still do that.
+- **BPM in the cockpit:** each open auction shows the leading song's BPM
+  and key big, plus the other songs still bidding with theirs. A catalog
+  song with no BPM yet shows "BPM a medir" and is queued for the worker.
+- **Legacy tier prices** on the event form moved under a collapsed
+  "Preços dos pedidos diretos": slot auctions replaced them on the guest
+  side, but the request flow still reads them.
+- Fixed on the way: the rekordbox/CSV import wrote its audit row with one
+  parameter as both text and uuid, which Postgres refuses, so every import
+  answered 500.

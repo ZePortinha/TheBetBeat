@@ -53,7 +53,40 @@ export interface CockpitSlot {
   } | null;
 }
 
-type CockpitAuctionState = PublicAuctionState & { slots: CockpitSlot[] };
+/** A song still in the running in an open auction (with its BPM for the mix). */
+export interface CockpitContender {
+  bidId: string;
+  leading: boolean;
+  trackTitle: string;
+  trackArtist: string;
+  genre: string | null;
+  bpm: number | null;
+  camelotKey: string | null;
+  totalCents: number;
+  transition: "easy" | "medium" | "hard" | "unknown" | null;
+}
+
+type CockpitAuctionState = PublicAuctionState & {
+  slots: CockpitSlot[];
+  contenders?: Record<string, CockpitContender[]>;
+};
+
+/** "124 BPM · 8A": what the DJ needs to cue the song. */
+function TempoChip({ bpm, camelotKey, large = false }: { bpm: number | null; camelotKey: string | null; large?: boolean }) {
+  const t = useTranslations("cockpit.auction");
+  return (
+    <span
+      data-testid="contender-bpm"
+      className={cx(
+        "tnum inline-flex shrink-0 items-baseline gap-1 rounded-full border border-line-strong bg-surface-2 font-semibold text-text-primary",
+        large ? "px-3 py-1 text-lg" : "px-2 py-0.5 text-sm",
+      )}
+    >
+      {bpm !== null ? t("bpm", { bpm: Math.round(bpm) }) : t("bpmUnknown")}
+      {camelotKey ? <span className="font-normal text-text-secondary">· {camelotKey}</span> : null}
+    </span>
+  );
+}
 
 export function useCockpitAuction(sessionId: string | null) {
   const t = useTranslations("cockpit.auction");
@@ -201,6 +234,39 @@ export function AuctionNext({ a }: { a: CockpitAuction }) {
   );
 }
 
+/** The leading song's BPM big, then the other songs still bidding with theirs. */
+function ContenderTempo({ contenders }: { contenders: CockpitContender[] }) {
+  const t = useTranslations("cockpit.auction");
+  const leader = contenders.find((c) => c.leading);
+  const others = contenders.filter((c) => !c.leading).slice(0, 3);
+  if (!leader) return null;
+  return (
+    <div className="mt-3 flex flex-col gap-2" data-testid="auction-tempo">
+      <div className="flex flex-wrap items-center gap-2">
+        <TempoChip bpm={leader.bpm} camelotKey={leader.camelotKey} large />
+        {leader.transition ? (
+          <span className="text-sm text-text-secondary">{t(`transition.${leader.transition}`)}</span>
+        ) : null}
+      </div>
+      {others.length > 0 ? (
+        <ul className="flex flex-col gap-1 border-t border-line-subtle pt-2" aria-label={t("contenders")}>
+          {others.map((c) => (
+            <li key={c.bidId} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate text-text-secondary">
+                {c.trackTitle} · {c.trackArtist}
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <TempoChip bpm={c.bpm} camelotKey={c.camelotKey} />
+                <span className="tnum text-text-tertiary">{formatEurosDisplay(c.totalCents)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 /** Right side: open auctions, the night's schedule and "Abrir leilão agora". */
 export function AuctionBoard({ a }: { a: CockpitAuction }) {
   const t = useTranslations("cockpit.auction");
@@ -235,19 +301,22 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
                   />
                 </div>
                 {s.top ? (
-                  <div className="mt-3 flex items-baseline justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-semibold text-text-primary">{s.top.trackTitle}</p>
-                      <p className="truncate text-sm text-text-secondary">
-                        {s.top.trackArtist} · {t("bids", { count: s.bids })}
-                      </p>
+                  <>
+                    <div className="mt-3 flex items-baseline justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-lg font-semibold text-text-primary">{s.top.trackTitle}</p>
+                        <p className="truncate text-sm text-text-secondary">
+                          {s.top.trackArtist} · {t("bids", { count: s.bids })}
+                        </p>
+                      </div>
+                      <TickingCountdown
+                        timer={false}
+                        value={formatEurosDisplay(s.top.totalCents)}
+                        className="shrink-0 text-2xl font-bold text-accent-400"
+                      />
                     </div>
-                    <TickingCountdown
-                      timer={false}
-                      value={formatEurosDisplay(s.top.totalCents)}
-                      className="shrink-0 text-2xl font-bold text-accent-400"
-                    />
-                  </div>
+                    <ContenderTempo contenders={state.contenders?.[s.id] ?? []} />
+                  </>
                 ) : (
                   <p className="mt-3 text-sm text-text-secondary">{t("noBids", { amount: formatEurosDisplay(s.minPriceCents) })}</p>
                 )}

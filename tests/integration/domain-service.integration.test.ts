@@ -281,7 +281,7 @@ describe("quote → pay → accept → playing → played (full money path)", ()
 
     // Ledger: capture (at MB WAY confirmation) + recognition (at played).
     const balances = deriveBalances(await ledgerFor(requestId));
-    const split = computeSplit(amountCents, 2000, 5000);
+    const split = computeSplit(amountCents, 1100, 5000);
     expect(balances[ACCOUNTS.pspClearing]).toBe(amountCents);
     expect(balances[ACCOUNTS.guestEscrow]).toBe(0);
     expect(balances[ACCOUNTS.betbeatRevenue]).toBe(-split.betbeatFeeCents);

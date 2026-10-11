@@ -108,13 +108,13 @@ describe("recognitionGroup", () => {
 
   it("rejects inconsistent or negative splits", () => {
     expect(() =>
-      recognitionGroup({ amountCents: 1000, betbeatFeeCents: 200, venueCents: 400, djCents: 500 }, meta),
+      recognitionGroup({ amountCents: 1000, betbeatFeeCents: 200, venueCents: 400, promoterCents: 0, djCents: 500 }, meta),
     ).toThrow(/do not sum/);
     expect(() =>
-      recognitionGroup({ amountCents: 100, betbeatFeeCents: -50, venueCents: 100, djCents: 50 }, meta),
+      recognitionGroup({ amountCents: 100, betbeatFeeCents: -50, venueCents: 100, promoterCents: 0, djCents: 50 }, meta),
     ).toThrow(RangeError);
     expect(() =>
-      recognitionGroup({ amountCents: 0, betbeatFeeCents: 0, venueCents: 0, djCents: 0 }, meta),
+      recognitionGroup({ amountCents: 0, betbeatFeeCents: 0, venueCents: 0, promoterCents: 0, djCents: 0 }, meta),
     ).toThrow(RangeError);
   });
 });
@@ -152,5 +152,23 @@ describe("payoutGroup", () => {
   it("rejects non-positive amounts", () => {
     expect(() => payoutGroup("venue", 0, meta)).toThrow(RangeError);
     expect(() => payoutGroup("dj", -5, meta)).toThrow(RangeError);
+  });
+});
+
+describe("recognitionGroup with a promoter", () => {
+  it("credits promoter_payable and still sums to zero", () => {
+    const lines = recognitionGroup(
+      { amountCents: 10_000, betbeatFeeCents: 1100, venueCents: 2670, promoterCents: 1780, djCents: 4450 },
+      { sessionId: "s" },
+    );
+    expect(lines.find((l) => l.account === "promoter_payable")?.amountCents).toBe(-1780);
+    expect(lines.reduce((sum, l) => sum + l.amountCents, 0)).toBe(0);
+  });
+
+  it("pays the promoter out of promoter_payable", () => {
+    expect(payoutGroup("promoter", 1780, {}).map((l) => [l.account, l.amountCents])).toEqual([
+      ["promoter_payable", 1780],
+      ["psp_clearing", -1780],
+    ]);
   });
 });

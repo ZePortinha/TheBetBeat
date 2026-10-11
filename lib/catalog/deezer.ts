@@ -93,6 +93,11 @@ export class DeezerCatalogProvider implements CatalogProvider {
     return tracks;
   }
 
+  /** Deezer has no genre filter on search: the style name finds its songs well enough. */
+  async byStyle(style: string, limit = 20): Promise<CatalogTrack[]> {
+    return this.search(style, limit);
+  }
+
   async trending(limit = 20): Promise<CatalogTrack[]> {
     const key = `chart|${limit}`;
     const hit = this.cache.get(key);

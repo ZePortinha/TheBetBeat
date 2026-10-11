@@ -88,9 +88,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             where session_id = $1`,
           [scope.sessionId],
         ),
-        pool.query<{ config: unknown; venue_share_bps: number }>(
+        pool.query<{ config: unknown; venue_share_bps: number; promoter_share_bps: number }>(
           `select coalesce(ss.config, '{}'::jsonb) as config,
-                  coalesce(ss.venue_share_bps, 5000) as venue_share_bps
+                  coalesce(ss.venue_share_bps, 5000) as venue_share_bps,
+                  coalesce(ss.promoter_share_bps, 0) as promoter_share_bps
              from public.sessions s
              left join public.session_settings ss on ss.session_id = s.id
             where s.id = $1`,
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const config = parseSessionConfig(cfg.rows[0]?.config ?? {});
     const venueShareBps = cfg.rows[0]?.venue_share_bps ?? 5000;
+    const promoterShareBps = cfg.rows[0]?.promoter_share_bps ?? 0;
     const statement = sessionStatement(ledger.rows);
     const accepted = Number(acceptance.rows[0]?.accepted ?? 0);
     const declined = Number(acceptance.rows[0]?.declined ?? 0);
@@ -143,7 +145,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       // (money sitting in guest wallets is not the DJ's until it is spent).
       djShareProjection:
         statement.djNet +
-        computeSplit(Number(pending.rows[0]?.total ?? 0), config.betbeatFeeBps, venueShareBps).djCents,
+        computeSplit(Number(pending.rows[0]?.total ?? 0), config.betbeatFeeBps, venueShareBps, promoterShareBps).djCents,
     });
   } catch (error) {
     const correlationId = Math.random().toString(16).slice(2, 10);

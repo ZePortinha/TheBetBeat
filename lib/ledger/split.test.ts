@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { BPS_DENOMINATOR, computeSplit } from "./split";
+import { BPS_DENOMINATOR, PLATFORM_FEE_BPS, computeSplit } from "./split";
 
 const bpsArb = fc.integer({ min: 0, max: BPS_DENOMINATOR });
 
@@ -35,6 +35,7 @@ describe("computeSplit", () => {
       amountCents: 1100,
       betbeatFeeCents: 220,
       venueCents: 440,
+      promoterCents: 0,
       djCents: 440,
     });
   });
@@ -46,6 +47,7 @@ describe("computeSplit", () => {
       amountCents: 1001,
       betbeatFeeCents: 200,
       venueCents: 401,
+      promoterCents: 0,
       djCents: 400,
     });
   });
@@ -55,12 +57,14 @@ describe("computeSplit", () => {
       amountCents: 999,
       betbeatFeeCents: 0,
       venueCents: 0,
+      promoterCents: 0,
       djCents: 999,
     });
     expect(computeSplit(999, 10000, 10000)).toEqual({
       amountCents: 999,
       betbeatFeeCents: 999,
       venueCents: 0,
+      promoterCents: 0,
       djCents: 0,
     });
   });
@@ -78,5 +82,40 @@ describe("computeSplit", () => {
     expect(() => computeSplit(100, 10001, 5000)).toThrow(RangeError);
     expect(() => computeSplit(100, 2000, 10001)).toThrow(RangeError);
     expect(() => computeSplit(Number.MAX_SAFE_INTEGER + 1, 2000, 5000)).toThrow(RangeError);
+  });
+
+  it("conserves every cent with a promoter: fee + venue + promoter + dj === amount", () => {
+    fc.assert(
+      fc.property(
+        fc.maxSafeNat(),
+        bpsArb,
+        bpsArb,
+        bpsArb,
+        (amount, feeBps, a, b) => {
+          const venueBps = Math.min(a, BPS_DENOMINATOR - b);
+          const s = computeSplit(amount, feeBps, venueBps, b);
+          for (const part of [s.betbeatFeeCents, s.venueCents, s.promoterCents, s.djCents]) {
+            expect(Number.isSafeInteger(part)).toBe(true);
+            expect(part).toBeGreaterThanOrEqual(0);
+          }
+          expect(s.betbeatFeeCents + s.venueCents + s.promoterCents + s.djCents).toBe(amount);
+        },
+      ),
+    );
+  });
+
+  it("splits a 100 € event at the flat 11% fee: club 30%, promoter 20%, DJ the rest", () => {
+    expect(PLATFORM_FEE_BPS).toBe(1100);
+    expect(computeSplit(10_000, PLATFORM_FEE_BPS, 3000, 2000)).toEqual({
+      amountCents: 10_000,
+      betbeatFeeCents: 1100,
+      venueCents: 2670,
+      promoterCents: 1780,
+      djCents: 4450,
+    });
+  });
+
+  it("refuses club + promoter shares above 100%", () => {
+    expect(() => computeSplit(100, 1100, 6000, 4001)).toThrow(RangeError);
   });
 });

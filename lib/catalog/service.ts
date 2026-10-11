@@ -19,6 +19,7 @@ export interface CatalogHit {
   id: string;
   title: string;
   artist: string;
+  genre: string | null;
   bpm: number | null;
   camelotKey: string | null;
   coverUrl: string | null;
@@ -71,6 +72,28 @@ export async function albumTracks(providerAlbumId: string): Promise<{ album: Cat
   return { album: found.album, hits: await cacheTracks(provider.name, found.tracks) };
 }
 
+/** Catalog songs of the event's styles, a few per style, interleaved (empty when none). */
+export async function styleCatalog(styles: readonly string[], limit = 12): Promise<CatalogHit[]> {
+  const provider = await getCatalogProvider();
+  if (!provider.byStyle || styles.length === 0) return [];
+  const per = Math.max(2, Math.ceil(limit / styles.length));
+  const lists = await Promise.all(
+    styles.slice(0, 4).map((s) => provider.byStyle!(s, per).catch(() => [] as CatalogTrack[])),
+  );
+  const seen = new Set<string>();
+  const mixed: CatalogTrack[] = [];
+  for (let i = 0; i < per; i++) {
+    for (const list of lists) {
+      const t = list[i];
+      if (t && !seen.has(t.providerTrackId)) {
+        seen.add(t.providerTrackId);
+        mixed.push(t);
+      }
+    }
+  }
+  return cacheTracks(provider.name, mixed.slice(0, limit));
+}
+
 /** The provider's charts (empty when it has none). */
 export async function trendingCatalog(limit = 20): Promise<CatalogHit[]> {
   const provider = await getCatalogProvider();
@@ -84,21 +107,23 @@ async function cacheTracks(providerName: string, found: CatalogTrack[]): Promise
     provider_track_id: string;
     title: string;
     artist: string;
+    genre: string | null;
     bpm: string | null;
     camelot_key: string | null;
     cover_url: string | null;
     duration_sec: number | null;
   }>(
-    `insert into public.tracks (provider, provider_track_id, title, artist, bpm, bpm_source, duration_sec, cover_url, preview_url)
-     select $1, t.pid, t.title, t.artist, t.bpm, case when t.bpm is null then null else 'catalog' end, t.dur, t.cover, t.preview
-       from unnest($2::text[], $3::text[], $4::text[], $5::numeric[], $6::int[], $7::text[], $8::text[])
-            as t(pid, title, artist, bpm, dur, cover, preview)
+    `insert into public.tracks (provider, provider_track_id, title, artist, genre, bpm, bpm_source, duration_sec, cover_url, preview_url)
+     select $1, t.pid, t.title, t.artist, t.genre, t.bpm, case when t.bpm is null then null else 'catalog' end, t.dur, t.cover, t.preview
+       from unnest($2::text[], $3::text[], $4::text[], $5::numeric[], $6::int[], $7::text[], $8::text[], $9::text[])
+            as t(pid, title, artist, bpm, dur, cover, preview, genre)
      on conflict (provider, provider_track_id) do update
         set title = excluded.title, artist = excluded.artist, cover_url = excluded.cover_url,
             preview_url = excluded.preview_url, duration_sec = excluded.duration_sec,
+            genre = coalesce(excluded.genre, public.tracks.genre),
             bpm = coalesce(public.tracks.bpm, excluded.bpm),
             bpm_source = coalesce(public.tracks.bpm_source, excluded.bpm_source)
-     returning id, provider_track_id, title, artist, bpm, camelot_key, cover_url, duration_sec`,
+     returning id, provider_track_id, title, artist, genre, bpm, camelot_key, cover_url, duration_sec`,
     [
       providerName,
       found.map((t) => t.providerTrackId),
@@ -108,6 +133,7 @@ async function cacheTracks(providerName: string, found: CatalogTrack[]): Promise
       found.map((t) => t.durationSec),
       found.map((t) => t.coverUrl),
       found.map((t) => t.previewUrl),
+      found.map((t) => t.genre),
     ],
   );
   const byPid = new Map(res.rows.map((r) => [r.provider_track_id, r]));
@@ -119,6 +145,7 @@ async function cacheTracks(providerName: string, found: CatalogTrack[]): Promise
       id: r.id,
       title: r.title,
       artist: r.artist,
+      genre: r.genre,
       bpm: r.bpm === null ? null : Number(r.bpm),
       camelotKey: r.camelot_key,
       coverUrl: r.cover_url,
