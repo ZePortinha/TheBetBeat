@@ -16,6 +16,7 @@
  */
 
 import * as React from "react";
+import { useAnimate, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -28,6 +29,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pressable, cx } from "@/components/ui/pressable";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
+import { FinalStretchFrame } from "@/components/ui/final-stretch-frame";
+import { GavelStrike } from "@/components/ui/gavel-strike";
+import { TickingCountdown } from "@/components/ui/ticking-countdown";
+import { durations } from "@/lib/motion";
 import { apiFetch } from "./api";
 import { BidForm, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
@@ -100,7 +105,9 @@ function LeaderSpotlight({ top, mine }: { top: NonNullable<PublicSlot["top"]>; m
           <p className="truncate text-sm text-text-secondary">{top.trackArtist}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="tnum text-3xl font-bold text-accent-400">{formatEurosDisplay(top.totalCents)}</p>
+          <p className="text-3xl font-bold text-accent-400">
+            <TickingCountdown timer={false} value={formatEurosDisplay(top.totalCents)} />
+          </p>
           <p className="text-xs text-text-tertiary">{t("backers", { count: top.backers })}</p>
         </div>
       </div>
@@ -141,9 +148,25 @@ function AuctionCard({
   const mine = state.me?.bids.find((b) => b.slotId === slot.id && b.owner);
   const leading = mine?.status === "leading";
   const top = slot.top;
+  const reduced = useReducedMotion() ?? false;
+  const [card, animate] = useAnimate<HTMLElement>();
+  const wasLeading = React.useRef(leading);
+
+  // Losing the lead shakes the card once (the iOS "no"); taking it lifts it.
+  React.useEffect(() => {
+    const before = wasLeading.current;
+    wasLeading.current = leading;
+    if (reduced || !card.current || before === leading || !mine) return;
+    if (before && !leading) {
+      animate(card.current, { x: [0, -10, 9, -6, 4, 0] }, { duration: 0.45, ease: "easeOut" });
+    } else if (!before && leading) {
+      animate(card.current, { scale: [1, 1.02, 1] }, { duration: durations.slow, ease: "easeInOut" });
+    }
+  }, [leading, mine, reduced, animate, card]);
 
   return (
     <article
+      ref={card}
       className={cx(
         "rounded-sheet border border-accent-500/40 bg-surface-1 p-5 shadow-glow-accent",
         finalStretch && "auction-flash-card",
@@ -158,14 +181,13 @@ function AuctionCard({
         {slot.kind !== "regular" ? <SpecialChip /> : null}
       </div>
 
-      <p
-        className={cx(
-          "tnum mt-3 text-5xl font-bold",
-          finalStretch ? "auction-flash-text" : lastMinute ? "text-ember-500 motion-safe:animate-pulse" : "text-text-primary",
-        )}
-        aria-live="off"
-      >
-        {countdown(slot.closesAt, serverNow)}
+      <p className="mt-3 flex items-center gap-3 text-5xl font-bold">
+        <TickingCountdown
+          value={countdown(slot.closesAt, serverNow)}
+          beat={finalStretch}
+          className={finalStretch ? "auction-flash-text" : lastMinute ? "text-ember-500" : "text-text-primary"}
+        />
+        {ended ? <GavelStrike buzz={Boolean(mine)} className="text-accent-400" /> : null}
       </p>
       <p className={cx("mt-1 text-sm", lastMinute ? "font-semibold text-ember-500" : "text-text-secondary")}>
         {ended ? t("closing") : lastMinute ? t("lastMinute") : t("closesAt", { time: clockTime(slot.closesAt, locale) })}
@@ -316,7 +338,9 @@ export function AuctionScreen({ token }: { token: string }) {
           <p className="mt-3 text-lg font-semibold text-text-primary">{t("noAuction")}</p>
           {state.next ? (
             <>
-              <p className="tnum mt-3 text-5xl font-bold text-text-primary">{countdown(state.next.opensAt, serverNow)}</p>
+              <p className="mt-3 text-5xl font-bold text-text-primary">
+                <TickingCountdown value={countdown(state.next.opensAt, serverNow)} />
+              </p>
               <p className="mt-2 text-sm text-text-secondary">
                 {t("nextOpens", {
                   time: clockTime(state.next.opensAt, locale),
@@ -394,7 +418,16 @@ export function AuctionContextBar({ token }: { token: string }) {
               : t("noAuctionHint")}
         </span>
       </span>
-      {slot ? <span className="tnum shrink-0 text-xl font-bold text-text-primary">{countdown(slot.closesAt, serverNow)}</span> : null}
+      {slot ? (
+        <TickingCountdown
+          value={countdown(slot.closesAt, serverNow)}
+          beat={inFinalStretch(slot.closesAt, serverNow)}
+          className={cx(
+            "shrink-0 text-xl font-bold",
+            inFinalStretch(slot.closesAt, serverNow) ? "auction-flash-text" : "text-text-primary",
+          )}
+        />
+      ) : null}
     </Link>
   );
 }
@@ -455,8 +488,12 @@ export function AuctionTeaser({ token }: { token: string }) {
             </p>
           ) : null}
         </div>
-        <p className={cx("tnum shrink-0 text-3xl font-bold", finalStretch ? "auction-flash-text" : "text-text-primary")}>
-          {countdown(slot.closesAt, serverNow)}
+        <p className="shrink-0 text-3xl font-bold">
+          <TickingCountdown
+            value={countdown(slot.closesAt, serverNow)}
+            beat={finalStretch}
+            className={finalStretch ? "auction-flash-text" : "text-text-primary"}
+          />
         </p>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -545,6 +582,14 @@ export function AuctionOverlays() {
   const buzzed = React.useRef(new Set<string>());
   const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
   const flashingKey = flashing.map((s) => s.id).join(",");
+  const secondsLeft = flashing.length
+    ? Math.min(...flashing.map((s) => Math.max(0, Math.ceil((Date.parse(s.closesAt) - serverNow) / 1000))))
+    : null;
+  const inIt = flashing.some((s) => state?.me?.bids.some((b) => b.slotId === s.id));
+  // Last five seconds of an auction I am in: one light tick per second, on the beat.
+  React.useEffect(() => {
+    if (inIt && secondsLeft !== null && secondsLeft > 0 && secondsLeft <= 5) navigator.vibrate?.(12);
+  }, [inIt, secondsLeft]);
   React.useEffect(() => {
     for (const id of flashingKey ? flashingKey.split(",") : []) {
       if (buzzed.current.has(id)) continue;
@@ -556,7 +601,7 @@ export function AuctionOverlays() {
   const wonCover = [state?.upNext, ...(state?.recentWinners ?? [])].find((w) => w?.slotId === celebrate)?.coverUrl ?? null;
   return (
     <>
-      {flashing.length > 0 ? <div aria-hidden className="auction-flash-frame" /> : null}
+      {secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} /> : null}
       {celebrate && won ? (
         <WinCelebration
           slotId={won.slotId}

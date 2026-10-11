@@ -126,7 +126,7 @@ export default async function SessionDetailPage({
               <button
                 type="submit"
                 data-testid="session-end-button"
-                className="min-h-11 rounded-button bg-ember-500 px-5 text-base
+                className="min-h-11 rounded-button bg-ember-700 px-5 text-base
                   font-semibold text-text-on-accent transition-transform duration-100
                   active:scale-[0.97]"
               >

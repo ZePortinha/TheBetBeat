@@ -19,6 +19,7 @@ import { useRealtimeChannel } from "@/lib/realtime/client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cx } from "@/components/ui/pressable";
+import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { toast } from "@/components/ui/toast";
 import { countdown } from "@/components/guest/use-auction";
 import { formatEurosDisplay } from "./format";
@@ -228,9 +229,10 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
               <article key={s.id} className="rounded-card border border-line-subtle bg-surface-1 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="label text-text-tertiary">{kind(s.kind) ?? t("closesAt", { time: clock(s.closesAt) })}</span>
-                  <span className={cx("tnum text-3xl font-bold", lastMinute ? "text-ember-500" : "text-text-primary")}>
-                    {countdown(s.closesAt, a.serverNow)}
-                  </span>
+                  <TickingCountdown
+                    value={countdown(s.closesAt, a.serverNow)}
+                    className={cx("text-3xl font-bold", lastMinute ? "text-ember-500" : "text-text-primary")}
+                  />
                 </div>
                 {s.top ? (
                   <div className="mt-3 flex items-baseline justify-between gap-3">
@@ -240,7 +242,11 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
                         {s.top.trackArtist} · {t("bids", { count: s.bids })}
                       </p>
                     </div>
-                    <span className="tnum shrink-0 text-2xl font-bold text-accent-400">{formatEurosDisplay(s.top.totalCents)}</span>
+                    <TickingCountdown
+                      timer={false}
+                      value={formatEurosDisplay(s.top.totalCents)}
+                      className="shrink-0 text-2xl font-bold text-accent-400"
+                    />
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-text-secondary">{t("noBids", { amount: formatEurosDisplay(s.minPriceCents) })}</p>

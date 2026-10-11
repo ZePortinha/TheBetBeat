@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { QrCode } from "lucide-react";
 
 /**
@@ -25,6 +26,13 @@ export async function TokenError({
       <p className="max-w-xs text-base text-text-secondary">
         {kind === "no_live_session" ? t("noSession") : t("hint")}
       </p>
+      {/* "/" opens the camera on the event QR and lists the live events. */}
+      <Link
+        href="/"
+        className="mt-2 inline-flex min-h-12 items-center rounded-full bg-accent-500 px-6 text-base font-semibold text-text-on-accent transition-[background-color,transform] duration-100 hover:bg-accent-400 active:scale-[0.97] active:bg-accent-700"
+      >
+        {t("cta")}
+      </Link>
     </main>
   );
 }

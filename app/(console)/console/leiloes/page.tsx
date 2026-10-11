@@ -8,7 +8,7 @@ import { localParts, nextWallClock } from "@/lib/auction/time";
 import { PageHeader } from "@/components/console/page-header";
 import { Stat } from "@/components/console/stat";
 import { Table, THead, Th, Td, Tr } from "@/components/console/table";
-import { formatDateTime, formatEuros, requireConsole } from "../_lib/context";
+import { formatDateTime, formatEuros, oneDecimal, requireConsole } from "../_lib/context";
 import { saveAuctionConfigAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -111,8 +111,11 @@ export default async function AuctionsPage({
     : null;
 
   const eur = (cents: number) => String(cents / 100);
-  const field =
-    "w-24 rounded-button border border-line-subtle bg-surface-3 px-2 py-1.5 text-sm text-text-primary tnum focus:border-accent-500 focus:outline-none";
+  const fieldBase =
+    "rounded-button border border-line-subtle bg-surface-3 px-2 py-1.5 text-sm text-text-primary tnum focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25";
+  const field = `w-24 ${fieldBase}`;
+  // Time inputs carry a picker icon: wider so "01:00" never clips.
+  const timeField = `w-32 ${fieldBase}`;
   const Num = ({ name, value, step = 1, label }: { name: string; value: number | string; step?: number; label: string }) => (
     <label className="flex items-center justify-between gap-4 py-1.5 text-sm text-text-secondary">
       {label}
@@ -161,7 +164,7 @@ export default async function AuctionsPage({
                   {p.start === null ? (
                     <span className="w-24 text-text-tertiary">{t("phases.opening")}</span>
                   ) : (
-                    <input type="time" name={`${p.name}Start`} defaultValue={p.start} required className={field} aria-label={t("phases.start")} />
+                    <input type="time" name={`${p.name}Start`} defaultValue={p.start} required className={timeField} aria-label={t("phases.start")} />
                   )}
                   <input type="number" name={`${p.name}Slots`} defaultValue={p.slotsPerHour} min={0} max={12} required className={field} aria-label={t("phases.perHour")} />
                   <input type="number" name={`${p.name}Min`} defaultValue={eur(p.minPriceCents)} min={0} step={0.5} required className={field} aria-label={t("phases.minEur")} />
@@ -174,7 +177,7 @@ export default async function AuctionsPage({
             <Check name="fpEnabled" checked={fp.enabled} label={t("specials.firstPeak")} />
             <label className="flex items-center justify-between gap-4 py-1.5 text-sm text-text-secondary">
               {t("specials.at")}
-              <input type="time" name="fpAt" defaultValue={fp.at} required className={field} />
+              <input type="time" name="fpAt" defaultValue={fp.at} required className={timeField} />
             </label>
             <Num name="fpMin" value={eur(fp.minPriceCents)} step={0.5} label={t("specials.minEur")} />
             <Num name="fpOpen" value={fp.openMinutesBefore} label={t("specials.openMin")} />
@@ -261,7 +264,7 @@ export default async function AuctionsPage({
                   <Stat label={t("metrics.revenue")} value={formatEuros(Number(n.revenue_cents))} money />
                   <Stat label={t("metrics.avgFinal")} value={n.avg_final_cents ? formatEuros(Math.round(Number(n.avg_final_cents))) : "—"} money />
                   <Stat label={t("metrics.wonRate")} value={`${Math.round((n.won / closed) * 100)}%`} hint={t("metrics.noWinner", { count: n.no_winner })} />
-                  <Stat label={t("metrics.avgBidders")} value={n.avg_bidders ? Number(n.avg_bidders).toFixed(1) : "—"} hint={t("metrics.avgBids", { n: n.avg_bids ? Number(n.avg_bids).toFixed(1) : "0" })} />
+                  <Stat label={t("metrics.avgBidders")} value={n.avg_bidders ? oneDecimal(Number(n.avg_bidders)) : "—"} hint={t("metrics.avgBids", { n: n.avg_bids ? oneDecimal(Number(n.avg_bids)) : "0" })} />
                 </div>
               );
             })()}

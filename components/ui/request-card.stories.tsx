@@ -86,8 +86,8 @@ type Story = StoryObj<typeof meta>;
 
 const baseDecide = {
   mode: "decide" as const,
-  title: "Gata Only",
-  artist: "FloyyMenor, Cris MJ",
+  title: "Velvet Drift",
+  artist: "Linha Oito, Kova Ray",
   coverUrl: COVER,
   bpm: 98,
   camelotKey: "8A",
@@ -155,8 +155,8 @@ export const MessageHidden: Story = {
 export const OutOfLibrary: Story = {
   args: {
     ...baseDecide,
-    title: "Master of Puppets",
-    artist: "Metallica",
+    title: "Iron Lantern",
+    artist: "Basalto",
     bpm: 212,
     camelotKey: "9A",
     genre: "Metal",
@@ -172,8 +172,8 @@ export const OutOfLibrary: Story = {
 
 const baseQueued = {
   mode: "queued" as const,
-  title: "Pepas",
-  artist: "Farruko",
+  title: "Midnight Circuit",
+  artist: "Arco Verde",
   coverUrl: COVER,
   bpm: 130,
   camelotKey: "11B",

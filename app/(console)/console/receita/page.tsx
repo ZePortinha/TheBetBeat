@@ -137,7 +137,7 @@ export default async function RevenuePage() {
                   <th className="label px-4 py-3 text-right">{t("venueNet")}</th>
                   <th className="label px-4 py-3 text-right">{t("djNet")}</th>
                   <th className="label px-4 py-3 text-right">{t("refunds")}</th>
-                  <th className="label px-4 py-3" />
+                  <td className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>

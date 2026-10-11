@@ -62,7 +62,7 @@ function TabBar({ token }: { token: string }) {
   );
 
   return (
-    <nav aria-label={t("label")} className="material fixed inset-x-0 bottom-0 z-40">
+    <nav aria-label={t("label")} data-guest-dock="" className="material fixed inset-x-0 bottom-0 z-40">
       <div className="mx-auto grid h-[4.25rem] w-full max-w-md grid-cols-3 box-content pb-[env(safe-area-inset-bottom)]">
         {side("home", base, AudioLines)}
         {/* The auction: raised, bigger, the gavel. A live dot while one is open. */}

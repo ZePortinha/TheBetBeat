@@ -116,6 +116,11 @@ export function WinCelebration({
       {/* Reduced motion: a warm still pool. Otherwise the 3D stage paints the whole room. */}
       <div aria-hidden className="ambient-center absolute inset-0" />
       <div ref={stage} aria-hidden className="absolute inset-0" />
+      {/* Scrim: the party stays on top, the words stay readable at the bottom. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] bg-linear-to-t from-bg-base/90 via-bg-base/55 to-transparent"
+      />
 
       <div className="relative flex h-full flex-col items-center justify-end gap-5 px-6 pb-[max(env(safe-area-inset-bottom),28px)] [text-shadow:0_2px_18px_rgba(0,0,0,0.85)]">
         <div className="flex flex-col items-center">

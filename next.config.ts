@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The E2E server (tests/test-env.ts) builds into its own folder.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
+  // Metadata is cheap (translations only): put it in <head> for every
+  // client instead of streaming it into <body>, so link previews, readers
+  // and audits that do not run JS all see the title, description and card.
+  htmlLimitedBots: /.*/,
   // Dev only: testing on a phone through a temporary cloudflared tunnel.
   allowedDevOrigins: ["*.trycloudflare.com"],
   // Security headers that do not depend on a per-request nonce.

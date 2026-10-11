@@ -45,7 +45,7 @@ export interface SessionFormProps {
 
 const inputCls =
   "w-full rounded-button border border-line-subtle bg-surface-3 px-3 py-2 " +
-  "text-base text-text-primary focus:border-accent-500 focus:outline-none " +
+  "text-base text-text-primary focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25 " +
   "disabled:opacity-60";
 
 function Field({

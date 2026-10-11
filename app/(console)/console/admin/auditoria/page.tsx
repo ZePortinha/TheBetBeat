@@ -27,7 +27,7 @@ const filterSchema = z
 
 const inputCls =
   "rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm " +
-  "text-text-primary focus:border-accent-500 focus:outline-none";
+  "text-text-primary focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25";
 
 /** Escape LIKE wildcards so a filter is a literal prefix/substring. */
 function likeEscape(s: string): string {

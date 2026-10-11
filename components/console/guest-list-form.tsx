@@ -30,7 +30,7 @@ export function GuestListForm({ sessionId }: { sessionId: string }) {
           rows={3}
           maxLength={20_000}
           data-testid="guest-list-input"
-          className="tnum rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm text-text-primary focus:border-accent-500 focus:outline-none"
+          className="tnum rounded-button border border-line-subtle bg-surface-3 px-3 py-2 text-sm text-text-primary focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25"
         />
         <span className="text-xs text-text-tertiary">{t("phonesHint")}</span>
       </label>
