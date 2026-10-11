@@ -45,6 +45,16 @@ webhooks and DJ accept/reject races. Green: typecheck, lint,
 integration suites (47 tests) on a plain Postgres 16 with a Supabase stub.
 Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
 `pnpm test:e2e`; restart Supabase (config.toml: min password 12).
+## 2026-10-08 - Phone fixes and sharing (branch claude/correcoes-telemovel-partilhas-a9exxo)
+
+From the owner's test on a phone (see DECISIONS 2026-10-08): last-30-s frame
+on the page, 2D winner scene (~0.9 s after the close), winner video for
+Instagram, ranking redesign + Story image, backing without an @, phone
+sign-in at the party door. Verified in the cloud container on the real local
+Supabase stack: typecheck, lint, unit tests (incl. `tests/unit/win-scene.test.ts`),
+`tests/e2e/guest.spec.ts` on the phone viewport (Chromium), and Playwright
+screenshots of each screen. To check on a real phone: the video share on
+iOS Safari and Android Chrome (H.264 MP4), and the celebration's frame rate.
 
 ## This round (cloud session, no Docker / Supabase — 2026-10-02)
 

@@ -20,6 +20,7 @@ export const dynamic = "force-dynamic";
  * (only ever revealed after the SMS code proved the number).
  *
  *   GET                       the saved number (own row only) + partyHref
+ *                             + the guest's @ (null until they pick one)
  *   POST { phone, turnstile } sends a 6-digit code by SMS
  *   POST { phone, code }      verifies it, saves the number, + partyHref
  *   DELETE                    forgets the number; phone_hash stays for the
@@ -45,7 +46,8 @@ export async function GET(request: Request) {
     phone_encrypted: string | null;
     phone_hash: string | null;
     phone_verified_at: Date | null;
-  }>(`select phone_encrypted, phone_hash, phone_verified_at from public.guests where id = $1`, [
+    handle: string | null;
+  }>(`select phone_encrypted, phone_hash, phone_verified_at, handle from public.guests where id = $1`, [
     identity.guestId,
   ]);
   const row = res.rows[0];
@@ -57,7 +59,7 @@ export async function GET(request: Request) {
   }
   const verified = phone !== null && Boolean(row?.phone_verified_at);
   const partyHref = verified && row?.phone_hash ? await guestListPartyHref(row.phone_hash) : null;
-  return NextResponse.json({ phone, verified, partyHref });
+  return NextResponse.json({ phone, verified, partyHref, handle: row?.handle ?? null });
 }
 
 export async function POST(request: Request) {
@@ -140,12 +142,15 @@ export async function POST(request: Request) {
        values ($1, 'guest.phone_verified', 'guest', $2)`,
       [`guest:${guestId}`, guestId],
     );
-    // The number owns one @: this device gets it back (or the number keeps this one).
-    await linkPhoneHandle(pool, guestId, phoneHash);
+    // The number owns one @: this device gets it back (or the number keeps
+    // this one). A returning number comes back with its @, so the entry
+    // screen does not ask for one again.
+    const handle = await linkPhoneHandle(pool, guestId, phoneHash);
     return NextResponse.json({
       phone,
       verified: true,
       partyHref: await guestListPartyHref(phoneHash),
+      handle,
     });
   }
 

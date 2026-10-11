@@ -264,8 +264,9 @@ export function BidForm({
     <div className="flex flex-col gap-5">
       {/* Quick totals (+1 € / +5 € / +10 €) — no keyboard on a dark floor. */}
       <div>
-        <p className="label mb-2 text-text-secondary">{t("yourBid")}</p>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("yourBid")}>
+        {/* Backing: the amounts are the song's new total; "O teu apoio" below is my part. */}
+        <p className="label mb-2 text-text-secondary">{target.kind === "back" ? t("backTotal") : t("yourBid")}</p>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={target.kind === "back" ? t("backTotal") : t("yourBid")}>
           {totals.map((amount) => (
             <Pressable
               key={amount}

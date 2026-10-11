@@ -15,7 +15,11 @@ import { useReducedMotion } from "motion/react";
 
 const EASE_OUT = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 
-export function FinalStretchFrame({ secondsLeft }: { secondsLeft: number }) {
+/**
+ * `page`: the guest app draws the frame inside its column (rounded, under the
+ * tab bar, scrolls with the content) instead of on the screen's edge.
+ */
+export function FinalStretchFrame({ secondsLeft, page = false }: { secondsLeft: number; page?: boolean }) {
   const reduced = useReducedMotion() ?? false;
   const glow = React.useRef<HTMLDivElement>(null);
   const edge = React.useRef<HTMLDivElement>(null);
@@ -47,7 +51,7 @@ export function FinalStretchFrame({ secondsLeft }: { secondsLeft: number }) {
   }, [secondsLeft, urgent, reduced]);
 
   return (
-    <div aria-hidden className="auction-flash-frame">
+    <div aria-hidden className={page ? "auction-flash-frame auction-flash-frame--page" : "auction-flash-frame"}>
       <div ref={glow} className="auction-flash-glow" />
       <div ref={edge} className="auction-flash-edge" />
     </div>

@@ -26,16 +26,19 @@ import { useGuest } from "./guest-providers";
 export type AuctionState = PublicAuctionState & { me: MyAuctionState | null; paymentMethods: PaymentMethod[] };
 
 const POLL_MS = 3000;
+/** How long after 0:00 the app keeps asking quickly for the result. */
+const CLOSE_BURST_MS = 10_000;
 /** The final stretch of an auction: the screen flashes red ↔ white. */
 export const FINAL_STRETCH_MS = 30_000;
-/** Final 2 minutes: urgent warning and button highlight. */
-export const FINAL_TWO_MINUTES_MS = 120_000;
 
 /** True while an auction is in its last 30 seconds. */
 export function inFinalStretch(closesAtIso: string, serverNow: number): boolean {
   const left = Date.parse(closesAtIso) - serverNow;
   return left > 0 && left <= FINAL_STRETCH_MS;
 }
+
+/** Final 2 minutes: urgent warning and button highlight. */
+export const FINAL_TWO_MINUTES_MS = 120_000;
 
 /** True while an auction is in its last 2 minutes. */
 export function inFinalTwoMinutes(closesAtIso: string, serverNow: number): boolean {
@@ -88,6 +91,24 @@ function useAuctionSource(token: string, sessionId: string) {
     const id = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(id);
   }, []);
+
+  // An auction I am in just hit 0:00: ask the server right away (and every
+  // 400 ms until it says who won) instead of waiting for the next 3 s poll,
+  // so the winner screen opens within a second of the close. A soft-close
+  // extension simply moves closesAt and stops the burst.
+  const lastBurst = React.useRef(0);
+  const serverNowMs = now + offsetMs;
+  const closing = state?.open.some(
+    (s) =>
+      Date.parse(s.closesAt) <= serverNowMs &&
+      serverNowMs - Date.parse(s.closesAt) < CLOSE_BURST_MS &&
+      (state.me?.bids.some((b) => b.slotId === s.id) ?? false),
+  );
+  React.useEffect(() => {
+    if (!closing || now - lastBurst.current < 400) return;
+    lastBurst.current = now;
+    void refetch();
+  }, [closing, now, refetch]);
 
   useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: PUBLIC_HINT_MS }, () => void refetch());
   useRealtimeChannel(ready && guestId ? guestChannel(guestId) : null, { private: true }, (envelope) => {
