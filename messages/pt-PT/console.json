@@ -655,9 +655,8 @@
       "title": "Reconhecimento",
       "hint": "Valor total da licitação vencedora para cada nível.",
       "nameEur": "Nome no ecrã a partir de €",
-      "micEur": "Anúncio ao microfone a partir de €",
+      "micEur": "Shoutout do DJ ao microfone a partir de €",
       "specialEur": "Momento especial a partir de €",
-      "micPerHour": "Máximo de anúncios por hora",
       "showAmount": "Mostrar o valor no ecrã da casa"
     },
     "dj": {

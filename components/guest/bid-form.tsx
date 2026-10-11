@@ -5,18 +5,21 @@
  * appear, what comes from my balance and what is charged, then the
  * payment (MB WAY push or card/wallet at once). Shared by the track screen
  * (my own bid) and the sheet on the auction card (raise / back a bid).
+ * Backing also carries a short message for the bidder, and the backer's
+ * name: whoever puts the most money in a song owns it (owner, 2026-10-11).
  * The server is the judge: it re-checks everything on its own clock.
  */
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { CreditCard, Smartphone, Wallet } from "lucide-react";
+import { CreditCard, Mic, Smartphone, Wallet } from "lucide-react";
 import type { PublicAuctionState, PublicSlot } from "@/lib/auction/service";
 import type { PaymentMethod } from "@/lib/domain/types";
 import { Button } from "@/components/ui/button";
 import { Pressable, cx } from "@/components/ui/pressable";
 import { CountdownRing } from "@/components/ui/countdown-ring";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
+import { MESSAGE_MAX_CHARS } from "@/lib/auction/backing";
 import { apiFetch, errorMessage } from "./api";
 import { DevPanelInline } from "./dev-panel";
 import { useGuest } from "./guest-providers";
@@ -36,6 +39,11 @@ export function quickTotals(slot: PublicSlot, steps: readonly number[], trackFlo
       ? [floor, floor + (steps[1] ?? 0) - (steps[0] ?? 0), floor + (steps[2] ?? 0) - (steps[0] ?? 0)]
       : steps.map((s) => Math.max(top + s, floor));
   return [...new Set(totals)];
+}
+
+/** Characters as a person counts them (an emoji is one). */
+function charCount(text: string): number {
+  return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)].length;
 }
 
 /** Payment method radios + the MB WAY number (shared by bids and "Carregar saldo"). */
@@ -161,18 +169,21 @@ export function BidForm({
   const [error, setError] = React.useState<string | null>(null);
   const [waiting, setWaiting] = React.useState<{ intentId: string; expiresAt: number | null } | null>(null);
   const [result, setResult] = React.useState<"placed" | "superseded" | null>(null);
+  // Backing: a short note for whoever made the bid.
+  const [message, setMessage] = React.useState("");
+  const messageChars = charCount(message.trim());
 
   const add = Math.max(0, effectiveTotal - currentBidTotal);
   const fromWallet = Math.min(walletCents, add);
   const toPay = add - fromWallet;
   const phoneValid = /^9\d{8}$/.test(phoneDigits);
-  // Backing someone keeps their name on the song: no "Como apareces" to fill.
+  // Backers choose too: if they end up with more in the song than the bidder, it goes in their name.
   const displayValid =
-    target.kind === "back" ||
     display.mode === "anonymous" ||
     (display.mode === "handle" && /^@?[a-z0-9][a-z0-9._-]{1,23}$/i.test(display.handle)) ||
     (display.mode === "table" && display.table.trim().length > 0);
-  const canSubmit = !busy && displayValid && (toPay === 0 || method !== "mbway" || phoneValid);
+  const messageValid = target.kind === "own" || messageChars <= MESSAGE_MAX_CHARS;
+  const canSubmit = !busy && displayValid && messageValid && (toPay === 0 || method !== "mbway" || phoneValid);
 
   // MB WAY push out: poll the waiting bid until the money lands.
   React.useEffect(() => {
@@ -201,7 +212,8 @@ export function BidForm({
           slotId: slot.id,
           totalCents: effectiveTotal,
           target,
-          display: target.kind === "back" ? { mode: "anonymous" } : display,
+          display,
+          ...(target.kind === "back" && message.trim() ? { message: message.trim() } : {}),
           ...(toPay > 0 ? { method } : {}),
           ...(toPay > 0 && method === "mbway" ? { phone: `+351${phoneDigits}` } : {}),
           ...(toPay > 0 ? { turnstileToken: turnstileToken ?? "missing" } : {}),
@@ -291,56 +303,82 @@ export function BidForm({
         </div>
       </div>
 
-      {/* How I appear (@ / table / anonymous — never a real name). */}
-      {target.kind === "own" ? (
+      {/* Backing: a short note the bidder receives. */}
+      {target.kind === "back" ? (
         <div>
-          <p className="label mb-2 text-text-secondary">{t("appearAs")}</p>
-          <div className="flex flex-wrap gap-2">
-            <Pressable
-              aria-pressed={display.mode === "handle"}
-              className={chip(display.mode === "handle")}
-              onPress={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
-            >
-              {ownHandle ? t("appearPublic", { handle: ownHandle }) : t("appearHandle")}
-            </Pressable>
-            <Pressable aria-pressed={display.mode === "anonymous"} className={chip(display.mode === "anonymous")} onPress={() => setDisplay({ mode: "anonymous" })}>
-              {t("appearAnonymous")}
-            </Pressable>
-            <Pressable
-              aria-pressed={display.mode === "table"}
-              className={chip(display.mode === "table")}
-              onPress={() => setDisplay({ mode: "table", table: display.mode === "table" ? display.table : "" })}
-            >
-              {t("appearTable")}
-            </Pressable>
-          </div>
-          {display.mode === "handle" && !ownHandle ? (
-            <div className="mt-2 flex min-h-12 items-center gap-1 rounded-button border border-line-subtle bg-surface-3 px-3 focus-within:border-accent-500">
-              <span className="text-base text-text-tertiary">@</span>
-              <input
-                aria-label={t("appearHandle")}
-                value={display.handle}
-                maxLength={24}
-                onChange={(e) => setDisplay({ mode: "handle", handle: e.target.value.replace(/^@/, "") })}
-                placeholder={t("handlePlaceholder")}
-                className="w-full bg-transparent text-base text-text-primary outline-none placeholder:text-text-tertiary"
-              />
-            </div>
-          ) : display.mode === "table" ? (
-            <input
-              aria-label={t("appearTable")}
-              value={display.table}
-              maxLength={20}
-              onChange={(e) => setDisplay({ mode: "table", table: e.target.value })}
-              placeholder={t("tablePlaceholder")}
-              className="mt-2 min-h-12 w-full rounded-button border border-line-subtle bg-surface-3 px-3 text-base text-text-primary outline-none placeholder:text-text-tertiary focus:border-accent-500"
-            />
-          ) : null}
-          <p className="mt-2 text-xs text-text-tertiary">
-            {t("appearHint", { amount: formatEurosDisplay(rules.screenNameCents) })}
+          <label htmlFor="back-message" className="label mb-2 flex justify-between text-text-secondary">
+            <span>{t("messageLabel")}</span>
+            <span className={cx("tnum", messageChars > MESSAGE_MAX_CHARS ? "text-ember-500" : "text-text-tertiary")}>
+              {messageChars}/{MESSAGE_MAX_CHARS}
+            </span>
+          </label>
+          <input
+            id="back-message"
+            value={message}
+            maxLength={MESSAGE_MAX_CHARS * 4}
+            autoComplete="off"
+            enterKeyHint="done"
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={t("messagePlaceholder")}
+            aria-describedby="back-message-hint"
+            className="min-h-12 w-full rounded-button border border-line-subtle bg-surface-3 px-3 text-base text-text-primary outline-none placeholder:text-text-tertiary focus:border-accent-500"
+          />
+          <p id="back-message-hint" className="mt-2 text-xs text-text-tertiary">
+            {t("messageHint")}
           </p>
         </div>
       ) : null}
+
+      {/* How I appear (@ / table / anonymous — never a real name). */}
+      <div>
+        <p className="label mb-2 text-text-secondary">{t("appearAs")}</p>
+        <div className="flex flex-wrap gap-2">
+          <Pressable
+            aria-pressed={display.mode === "handle"}
+            className={chip(display.mode === "handle")}
+            onPress={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
+          >
+            {ownHandle ? t("appearPublic", { handle: ownHandle }) : t("appearHandle")}
+          </Pressable>
+          <Pressable aria-pressed={display.mode === "anonymous"} className={chip(display.mode === "anonymous")} onPress={() => setDisplay({ mode: "anonymous" })}>
+            {t("appearAnonymous")}
+          </Pressable>
+          <Pressable
+            aria-pressed={display.mode === "table"}
+            className={chip(display.mode === "table")}
+            onPress={() => setDisplay({ mode: "table", table: display.mode === "table" ? display.table : "" })}
+          >
+            {t("appearTable")}
+          </Pressable>
+        </div>
+        {display.mode === "handle" && !ownHandle ? (
+          <div className="mt-2 flex min-h-12 items-center gap-1 rounded-button border border-line-subtle bg-surface-3 px-3 focus-within:border-accent-500">
+            <span className="text-base text-text-tertiary">@</span>
+            <input
+              aria-label={t("appearHandle")}
+              value={display.handle}
+              maxLength={24}
+              onChange={(e) => setDisplay({ mode: "handle", handle: e.target.value.replace(/^@/, "") })}
+              placeholder={t("handlePlaceholder")}
+              className="w-full bg-transparent text-base text-text-primary outline-none placeholder:text-text-tertiary"
+            />
+          </div>
+        ) : display.mode === "table" ? (
+          <input
+            aria-label={t("appearTable")}
+            value={display.table}
+            maxLength={20}
+            onChange={(e) => setDisplay({ mode: "table", table: e.target.value })}
+            placeholder={t("tablePlaceholder")}
+            className="mt-2 min-h-12 w-full rounded-button border border-line-subtle bg-surface-3 px-3 text-base text-text-primary outline-none placeholder:text-text-tertiary focus:border-accent-500"
+          />
+        ) : null}
+        <p className="mt-2 text-xs text-text-tertiary">
+          {target.kind === "back"
+            ? t("appearHintBack")
+            : t("appearHint", { amount: formatEurosDisplay(rules.screenNameCents) })}
+        </p>
+      </div>
 
       {/* What comes from the balance and what is charged. */}
       <div className="rounded-card border border-line-subtle bg-surface-1 px-4 py-3 text-sm">
@@ -384,6 +422,21 @@ export function BidForm({
           : t("bidCta", { amount: formatEurosDisplay(effectiveTotal) })}
       </Button>
       <p className="text-center text-xs text-text-tertiary">{t("rulesNote")}</p>
+      <ShoutoutNote announceCents={rules.announceCents} />
     </div>
+  );
+}
+
+/**
+ * The DJ's shoutout promise (owner, 2026-10-11), shown before paying next
+ * to the other rules: winning songs from the mic tier (150 € by default).
+ */
+export function ShoutoutNote({ announceCents, className }: { announceCents: number; className?: string }) {
+  const t = useTranslations("guest.auction");
+  return (
+    <p className={cx("flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-text-secondary", className)}>
+      <Mic size={14} className="shrink-0 text-accent-400" aria-hidden />
+      {t("shoutoutNote", { amount: formatEurosDisplay(announceCents) })}
+    </p>
   );
 }

@@ -6,6 +6,7 @@ import { isReservedHandle } from "@/lib/guests/reserved-handles";
 import { placeBid, startTopUpBid, type BidRequest } from "@/lib/auction/service";
 import { ensureTrackBpm } from "@/lib/catalog/service";
 import type { DisplayChoice } from "@/lib/auction/recognition";
+import { checkBackingMessage } from "@/lib/auction/backing";
 import { encrypt, hashPhone } from "@/lib/security/crypto";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
@@ -20,7 +21,8 @@ export const dynamic = "force-dynamic";
  * someone else's bid). The client sends the bid's new TOTAL, never what
  * to pay: the server takes it from the wallet and charges only the rest.
  * Without enough balance and without a payment method → 402 with
- * `needCents`, so the app asks how to pay.
+ * `needCents`, so the app asks how to pay. Backing may carry a short
+ * message for the bidder (10 characters, no insults: lib/auction/backing).
  */
 const bodySchema = z
   .object({
@@ -37,6 +39,7 @@ const bodySchema = z
       z.object({ mode: z.literal("handle"), handle: z.string().regex(/^@?[a-z0-9][a-z0-9._-]{1,23}$/i).optional() }).strict(),
       z.object({ mode: z.literal("table"), table: z.string().trim().min(1).max(20) }).strict(),
     ]),
+    message: z.string().max(64).optional(),
     method: z.enum(["mbway", "card", "apple_pay", "google_pay"]).optional(),
     phone: z.string().regex(/^\+3519\d{8}$/).optional(),
     email: z.string().email().max(254).optional(),
@@ -60,6 +63,9 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) return apiError("invalid_request", 400);
   const body = parsed.data;
+  const note = checkBackingMessage(body.message);
+  if (!note.ok) return apiError(note.reason === "blocked" ? "message_blocked" : "message_invalid", 422);
+  if (note.message !== null && body.target.kind !== "back") return apiError("invalid_request", 400);
 
   const resolved = await resolveGuestContext(body.token);
   if (!resolved.ok) return apiError("invalid_token", 404);
@@ -114,6 +120,7 @@ export async function POST(request: Request) {
     totalCents: body.totalCents,
     target: body.target.kind === "own" ? { kind: "own", libraryTrackId: body.target.trackId } : body.target,
     display,
+    message: note.message,
   };
   const now = Date.now();
   const placed = await placeBid(req, now);

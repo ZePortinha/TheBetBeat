@@ -71,7 +71,8 @@ function useAuctionSource(token: string, sessionId: string) {
     setOffsetMs(Date.parse(res.data.serverNow) - Date.now());
     setState(res.data);
     const bids = res.data.me?.bids ?? [];
-    const won = bids.find((b) => b.status === "next" && leading.current?.has(b.slotId));
+    // Only the guest who spent the most on the song wins it (owner, 2026-10-11).
+    const won = bids.find((b) => b.status === "next" && b.winner && leading.current?.has(b.slotId));
     if (won) setCelebrate(won.slotId);
     leading.current = new Set(bids.filter((b) => b.status === "leading").map((b) => b.slotId));
     // Only an answer asked after the toast can say the guest is back in front.
@@ -117,6 +118,16 @@ function useAuctionSource(token: string, sessionId: string) {
       clearOutbid();
       const slotId = (envelope.payload as { slotId?: string } | null)?.slotId ?? null;
       outbidToast.current = { id: toast({ title: t("outbidToast"), variant: "error", durationMs: 4000 }), slotId, at: Date.now() };
+    }
+    if (envelope.event === "auction.backed") {
+      const p = (envelope.payload ?? {}) as { by?: string | null; message?: string | null; takesOver?: boolean };
+      const name = p.by ?? t("anonymous");
+      navigator.vibrate?.(30);
+      toast({
+        title: p.message ? t("backedToastMessage", { name, message: p.message }) : t("backedToast", { name }),
+        ...(p.takesOver ? { description: t("backedToastTakeover", { name }) } : {}),
+        durationMs: 5000,
+      });
     }
     if (envelope.event === "auction.won") {
       navigator.vibrate?.([40, 40, 40, 40, 200]);

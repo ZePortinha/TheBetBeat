@@ -290,7 +290,10 @@
     "handle_taken": "That @ belongs to another number. If it is yours, sign in with your number in the account to get it back, or pick another.",
     "login_failed": "We couldn't sign you in right now. Ask for a new code.",
     "handle_locked": "Your @ stays linked to your number for good.",
-    "login_required": "Sign in with your number to bid."
+    "login_required": "Sign in with your number to bid.",
+    "message_blocked": "That message has words that are not allowed. Write another one.",
+    "message_invalid": "The message must be up to 10 characters, with no links.",
+    "message_not_allowed": "You can only leave a message when you back someone else's track."
   },
   "auction": {
     "dockCta": "Bid a track",
@@ -310,7 +313,7 @@
     "raiseTitle": "Raise your bid",
     "back": "Back this track",
     "backTitle": "Back this track",
-    "backHint": "Your amount adds to the leader's bid. If it is outbid, it returns to your balance.",
+    "backHint": "Your amount adds to the leading track. If you put in more than the person who bid, the track becomes yours. If it is outbid, the money returns to your balance.",
     "bidOther": "Bid with another track",
     "bidFirst": "Be the first to bid",
     "upNext": "Up next",
@@ -332,7 +335,8 @@
       "played": "Played",
       "refunded": "Not played, refunded",
       "lost": "Did not win",
-      "rolledOn": "Second place, moved to the next auction"
+      "rolledOn": "Second place, moved to the next auction",
+      "nextNotMine": "Winning track, up next"
     },
     "chooseSlot": "Choose the auction",
     "topNow": "Currently",
@@ -428,7 +432,6 @@
     "sharePreparing": "Preparing the video…",
     "shareVideoSaved": "Video saved. Open Instagram and post it to your Story.",
     "shareError": "We couldn't open sharing. Try again.",
-    "shareError": "We couldn't open sharing. Try again.",
     "walletAvailable": "Available",
     "walletDeadline": "Withdraw or use it until {date}. After that it goes back to your payment method on its own.",
     "walletEmpty": "When one of your bids is outbid, the money comes straight back here.",
@@ -441,7 +444,19 @@
     "walletWithdrawn": "Done. {amount} on its way to your payment method.",
     "walletWithdrawFailed": "We couldn't send it back right now. Your balance is still here; try again in a moment.",
     "rolledIn": "from the previous auction",
-    "appearPublic": "Public · @{handle}"
+    "appearPublic": "Public · @{handle}",
+    "messageLabel": "Message for the bidder",
+    "messagePlaceholder": "E.g. Let's go!",
+    "messageHint": "Optional, up to 10 characters. Only the person who bid on this track gets it.",
+    "appearHintBack": "If you put in more than the bidder, the track goes under your name, like this.",
+    "shoutoutNote": "Winning bids from {amount} get a shoutout from the DJ on the mic.",
+    "walletRuleShoutout": "Winning bid from {amount}? The DJ gives you a shoutout on the mic.",
+    "walletRuleTopSpender": "Whoever spends the most on a track owns it: if a backer puts in more than the bidder, the winning track is theirs.",
+    "takenOver": "{name} has put more into this track than you. If it wins, it goes to {name}.",
+    "messageFrom": "“{message}”, from {name}",
+    "backedToast": "{name} backed your track",
+    "backedToastMessage": "{name} backed your track: “{message}”",
+    "backedToastTakeover": "They have put in more than you: if the track wins, it goes to {name}. Raise your bid to take it back."
   },
   "entry": {
     "title": "Join the party",

@@ -207,7 +207,6 @@ export default async function AuctionsPage({
             <Num name="nameEur" value={eur(rec.screenNameCents)} label={t("recognition.nameEur")} />
             <Num name="micEur" value={eur(rec.announceCents)} label={t("recognition.micEur")} />
             <Num name="specialEur" value={eur(rec.specialMomentCents)} label={t("recognition.specialEur")} />
-            <Num name="micPerHour" value={rec.announcementsPerHour} label={t("recognition.micPerHour")} />
             <Check name="showAmount" checked={rec.showAmountOnScreen} label={t("recognition.showAmount")} />
           </Card>
 

@@ -55,6 +55,13 @@ webhooks and DJ accept/reject races. Green: typecheck, lint,
 integration suites (47 tests) on a plain Postgres 16 with a Supabase stub.
 Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
 `pnpm test:e2e`; restart Supabase (config.toml: min password 12).
+## 2026-10-11 - Backing messages, top-spender winner, 150 € shoutout (branch claude/apoios-vencedor-shoutout-87072g)
+
+Backing carries a 10-character note for the bidder; the guest who spends the
+most on a song wins it (runner-up rollover follows); winning bids from 150 €
+always get the DJ's mic shoutout, stated in the bid panel and the balance
+rules. Migration 20. See DECISIONS of the same date.
+
 ## 2026-10-10 - Phone login and balance with rollover (branch claude/login-telemovel-saldo-y25pn1)
 
 Owner's brief (see DECISIONS 2026-10-10): the number is the account on any

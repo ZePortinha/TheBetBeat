@@ -4,8 +4,7 @@
  * names never exist in the app, so they can never leak.
  *
  *   ≥ screenNameCents     the chosen label shows on the public screen
- *   ≥ announceCents       the DJ panel asks to announce it on the mic,
- *                         at most `announcementsPerHour` (then: screen only)
+ *   ≥ announceCents       the DJ gives a shoutout on the mic (always)
  *   ≥ specialMomentCents  "momento especial" cue for DJ and club (lights, CO2)
  */
 import type { AuctionConfig } from "./config";
@@ -30,16 +29,15 @@ export function displayLabel(choice: DisplayChoice): string | null {
 export type RecognitionLevel = "none" | "screen" | "announce" | "special_moment";
 
 /**
- * The recognition a winning total earns, given the mic announcements
- * already made in the last hour (epoch ms). An anonymous winner is never
- * named: the screen shows the moment, never a person.
+ * The recognition a winning total earns. From the mic tier (150 € by
+ * default) the DJ ALWAYS gives a shoutout (owner, 2026-10-11): the bid
+ * panel promises it before paying, so there is no hourly cap. An
+ * anonymous winner still gets it, without a name: the DJ dedicates the
+ * moment, never a person.
  */
 export function recognitionFor(
   totalCents: number,
-  anonymous: boolean,
-  recentAnnouncementsMs: readonly number[],
-  now: number,
-  rules: AuctionConfig["recognition"],
+  rules: Pick<AuctionConfig["recognition"], "screenNameCents" | "announceCents" | "specialMomentCents">,
 ): { level: RecognitionLevel; announce: boolean } {
   const level: RecognitionLevel =
     totalCents >= rules.specialMomentCents
@@ -49,17 +47,5 @@ export function recognitionFor(
         : totalCents >= rules.screenNameCents
           ? "screen"
           : "none";
-  const wantsMic = level === "announce" || level === "special_moment";
-  const announce = wantsMic && !anonymous && announcementsLeft(recentAnnouncementsMs, now, rules) > 0;
-  return { level, announce };
-}
-
-/** Mic announcements still allowed in the rolling hour before `now`. */
-export function announcementsLeft(
-  recentAnnouncementsMs: readonly number[],
-  now: number,
-  rules: Pick<AuctionConfig["recognition"], "announcementsPerHour">,
-): number {
-  const used = recentAnnouncementsMs.filter((t) => t > now - 3_600_000 && t <= now).length;
-  return Math.max(0, rules.announcementsPerHour - used);
+  return { level, announce: level === "announce" || level === "special_moment" };
 }
