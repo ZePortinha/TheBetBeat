@@ -655,11 +655,11 @@ export function WalletPill({ token }: { token: string }) {
 
           <ol className="flex flex-col gap-2 text-sm text-text-secondary">
             <li className="flex gap-2">
-              <span className="tnum w-5 shrink-0 font-semibold text-accent-400">2.º</span>
+              <span className="tnum w-8 shrink-0 font-semibold text-accent-400">2.º</span>
               {t("walletRuleSecond")}
             </li>
             <li className="flex gap-2">
-              <span className="tnum w-5 shrink-0 font-semibold text-text-tertiary">3.º+</span>
+              <span className="tnum w-8 shrink-0 font-semibold text-text-tertiary">3.º+</span>
               {t("walletRuleThird", { days })}
             </li>
           </ol>
