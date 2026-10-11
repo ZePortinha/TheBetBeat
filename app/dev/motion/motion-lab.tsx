@@ -89,6 +89,7 @@ export function MotionLab() {
           trackArtist="Linha Oito"
           totalCents={4200}
           coverUrl={null}
+          venueName="Clube Maré"
           onClose={() => setWin(false)}
         />
       ) : null}
