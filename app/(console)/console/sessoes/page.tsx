@@ -54,7 +54,7 @@ export default async function SessionsPage() {
           <Link
             href="/console/sessoes/nova"
             data-testid="sessions-new-link"
-            className="inline-flex min-h-11 items-center gap-2 rounded-button bg-accent-500
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent-500
               px-5 text-base font-semibold text-text-on-accent transition-transform
               duration-100 active:scale-[0.97]"
           >
@@ -102,7 +102,7 @@ export default async function SessionsPage() {
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/console/sessoes/${s.id}`}
-                        className="rounded-button border border-line-subtle bg-surface-2
+                        className="rounded-full border border-line-subtle bg-surface-2
                           px-3 py-1.5 text-text-primary hover:bg-surface-3"
                       >
                         {s.status === "ended" ? t("view") : t("edit")}
@@ -113,7 +113,7 @@ export default async function SessionsPage() {
                           <button
                             type="submit"
                             data-testid="session-end-button"
-                            className="rounded-button bg-ember-500 px-3 py-1.5
+                            className="rounded-full bg-ember-500 px-3 py-1.5
                               font-semibold text-text-on-accent transition-transform
                               duration-100 active:scale-[0.97]"
                           >

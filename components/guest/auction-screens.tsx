@@ -234,20 +234,19 @@ function SlotPicker({ slots, selectedId, serverNow, onPick }: { slots: PublicSlo
   return (
     <div className="grid grid-flow-col auto-cols-fr gap-2" role="radiogroup" aria-label={t("chooseSlot")}>
       {slots.map((s) => (
-        <button
+        <Pressable
           key={s.id}
-          type="button"
           role="radio"
           aria-checked={s.id === selectedId}
-          onClick={() => onPick(s.id)}
+          onPress={() => onPick(s.id)}
           className={cx(
-            "flex min-h-16 flex-col items-start justify-center rounded-card border px-3 py-2 text-left transition-colors",
+            "flex min-h-16 flex-col items-start justify-center rounded-card border px-3 py-2 text-left transition-colors duration-100",
             s.id === selectedId ? "border-accent-500 bg-surface-2" : "border-line-subtle bg-surface-1",
           )}
         >
           <span className="truncate text-sm font-semibold text-text-primary">{slotName(s, t, locale)}</span>
           <span className="tnum text-xs text-text-secondary">{countdown(s.closesAt, serverNow)}</span>
-        </button>
+        </Pressable>
       ))}
     </div>
   );
@@ -374,7 +373,7 @@ export function AuctionContextBar({ token }: { token: string }) {
     <Link
       href={`/s/${token}/auction`}
       className={cx(
-        "flex min-h-14 items-center gap-3 rounded-card border px-4 py-2",
+        "flex min-h-14 items-center gap-3 rounded-card border px-4 py-2 transition-transform duration-100 active:scale-[0.97]",
         slot ? "border-accent-500/40 bg-surface-1" : "border-line-subtle bg-surface-1",
         slot && inFinalStretch(slot.closesAt, serverNow) && "auction-flash-card",
       )}
@@ -417,7 +416,7 @@ export function AuctionTeaser({ token }: { token: string }) {
     return (
       <Link
         href={`/s/${token}/auction`}
-        className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 active:scale-[0.99]"
+        className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 transition-transform duration-100 active:scale-[0.97]"
       >
         <Gavel size={20} className="shrink-0 text-accent-400" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -618,21 +617,20 @@ export function WalletPill({ token }: { token: string }) {
               <p className="text-xs text-text-secondary">{t("endOfNight")}</p>
               <div className="mt-1.5 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("endOfNight")}>
                 {[false, true].map((option) => (
-                  <button
+                  <Pressable
                     key={String(option)}
-                    type="button"
                     role="radio"
                     aria-checked={kept === option}
-                    onClick={() => void choose(option)}
+                    onPress={() => void choose(option)}
                     className={cx(
-                      "min-h-11 rounded-button border px-3 text-sm font-semibold",
+                      "min-h-11 rounded-full border px-3 text-sm font-semibold transition-colors duration-100",
                       kept === option
                         ? "border-accent-500 bg-surface-2 text-text-primary"
                         : "border-line-subtle bg-surface-1 text-text-secondary",
                     )}
                   >
                     {option ? t("keepForNext") : t("refundAtEnd")}
-                  </button>
+                  </Pressable>
                 ))}
               </div>
             </div>

@@ -239,7 +239,7 @@ export default async function AuctionsPage({
         <div>
           <button
             type="submit"
-            className="rounded-button bg-accent-500 px-5 py-2.5 font-semibold text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
+            className="rounded-full bg-accent-500 px-5 py-2.5 font-semibold text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
           >
             {t("save")}
           </button>

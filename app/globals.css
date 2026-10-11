@@ -105,9 +105,11 @@ body:has(.guest-type) {
   color: transparent;
   text-shadow: 0 0 28px rgba(255, 159, 10, 0.35);
 }
+/* The shine plays twice when you take the lead, then rests: a slow
+   endless loop (~0.3 Hz) is the kind apple-design §14 warns against. */
 @media (prefers-reduced-motion: no-preference) {
   .leader-name-mine {
-    animation: leader-shine 3.2s linear infinite;
+    animation: leader-shine 3.2s linear 2;
   }
 }
 @keyframes leader-shine {
@@ -303,6 +305,12 @@ body:has(.guest-type) {
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  /* Ad-hoc glass chips (backdrop-blur utilities) go solid too. */
+  [class*="backdrop-blur"] {
+    background-color: var(--color-bg-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
   .material,
   .material-top {
     background: var(--color-bg-raised);
@@ -327,9 +335,14 @@ body:has(.guest-type) {
 }
 
 /* ── Focus (console keyboard support, AA) ───────────────────────── */
-:focus-visible {
-  outline: 2px solid var(--color-accent-500);
-  outline-offset: 2px;
+/* In the base layer so a component's own focus style (focus:outline-none
+   + a border, as on the search field) wins: unlayered, this rule beat
+   every utility and drew a second ring around focused inputs. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent-500);
+    outline-offset: 2px;
+  }
 }
 
 /* ── Scrollbars stay discreet in the dark UI ────────────────────── */

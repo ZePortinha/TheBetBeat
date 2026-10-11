@@ -41,7 +41,7 @@ export function CopyButton({
     <button
       type="button"
       onClick={copy}
-      className="inline-flex min-h-9 items-center gap-1.5 rounded-button border
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-full border
         border-line-subtle bg-surface-2 px-3 text-sm text-text-primary
         transition-transform duration-100 hover:bg-surface-3 active:scale-[0.97]"
     >

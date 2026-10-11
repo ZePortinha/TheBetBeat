@@ -131,7 +131,7 @@ export default async function Home() {
                 <li key={e.id}>
                   <Link
                     href={`/s/${encodeURIComponent(signToken({ kind: "session", venueId: e.venue_id, slug: e.id }))}`}
-                    className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 transition-transform duration-100 active:scale-[0.99]"
+                    className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 transition-transform duration-100 active:scale-[0.97]"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-base font-semibold text-text-primary">{e.venue_name}</span>

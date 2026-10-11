@@ -62,7 +62,7 @@ export default async function ZonesPage({
             <Link
               href="/console/zonas/imprimir"
               data-testid="zones-print-link"
-              className="inline-flex min-h-11 items-center gap-2 rounded-button border
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border
                 border-line-subtle bg-surface-2 px-5 text-base font-semibold
                 text-text-primary hover:bg-surface-3"
             >
@@ -90,7 +90,7 @@ export default async function ZonesPage({
         </label>
         <button
           type="submit"
-          className="min-h-10 rounded-button bg-accent-500 px-4 text-sm font-semibold
+          className="min-h-10 rounded-full bg-accent-500 px-4 text-sm font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]"
         >
           {t("create")}
@@ -122,7 +122,7 @@ export default async function ZonesPage({
                   />
                   <button
                     type="submit"
-                    className="rounded-button border border-line-subtle bg-surface-2
+                    className="rounded-full border border-line-subtle bg-surface-2
                       px-3 py-2 text-sm text-text-primary hover:bg-surface-3"
                   >
                     {t("rename")}

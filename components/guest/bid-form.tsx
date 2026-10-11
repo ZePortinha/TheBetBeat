@@ -288,23 +288,23 @@ export function BidForm({
         <div>
           <p className="label mb-2 text-text-secondary">{t("appearAs")}</p>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
+            <Pressable
+              aria-pressed={display.mode === "handle"}
               className={chip(display.mode === "handle")}
-              onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
+              onPress={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
             >
               {t("appearHandle")}
-            </button>
-            <button type="button" className={chip(display.mode === "anonymous")} onClick={() => setDisplay({ mode: "anonymous" })}>
+            </Pressable>
+            <Pressable aria-pressed={display.mode === "anonymous"} className={chip(display.mode === "anonymous")} onPress={() => setDisplay({ mode: "anonymous" })}>
               {t("appearAnonymous")}
-            </button>
-            <button
-              type="button"
+            </Pressable>
+            <Pressable
+              aria-pressed={display.mode === "table"}
               className={chip(display.mode === "table")}
-              onClick={() => setDisplay({ mode: "table", table: display.mode === "table" ? display.table : "" })}
+              onPress={() => setDisplay({ mode: "table", table: display.mode === "table" ? display.table : "" })}
             >
               {t("appearTable")}
-            </button>
+            </Pressable>
           </div>
           {display.mode === "handle" ? (
             <div className="mt-2 flex min-h-12 items-center gap-1 rounded-button border border-line-subtle bg-surface-3 px-3 focus-within:border-accent-500">
