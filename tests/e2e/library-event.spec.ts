@@ -18,6 +18,8 @@ import {
 
 const RUN = Date.now().toString(36);
 
+// One test per staff login: the suite logs the DJ in many times and the
+// login limit is 10 per account every 10 minutes.
 test.describe("cockpit · biblioteca e BPM", () => {
   test.beforeEach(async ({ page }) => {
     test.skip(test.info().project.name !== "ipad", "iPad viewport only");
@@ -25,7 +27,7 @@ test.describe("cockpit · biblioteca e BPM", () => {
     await loginStaff(page, "dj", "/cockpit");
   });
 
-  test("o DJ adiciona uma música e encontra-a por artista, álbum e estilo", async ({ page }) => {
+  test("o DJ adiciona uma música, encontra-a por artista, álbum e estilo, e vê o BPM no leilão", async ({ page, request }) => {
     await page.goto("/cockpit/library");
     await expect(page.getByRole("heading", { name: /Biblioteca/ })).toBeVisible({ timeout: 60_000 });
     await expect(page.getByTestId("library-summary")).toContainText("músicas");
@@ -73,9 +75,9 @@ test.describe("cockpit · biblioteca e BPM", () => {
     await page.getByRole("button", { name: "Remover da biblioteca" }).click();
     await expect(page.getByText("Música removida")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Nada encontrado com estes filtros.")).toBeVisible();
-  });
 
-  test("o leilão aberto mostra o BPM da música que está a ganhar", async ({ page, request }) => {
+    // Same login (staff logins are limited per account): the open auction
+    // shows the BPM of the song that is winning.
     const slotId = await openAuction(request, 600);
     await bidViaApi(request, { slotId, totalCents: 700 });
     await page.goto("/cockpit");
