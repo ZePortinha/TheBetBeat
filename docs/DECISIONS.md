@@ -669,3 +669,13 @@ merged in this order on `claude/project-thread-cp9ey2`: #1, #3, #2, #4, #6,
   reads the guest link without opening `/`, since the intro plays once per
   tab (PR #2).
 
+
+## 2026-10-11 — Development test code for the manager/admin two-step check
+
+Managers/admins must pass TOTP MFA (AAL2) before the console. Locally there is
+often no authenticator enrolled, which locked Vouga out. Outside production,
+`/login/mfa` now also accepts a fixed test code (`DEV_MFA_CODE`, default
+`000000`, `off` disables). The server then sets an httpOnly cookie HMAC-bound to
+the user, which `requireStaff` and the cockpit API accept in place of AAL2
+(`lib/security/dev-mfa.ts`, `lib/security/staff-mfa.ts`). With
+`NODE_ENV=production` the code and the cookie are always refused.

@@ -1,9 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { DEV_MFA_COOKIE } from "@/lib/security/dev-mfa";
 import { createHash } from "node:crypto";
 import { clientIpFrom } from "@/lib/security/client-ip";
 import { safeNextPath } from "@/lib/security/redirect";
@@ -72,5 +73,6 @@ export async function loginAction(
 export async function logoutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  (await cookies()).delete(DEV_MFA_COOKIE);
   redirect("/login");
 }

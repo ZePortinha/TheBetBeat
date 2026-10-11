@@ -51,6 +51,9 @@ const serverEnvSchema = z.object({
   SENTRY_DSN: z.string().optional().or(z.literal("")),
   NEXT_PUBLIC_POSTHOG_KEY: z.string().optional().or(z.literal("")),
   NEXT_PUBLIC_POSTHOG_HOST: z.string().optional().or(z.literal("")),
+  // Development only: 6-digit test code accepted on /login/mfa (default
+  // 000000, "off" disables). Ignored whenever NODE_ENV=production.
+  DEV_MFA_CODE: z.string().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 }).superRefine((v, ctx) => {
   const need = (cond: boolean, keys: Array<keyof typeof v>) => {
