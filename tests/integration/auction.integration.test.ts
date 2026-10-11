@@ -107,6 +107,29 @@ async function bid(
   return topUp.bid ?? { ok: false as const, error: "insufficient_funds" as const };
 }
 
+/** Backing with a name and a note for the bidder (top-up by card for the rest). */
+async function back(
+  guestId: string,
+  slotId: string,
+  totalCents: number,
+  now: number,
+  bidId: string,
+  extra: { handle?: string; message?: string } = {},
+) {
+  const req = {
+    slotId,
+    guestId,
+    totalCents,
+    target: { kind: "back" as const, bidId },
+    display: extra.handle ? { mode: "handle" as const, handle: extra.handle } : { mode: "anonymous" as const },
+    message: extra.message ?? null,
+  };
+  const placed = await auction.placeBid(req, now);
+  if (placed.ok || placed.error !== "insufficient_funds") return placed;
+  const topUp = await auction.startTopUpBid({ ...req, needCents: placed.needCents!, method: "card" }, now);
+  return topUp.bid ?? { ok: false as const, error: "insufficient_funds" as const };
+}
+
 /** A fresh 4-minute slot opening at `now` (min price 5 €). */
 async function newSlot(now: number): Promise<string> {
   const id = await auction.openExtraSlot(SESSION_ID, "staff:test-dj", now);
@@ -260,6 +283,66 @@ describe("bidding on the server clock", () => {
   }, 60_000);
 });
 
+describe("backing: the top spender owns the song (owner, 2026-10-11)", () => {
+  it("a backer who puts in more than the bidder wins the song, with their name; the bidder gets the note", async () => {
+    const now = T0 + 51_000;
+    const slot = await newSlot(now);
+    const [a, c] = await Promise.all([createGuest(), createGuest()]);
+    const r = await bid(a, slot, 1000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    if (!r.ok) throw new Error("first bid failed");
+    // C puts in 11 € (more than A's 10 €): the bid is now C's.
+    expect(await back(c, slot, 2100, now + 2000, r.bidId, { handle: `cfan${RUN}`, message: "bora lá!" })).toMatchObject({ ok: true });
+    const meA = await auction.myAuctionState(SESSION_ID, VENUE_ID, a);
+    expect(meA.bids.find((b) => b.slotId === slot)).toMatchObject({
+      owner: true,
+      status: "leading",
+      takenOver: true,
+      messages: [{ text: "bora lá!", by: `@cfan${RUN}` }],
+    });
+    const pub = await auction.publicAuctionState(SESSION_ID, now + 3000);
+    expect(pub?.open.find((s) => s.id === slot)?.top).toMatchObject({ by: `@cfan${RUN}`, totalCents: 2100 });
+
+    await auction.tickAuctions(now + 241_000);
+    const row = await db.query<{ winner_guest_id: string; outcome: string }>(
+      `select winner_guest_id, outcome from public.auction_slots where id = $1`,
+      [slot],
+    );
+    expect(row.rows[0]).toMatchObject({ outcome: "won", winner_guest_id: c });
+    const meC = await auction.myAuctionState(SESSION_ID, VENUE_ID, c);
+    expect(meC.bids.find((b) => b.slotId === slot)).toMatchObject({ owner: false, status: "next", winner: true, messages: [] });
+    expect((await auction.myAuctionState(SESSION_ID, VENUE_ID, a)).bids.find((b) => b.slotId === slot)).toMatchObject({
+      status: "next",
+      winner: false,
+    });
+  }, 60_000);
+
+  it("on a tie the bidder keeps it, and raising takes it back", async () => {
+    const now = T0 + 56_000;
+    const slot = await newSlot(now);
+    const [a, c] = await Promise.all([createGuest(), createGuest()]);
+    const r = await bid(a, slot, 1000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    if (!r.ok) throw new Error("first bid failed");
+    await back(c, slot, 2000, now + 2000, r.bidId);
+    expect((await auction.myAuctionState(SESSION_ID, VENUE_ID, a)).bids[0]).toMatchObject({ takenOver: false });
+    await back(c, slot, 2200, now + 3000, r.bidId);
+    expect((await auction.myAuctionState(SESSION_ID, VENUE_ID, a)).bids[0]).toMatchObject({ takenOver: true });
+    // A raises: 10 € + 3 € = 13 € against C's 12 €.
+    expect(await bid(a, slot, 2500, now + 4000, { kind: "own", libraryTrackId: (await auction.myAuctionState(SESSION_ID, VENUE_ID, a)).bids[0]!.libraryTrackId! })).toMatchObject({ ok: true });
+    await auction.tickAuctions(now + 241_000);
+    const row = await db.query<{ winner_guest_id: string }>(`select winner_guest_id from public.auction_slots where id = $1`, [slot]);
+    expect(row.rows[0]!.winner_guest_id).toBe(a);
+  }, 60_000);
+
+  it("a message only goes with backing someone else's bid", async () => {
+    const now = T0 + 58_500;
+    const slot = await newSlot(now);
+    const a = await createGuest();
+    const r = await bid(a, slot, 1000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    if (!r.ok) throw new Error("first bid failed");
+    expect(await back(a, slot, 1100, now + 2000, r.bidId, { message: "eu" })).toMatchObject({ ok: false, error: "message_not_allowed" });
+  }, 60_000);
+});
+
 describe("event QR", () => {
   it("opens that event only, never another night at the same venue", async () => {
     const own = await resolveGuestContext(signToken({ kind: "session", venueId: VENUE_ID, slug: SESSION_ID }));
@@ -381,14 +464,15 @@ describe("after the close", () => {
     expect(await balance(a)).toBe(2000);
   }, 60_000);
 
-  it("caps mic announcements at 3 per hour, then the name goes to the screen only", async () => {
+  it("every winner from 150 € gets the DJ's shoutout, anonymous ones too: no hourly cap", async () => {
     const base = T0 + 80_000;
     const results: boolean[] = [];
     for (let i = 0; i < 4; i++) {
       const now = base + i * 300_000;
       const slot = await newSlot(now);
       const g = await createGuest();
-      const req = { slotId: slot, guestId: g, totalCents: 15000, target: { kind: "own" as const, libraryTrackId: takeTrack() }, display: { mode: "handle" as const, handle: `fan${i}` } };
+      const display = i === 3 ? { mode: "anonymous" as const } : { mode: "handle" as const, handle: `fan${i}` };
+      const req = { slotId: slot, guestId: g, totalCents: 15000, target: { kind: "own" as const, libraryTrackId: takeTrack() }, display };
       const placed = await auction.placeBid(req, now + 1000);
       if (!placed.ok) await auction.startTopUpBid({ ...req, needCents: placed.needCents!, method: "card" }, now + 1000);
       await auction.tickAuctions(now + 241_000);
@@ -396,7 +480,7 @@ describe("after the close", () => {
       expect(row.recognition).toBe("announce");
       results.push(row.announce);
     }
-    expect(results).toEqual([true, true, true, false]);
+    expect(results).toEqual([true, true, true, true]);
   }, 60_000);
 });
 
@@ -623,6 +707,24 @@ describe("runner-up rollover (owner, 2026-10-10)", () => {
     // No next auction tonight: released straight back, nobody loses anything.
     expect((await rollovers(slot)).rows[0]).toMatchObject({ status: "released", release_reason: "no_next_auction", amount_cents: 1300 });
     expect([await balance(owner), await balance(friend)]).toEqual([800, 500]);
+  }, 60_000);
+
+  it("second place belongs to whoever spent the most on it: a backer who outspent the bidder owns the rolled bid", async () => {
+    const now = base + 1_500_000;
+    const slot = await open(now);
+    const [owner, friend, top] = await Promise.all([createGuest(), createGuest(), createGuest()]);
+    const r = await bid(owner, slot, 800, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    if (!r.ok) throw new Error("bid failed");
+    await back(friend, slot, 2000, now + 2000, r.bidId, { handle: `amigo${RUN}` });
+    await bid(top, slot, 2500, now + 3000, { kind: "own", libraryTrackId: takeTrack() });
+    const next = await open(now + 50_000);
+    await auction.tickAuctions(now + 241_000);
+    expect((await rollovers(slot)).rows[0]).toMatchObject({ status: "placed", amount_cents: 2000, owner_guest_id: friend });
+    const rolled = await db.query<{ owner_guest_id: string; leader_guest_id: string; display_label: string | null }>(
+      `select owner_guest_id, leader_guest_id, display_label from public.auction_bids where slot_id = $1`,
+      [next],
+    );
+    expect(rolled.rows[0]).toMatchObject({ owner_guest_id: friend, leader_guest_id: friend, display_label: `@amigo${RUN}` });
   }, 60_000);
 
   it("a rolled amount that cannot beat the next auction's top goes back to the balance", async () => {

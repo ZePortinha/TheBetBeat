@@ -81,6 +81,7 @@ export const REALTIME_EVENTS = [
   "auction.updated",
   "auction.outbid",
   "auction.won",
+  "auction.backed",
   "wallet.changed",
   "queue.changed",
   "price.changed",

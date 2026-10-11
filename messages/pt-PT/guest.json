@@ -291,7 +291,10 @@
     "login_failed": "Não conseguimos entrar na tua conta agora. Pede um código novo.",
     "handle_locked": "O teu @ fica para sempre ligado ao teu número.",
     "login_required": "Entra com o teu número para licitar.",
-    "handle_not_allowed": "Esse @ não é permitido. Escolhe outro nome."
+    "handle_not_allowed": "Esse @ não é permitido. Escolhe outro nome.",
+    "message_blocked": "Essa mensagem tem palavras que não são permitidas. Escreve outra.",
+    "message_invalid": "A mensagem tem de ter até 10 caracteres, sem links.",
+    "message_not_allowed": "Só podes deixar mensagem quando apoias a faixa de outra pessoa."
   },
   "auction": {
     "dockCta": "Licitar faixa",
@@ -311,7 +314,7 @@
     "raiseTitle": "Subir a licitação",
     "back": "Apoiar esta faixa",
     "backTitle": "Apoiar esta faixa",
-    "backHint": "O teu valor soma-se ao de quem vai à frente. Se for ultrapassado, volta ao teu saldo.",
+    "backHint": "O teu valor soma-se à faixa que vai à frente. Se puseres mais do que quem a licitou, a faixa passa a ser tua. Se for ultrapassada, o dinheiro volta ao teu saldo.",
     "bidOther": "Licitar com outra faixa",
     "bidFirst": "Ser o primeiro a licitar",
     "upNext": "A seguir",
@@ -333,7 +336,8 @@
       "played": "Tocou",
       "refunded": "Não tocou, devolvido",
       "lost": "Não venceu",
-      "rolledOn": "2.º lugar, passou para o próximo leilão"
+      "rolledOn": "2.º lugar, passou para o próximo leilão",
+      "nextNotMine": "Faixa vencedora, a seguir"
     },
     "chooseSlot": "Escolhe o leilão",
     "topNow": "Vai em",
@@ -430,7 +434,6 @@
     "sharePreparing": "A preparar o vídeo…",
     "shareVideoSaved": "Vídeo guardado. Abre o Instagram e publica nas Stories.",
     "shareError": "Não conseguimos abrir a partilha. Tenta outra vez.",
-    "shareError": "Não conseguimos abrir a partilha. Tenta outra vez.",
     "walletAvailable": "Disponível",
     "walletDeadline": "Podes levantar ou usar até {date}. Depois volta sozinho ao teu meio de pagamento.",
     "walletEmpty": "Quando uma licitação tua é ultrapassada, o dinheiro volta logo para aqui.",
@@ -443,7 +446,19 @@
     "walletWithdrawn": "Feito. {amount} a caminho do teu meio de pagamento.",
     "walletWithdrawFailed": "Não conseguimos devolver agora. O saldo continua aqui; tenta daqui a pouco.",
     "rolledIn": "veio do leilão anterior",
-    "appearPublic": "Público · @{handle}"
+    "appearPublic": "Público · @{handle}",
+    "messageLabel": "Mensagem para quem licitou",
+    "messagePlaceholder": "Ex.: Bora lá!",
+    "messageHint": "Opcional, até 10 caracteres. Só quem licitou esta faixa a recebe.",
+    "appearHintBack": "Se puseres mais do que quem licitou, a faixa fica em teu nome, assim.",
+    "shoutoutNote": "Licitações vencedoras a partir de {amount} levam shoutout do DJ ao microfone.",
+    "walletRuleShoutout": "Licitação vencedora a partir de {amount}? O DJ faz-te um shoutout ao microfone.",
+    "walletRuleTopSpender": "Quem gasta mais numa faixa fica com ela: se um apoiante puser mais do que quem licitou, a faixa vencedora é dele.",
+    "takenOver": "{name} já pôs mais do que tu nesta faixa. Se vencer, fica em nome de {name}.",
+    "messageFrom": "“{message}”, de {name}",
+    "backedToast": "{name} apoiou a tua faixa",
+    "backedToastMessage": "{name} apoiou a tua faixa: “{message}”",
+    "backedToastTakeover": "Já pôs mais do que tu: se a faixa vencer, fica em nome de {name}. Sobe a licitação para a recuperares."
   },
   "entry": {
     "title": "Entra na festa",

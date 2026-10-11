@@ -109,9 +109,9 @@ test.describe("guest app · outros fluxos", () => {
     expect(top).toBeTruthy();
   });
 
-  test("apoiar: somar à faixa de quem vai à frente", async ({ page, request }) => {
+  test("apoiar: somar à faixa de quem vai à frente, com uma mensagem para quem licitou", async ({ page, request }) => {
     const slotId = await openAuction(request, 600);
-    await bidViaApi(request, { slotId, totalCents: 500, handle: "e2e_lider" });
+    const leader = await bidViaApi(request, { slotId, totalCents: 500, handle: "e2e_lider" });
     const before = (await auctionState(request)).open.find((s) => s.id === slotId)!.top!;
 
     await page.goto(await getGuestUrl(page));
@@ -124,6 +124,7 @@ test.describe("guest app · outros fluxos", () => {
       .click();
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
+    await sheet.getByRole("textbox", { name: /mensagem para quem licitou|message for the bidder/i }).fill("bora lá!");
     await payByCard(sheet, /^apoiar com|^back with/i);
 
     // Same song, same leader, a bigger total; the backer is counted.
@@ -138,5 +139,10 @@ test.describe("guest app · outros fluxos", () => {
     await expect(page.getByText(/2 apoiantes|2 backers/i).first()).toBeVisible({
       timeout: 15_000,
     });
+    // The bidder got the note (it only reaches them).
+    const mine = (await auctionState(request, leader.guest)).me?.bids.find((b) => b.slotId === slotId) as
+      | { messages?: Array<{ text: string }> }
+      | undefined;
+    expect(mine?.messages?.map((m) => m.text)).toEqual(["bora lá!"]);
   });
 });

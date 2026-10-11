@@ -256,12 +256,6 @@ export async function openAuction(request: APIRequestContext, closesInSec = 240)
   return ((await res.json()) as { slotId: string }).slotId;
 }
 
-/** Earlier mic announcements leave the rolling hour, so the per-hour cap does not apply to the next win. */
-export async function forgetMicAnnouncements(request: APIRequestContext, sessionId = SEED.sessionId): Promise<void> {
-  const res = await request.post("/api/dev/auction", { data: { action: "forget-mic", sessionId } });
-  if (!res.ok()) throw new Error(`dev forget-mic failed (${res.status()})`);
-}
-
 /** Ends that auction now and runs one worker tick (winner locked or no winner). */
 export async function closeAuction(request: APIRequestContext, slotId: string): Promise<void> {
   const res = await request.post("/api/dev/auction", { data: { action: "close", slotId } });

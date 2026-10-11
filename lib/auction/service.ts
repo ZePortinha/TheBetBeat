@@ -39,6 +39,7 @@ import { displayLabel, recognitionFor, type DisplayChoice } from "./recognition"
 import { planNight } from "./schedule";
 import { balanceDeadline, canPlaceRollover, expiredCents, rolloverShares, runnerUp, type Credit } from "./rollover";
 import { assessTransition, startingPriceCents } from "./transition";
+import { bidLeader } from "./backing";
 
 type Db = Pick<PoolClient, "query">;
 
@@ -69,6 +70,8 @@ export interface SlotRow {
   playing_at: Date | null;
   played_at: Date | null;
   announced_at: Date | null;
+  /** The winning bid's top spender at the close (owner, 2026-10-11). */
+  winner_guest_id: string | null;
 }
 
 export interface BidRow {
@@ -77,6 +80,8 @@ export interface BidRow {
   session_id: string;
   venue_id: string;
   owner_guest_id: string;
+  /** Who the bid belongs to now: the guest with the most money in it. */
+  leader_guest_id: string | null;
   library_track_id: string | null;
   catalog_track_id: string | null;
   track_title: string;
@@ -169,7 +174,7 @@ function slotChanged(sessionId: string, slotId: string): OutgoingBroadcast[] {
 
 function toGuests(
   guestIds: Iterable<string>,
-  event: "auction.outbid" | "auction.won" | "wallet.changed",
+  event: "auction.outbid" | "auction.won" | "auction.backed" | "wallet.changed",
   payload: unknown,
 ): OutgoingBroadcast[] {
   return [...new Set(guestIds)].map((id) => ({ topic: guestChannel(id), event, payload, private: true }));
@@ -303,6 +308,59 @@ async function markOutbidInTx(client: PoolClient, bidId: string, now: number): P
 }
 
 /**
+ * Who the bid belongs to after a money move (lib/auction/backing): the
+ * guest with the most money in it, the bidder on a tie. The bid shows
+ * that guest's name, as they chose it on their last action. Returns the
+ * leader before and after.
+ */
+async function refreshBidLeaderInTx(
+  client: PoolClient,
+  bidId: string,
+): Promise<{ before: string; after: string }> {
+  const bidRes = await client.query<Pick<BidRow, "owner_guest_id" | "leader_guest_id">>(
+    `select owner_guest_id, leader_guest_id from public.auction_bids where id = $1`,
+    [bidId],
+  );
+  const bid = bidRes.rows[0];
+  if (!bid) return { before: "", after: "" };
+  const parts = await client.query<{
+    guest_id: string;
+    amount_cents: number;
+    created_at: Date;
+    display_mode: DisplayChoice["mode"] | null;
+    display_label: string | null;
+  }>(
+    `select guest_id, amount_cents, created_at, display_mode, display_label from public.auction_contributions
+      where bid_id = $1 and returned_at is null
+      order by created_at, id`,
+    [bidId],
+  );
+  const before = bid.leader_guest_id ?? bid.owner_guest_id;
+  const after = bidLeader(
+    bid.owner_guest_id,
+    parts.rows.map((p) => ({ guestId: p.guest_id, amountCents: p.amount_cents, atMs: p.created_at.getTime() })),
+  );
+  // Their latest stated choice; none (rolled money) keeps what the bid shows when it stays theirs.
+  const choice = parts.rows.filter((p) => p.guest_id === after && p.display_mode !== null).at(-1);
+  if (choice) {
+    await client.query(
+      `update public.auction_bids set leader_guest_id = $2, display_mode = $3, display_label = $4, updated_at = now()
+        where id = $1`,
+      [bidId, after, choice.display_mode, choice.display_label],
+    );
+  } else if (after !== before) {
+    await client.query(
+      `update public.auction_bids set leader_guest_id = $2, display_mode = 'anonymous', display_label = null, updated_at = now()
+        where id = $1`,
+      [bidId, after],
+    );
+  } else {
+    await client.query(`update public.auction_bids set leader_guest_id = $2 where id = $1`, [bidId, after]);
+  }
+  return { before, after };
+}
+
+/**
  * Refunds a guest's wallet at a venue (all of it, or at most `maxCents`)
  * to the payment methods it came from (newest top-up first). Exactly-once
  * per allocation key; a PSP failure leaves the money in the wallet and
@@ -396,6 +454,8 @@ export interface BidRequest {
   totalCents: number;
   target: BidTarget;
   display: DisplayChoice;
+  /** Backing only: a short note (≤ 10 characters, checked by lib/auction/backing) for the bidder. */
+  message?: string | null;
 }
 
 export type BidError =
@@ -409,7 +469,8 @@ export type BidError =
   | "bid_not_found"
   | "requests_closed"
   | "below_track_minimum"
-  | "insufficient_funds";
+  | "insufficient_funds"
+  | "message_not_allowed";
 
 export type PlaceResult =
   | { ok: true; bidId: string; totalCents: number; closesAt: string; extended: boolean }
@@ -553,6 +614,9 @@ async function placeInTx(
 
   const add = req.totalCents - bid.total_cents;
   if (add <= 0) return fail("below_minimum");
+  // A message goes from a backer to the bidder: never on your own bid.
+  const message = req.target.kind === "back" && bid.owner_guest_id !== req.guestId ? (req.message ?? null) : null;
+  if (req.message && message === null) return fail("message_not_allowed");
 
   await lockWallet(client, req.guestId, slot.venue_id);
   const balance = await walletBalance(client, req.guestId, slot.venue_id);
@@ -568,24 +632,33 @@ async function placeInTx(
   }
 
   const contribution = await client.query<{ id: string }>(
-    `insert into public.auction_contributions (bid_id, slot_id, guest_id, amount_cents, total_after_cents, extended)
-     values ($1, $2, $3, $4, $5, $6) returning id`,
-    [bid.id, slot.id, req.guestId, add, req.totalCents, decision.extended],
+    `insert into public.auction_contributions
+       (bid_id, slot_id, guest_id, amount_cents, total_after_cents, extended, display_mode, display_label, message)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
+    [bid.id, slot.id, req.guestId, add, req.totalCents, decision.extended, req.display.mode, label, message],
   );
   await client.query(
     `insert into public.wallet_entries (venue_id, guest_id, session_id, amount_cents, reason, contribution_id)
      values ($1, $2, $3, $4, 'bid', $5)`,
     [slot.venue_id, req.guestId, slot.session_id, -add, contribution.rows[0]?.id],
   );
-  const ownAction = req.target.kind === "own";
   await client.query(
-    `update public.auction_bids
-        set total_cents = $2, status = 'leading', updated_at = now(),
-            display_mode = case when $3 then $4 else display_mode end,
-            display_label = case when $3 then $5 else display_label end
-      where id = $1`,
-    [bid.id, req.totalCents, ownAction, req.display.mode, label],
+    `update public.auction_bids set total_cents = $2, status = 'leading', updated_at = now() where id = $1`,
+    [bid.id, req.totalCents],
   );
+  // Whoever has the most money in it owns the song (owner, 2026-10-11).
+  const lead = await refreshBidLeaderInTx(client, bid.id);
+  if (bid.owner_guest_id !== req.guestId) {
+    publishes.push(
+      ...toGuests([bid.owner_guest_id], "auction.backed", {
+        slotId: slot.id,
+        by: label,
+        message,
+        // The backer now has more in it than the bidder: the song goes in their name.
+        takesOver: lead.after === req.guestId && lead.before !== req.guestId,
+      }),
+    );
+  }
   await client.query(
     `update public.auction_slots
         set closes_at = to_timestamp($2 / 1000.0), extensions = extensions + $3
@@ -650,8 +723,9 @@ export async function startTopUpBid(input: TopUpInput, now: number): Promise<Top
     : false;
   const intentRes = await getPool().query<{ id: string }>(
     `insert into public.auction_intents
-       (slot_id, guest_id, library_track_id, catalog_track_id, backed_bid_id, target_total_cents, display_mode, display_label)
-     values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+       (slot_id, guest_id, library_track_id, catalog_track_id, backed_bid_id, target_total_cents, display_mode, display_label,
+        message)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
     [
       input.slotId,
       input.guestId,
@@ -661,6 +735,7 @@ export async function startTopUpBid(input: TopUpInput, now: number): Promise<Top
       input.totalCents,
       input.display.mode,
       displayLabel(input.display),
+      input.target.kind === "back" ? (input.message ?? null) : null,
     ],
   );
   const intentId = (intentRes.rows[0] as { id: string }).id;
@@ -754,6 +829,7 @@ export async function settleTopUpInTx(
     target_total_cents: number | null;
     display_mode: DisplayChoice["mode"];
     display_label: string | null;
+    message: string | null;
   }>(`select * from public.auction_intents where id = $1 for update`, [pay.intent_id]);
   const intent = intentRes.rows[0];
   if (!intent) return { value: { state: "failed" }, publishes: [] };
@@ -815,6 +891,7 @@ export async function settleTopUpInTx(
         ? { kind: "back", bidId: intent.backed_bid_id }
         : { kind: "own", libraryTrackId: intent.library_track_id ?? intent.catalog_track_id ?? "" },
       display,
+      message: intent.message,
     },
     now,
   );
@@ -855,35 +932,22 @@ async function closeSlotInTx(
     return { value: true, publishes };
   }
 
-  const recent = await client.query<{ closed_at: Date }>(
-    `select closed_at from public.auction_slots
-      where session_id = $1 and announce and closed_at > to_timestamp($2 / 1000.0) - interval '1 hour'`,
-    [slot.session_id, now],
-  );
-  const rec = recognitionFor(
-    leader.total_cents,
-    leader.display_mode === "anonymous",
-    recent.rows.map((r) => r.closed_at.getTime()),
-    now,
-    night.config.recognition,
-  );
+  // The song is won by whoever spent the most on it (owner, 2026-10-11).
+  const winnerId = leader.leader_guest_id ?? leader.owner_guest_id;
+  const rec = recognitionFor(leader.total_cents, night.config.recognition);
   await client.query(
     `update public.auction_slots
         set status = 'closed', outcome = 'won', winning_bid_id = $2, play_status = 'locked',
-            recognition = $3, announce = $4, closed_at = to_timestamp($5 / 1000.0)
+            recognition = $3, announce = $4, closed_at = to_timestamp($5 / 1000.0), winner_guest_id = $6
       where id = $1`,
-    [slot.id, leader.id, rec.level, rec.announce, now],
+    [slot.id, leader.id, rec.level, rec.announce, now, winnerId],
   );
   await client.query(`update public.auction_bids set status = 'won', updated_at = now() where id = $1`, [leader.id]);
   await client.query(
     `update public.auction_bids set status = 'lost', updated_at = now() where slot_id = $1 and id <> $2`,
     [slot.id, leader.id],
   );
-  const backers = await client.query<{ guest_id: string }>(
-    `select distinct guest_id from public.auction_contributions where bid_id = $1 and returned_at is null`,
-    [leader.id],
-  );
-  publishes.push(...toGuests(backers.rows.map((b) => b.guest_id), "auction.won", { slotId: slot.id }));
+  publishes.push(...toGuests([winnerId], "auction.won", { slotId: slot.id }));
   publishes.push(...(await holdRunnerUpInTx(client, slot, leader.id, now)));
   return { value: true, publishes };
 }
@@ -936,8 +1000,8 @@ async function holdRunnerUpInTx(
   winnerBidId: string,
   now: number,
 ): Promise<OutgoingBroadcast[]> {
-  const losers = await client.query<{ id: string; owner_guest_id: string; last_total_cents: number }>(
-    `select id, owner_guest_id, last_total_cents from public.auction_bids where slot_id = $1 and id <> $2`,
+  const losers = await client.query<{ id: string; owner_guest_id: string; leader_guest_id: string | null; last_total_cents: number }>(
+    `select id, owner_guest_id, leader_guest_id, last_total_cents from public.auction_bids where slot_id = $1 and id <> $2`,
     [slot.id, winnerBidId],
   );
   const second = runnerUp(losers.rows.map((b) => ({ ...b, lastTotalCents: b.last_total_cents })));
@@ -969,7 +1033,8 @@ async function holdRunnerUpInTx(
        (from_slot_id, from_bid_id, to_slot_id, session_id, venue_id, owner_guest_id, amount_cents)
      values ($1, $2, $3, $4, $5, $6, $7)
      on conflict (from_slot_id) do nothing returning id`,
-    [slot.id, second.id, target, slot.session_id, slot.venue_id, second.owner_guest_id, amount],
+    // The second place is whoever led that bid when it was outbid: the rolled bid is theirs.
+    [slot.id, second.id, target, slot.session_id, slot.venue_id, second.leader_guest_id ?? second.owner_guest_id, amount],
   );
   const rolloverId = inserted.rows[0]?.id;
   if (!rolloverId) return [];
@@ -1102,8 +1167,8 @@ async function placeRolloverInTx(
     `insert into public.auction_bids
        (slot_id, session_id, venue_id, owner_guest_id, library_track_id, catalog_track_id, track_title, track_artist,
         track_genre, track_bpm, track_key, track_duration_sec, total_cents, display_mode, display_label, status,
-        transition, rolled_from_bid_id)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'leading', $16, $17)
+        transition, rolled_from_bid_id, leader_guest_id)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'leading', $16, $17, $4)
      returning id`,
     [slot.id, slot.session_id, slot.venue_id, r.owner_guest_id, from.library_track_id, from.catalog_track_id,
       from.track_title, from.track_artist, from.track_genre, from.track_bpm, from.track_key, from.track_duration_sec,
@@ -1115,13 +1180,22 @@ async function placeRolloverInTx(
     [r.id],
   );
   // The money already left the balances at the hold: contributions only.
+  // Each guest keeps the name they last showed on the bid it came from.
   for (const s of shares.rows) {
     await client.query(
-      `insert into public.auction_contributions (bid_id, slot_id, guest_id, amount_cents, total_after_cents)
-       values ($1, $2, $3, $4, $5)`,
-      [bidId, slot.id, s.guest_id, s.amount_cents, r.amount_cents],
+      `insert into public.auction_contributions
+         (bid_id, slot_id, guest_id, amount_cents, total_after_cents, display_mode, display_label)
+       select $1, $2, $3, $4, $5, c.display_mode, c.display_label
+         from (select 1) one
+         left join lateral (
+           select display_mode, display_label from public.auction_contributions
+            where bid_id = $6 and guest_id = $3 and display_mode is not null
+            order by created_at desc limit 1
+         ) c on true`,
+      [bidId, slot.id, s.guest_id, s.amount_cents, r.amount_cents, from.id],
     );
   }
+  await refreshBidLeaderInTx(client, bidId);
   await client.query(
     `update public.auction_rollovers set status = 'placed', to_bid_id = $2, settled_at = to_timestamp($3 / 1000.0)
       where id = $1`,
@@ -1538,6 +1612,8 @@ export interface PublicAuctionState {
     minIncrementBps: number;
     lastMinuteWarningSec: number;
     screenNameCents: number;
+    /** From this winning total the DJ gives a shoutout on the mic (the bid panel says so). */
+    announceCents: number;
     showAmountOnScreen: boolean;
     keepBalanceDays: number;
     transition: AuctionConfig["transition"];
@@ -1645,9 +1721,14 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
     // Spent = money behind played winners, per guest; label = their last public choice tonight.
     pool.query<{ guest_id: string; spent: string; label: string | null }>(
       `select c.guest_id, sum(c.amount_cents)::bigint as spent,
-              (select b.display_label from public.auction_bids b
-                where b.owner_guest_id = c.guest_id and b.session_id = $1 and b.display_label is not null
-                order by b.updated_at desc limit 1) as label
+              coalesce(
+                (select x.display_label from public.auction_contributions x
+                   join public.auction_slots xs on xs.id = x.slot_id
+                  where x.guest_id = c.guest_id and xs.session_id = $1 and x.display_label is not null
+                  order by x.created_at desc limit 1),
+                (select b.display_label from public.auction_bids b
+                  where b.owner_guest_id = c.guest_id and b.session_id = $1 and b.display_label is not null
+                  order by b.updated_at desc limit 1)) as label
          from public.auction_contributions c
          join public.auction_slots s on s.id = c.slot_id
         where s.session_id = $1 and c.spent_at is not null
@@ -1711,6 +1792,7 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
       minIncrementBps: config.minIncrementBps,
       lastMinuteWarningSec: config.lastMinuteWarningSec,
       screenNameCents: config.recognition.screenNameCents,
+      announceCents: config.recognition.announceCents,
       showAmountOnScreen: config.recognition.showAmountOnScreen,
       keepBalanceDays: config.keepBalanceDays,
       transition: config.transition,
@@ -1743,6 +1825,12 @@ export interface MyAuctionState {
     rolled: boolean;
     /** Ended second: its money moved on to the next auction. */
     rolledOn: boolean;
+    /** The song won and it is mine: I spent the most on it (owner, 2026-10-11). */
+    winner: boolean;
+    /** Someone else now has more in my bid: if it wins, it is theirs. */
+    takenOver: boolean;
+    /** Notes backers left on my bid (only on bids I made). */
+    messages: Array<{ text: string; by: string | null }>;
   }>;
   pending: Array<{ intentId: string; slotId: string; targetTotalCents: number; createdAt: string }>;
 }
@@ -1846,6 +1934,9 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
       won: boolean;
       rolled: boolean;
       rolled_on: boolean;
+      winner: boolean;
+      taken_over: boolean;
+      messages: Array<{ text: string; by: string | null }> | null;
     }>(
       `select s.id as slot_id, b.id as bid_id, s.kind, s.closes_at, b.track_title, b.track_artist,
               b.owner_guest_id = $2 as owner, coalesce(b.library_track_id, b.catalog_track_id) as library_track_id,
@@ -1853,7 +1944,13 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
                          where bid_id = b.id and guest_id = $2 and returned_at is null), 0)::bigint as my_cents,
               b.total_cents, b.status as bid_status, s.status as slot_status, s.play_status,
               s.winning_bid_id = b.id as won, b.rolled_from_bid_id is not null as rolled,
-              exists (select 1 from public.auction_rollovers r where r.from_bid_id = b.id and r.status <> 'released') as rolled_on
+              exists (select 1 from public.auction_rollovers r where r.from_bid_id = b.id and r.status <> 'released') as rolled_on,
+              coalesce(s.winner_guest_id = $2, false) as winner,
+              (b.owner_guest_id = $2 and coalesce(b.leader_guest_id, b.owner_guest_id) <> $2) as taken_over,
+              case when b.owner_guest_id = $2 then
+                (select json_agg(json_build_object('text', m.message, 'by', m.display_label) order by m.created_at)
+                   from public.auction_contributions m where m.bid_id = b.id and m.message is not null)
+              end as messages
          from public.auction_bids b
          join public.auction_slots s on s.id = b.slot_id
         where s.session_id = $1
@@ -1911,6 +2008,9 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
       status: statusOf(r),
       rolled: r.rolled,
       rolledOn: r.rolled_on,
+      winner: r.winner,
+      takenOver: r.taken_over,
+      messages: r.messages ?? [],
     })),
     pending: pendingRes.rows.map((p) => ({
       intentId: p.id,

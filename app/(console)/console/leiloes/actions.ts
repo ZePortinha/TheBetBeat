@@ -69,7 +69,6 @@ export async function saveAuctionConfigAction(formData: FormData): Promise<void>
         screenNameCents: cents("nameEur"),
         announceCents: cents("micEur"),
         specialMomentCents: cents("specialEur"),
-        announcementsPerHour: n("micPerHour"),
         showAmountOnScreen: on("showAmount"),
       },
     });

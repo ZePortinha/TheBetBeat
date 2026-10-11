@@ -75,6 +75,9 @@ const KNOWN_ERROR_CODES = new Set([
   "bid_not_found",
   "insufficient_funds",
   "below_track_minimum",
+  "message_blocked",
+  "message_invalid",
+  "message_not_allowed",
 ]);
 
 /**

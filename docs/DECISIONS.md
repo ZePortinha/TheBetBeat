@@ -715,3 +715,36 @@ exists, and make every button act the moment it is pressed.
   notifications permission, clipboard and downloads, which browsers allow
   only from a finished tap on touch screens. HoldButton stays
   hold-to-confirm.
+
+## 2026-10-11 - Backing messages, top-spender winner, 150 € shoutout
+
+Owner's brief (one of three threads; the others own catalog/console and @
+handles/buttons).
+
+- **The song belongs to whoever spent the most on it.** The auction is
+  still between songs (bid totals, unchanged); inside a song, the guest
+  with the most money in it owns it (`lib/auction/backing.bidLeader`). The
+  bidder keeps it on a tie; between backers, the first to reach the amount.
+  `auction_bids.leader_guest_id` follows every money move and the bid shows
+  that guest's chosen name; at the close `auction_slots.winner_guest_id`
+  records the winner: their name on the screens, their celebration and
+  push, their shoutout. The other contributors' money is spent the same
+  way (one receipt each). `owner_guest_id` stays the guest who picked the
+  track: they keep the "Subir" button and the track is fixed to them.
+- **Runner-up rollover follows the same rule:** the second-place song rolls
+  in the name of whoever led it when it was outbid (the rolled bid is
+  theirs; each contributor's share still rolls with them).
+- **Backers choose how they appear** ("Como apareces"), since the song may
+  become theirs.
+- **Backing message:** optional, 10 characters (graphemes, an emoji is one),
+  only on someone else's bid, only the bidder sees it (toast + "As minhas
+  licitações"). No links, no control characters, and a PT/EN blocklist in
+  `lib/auction/backing.ts` (whole words, word starts for long ones,
+  spelled-out letters, digit swaps). The @-handle thread builds its own
+  forbidden-word list; merge the two once both are in main.
+- **Shoutout from 150 € (`recognition.announceCents`):** promised in the
+  bid panel before paying (non-negotiable #4), so it is now guaranteed:
+  the hourly mic cap (`announcementsPerHour`) is gone, and an anonymous
+  winner gets it too, without a name. The console field went with it.
+- **Migration 20** (not 18/19) so it cannot collide with the two parallel
+  threads.

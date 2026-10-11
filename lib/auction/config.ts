@@ -78,11 +78,10 @@ export interface AuctionConfig {
   recognition: {
     /** The chosen @ / table shows on the public screen. */
     screenNameCents: number;
-    /** DJ panel alert to announce the bidder on the mic. */
+    /** The DJ gives the winner a shoutout on the mic (always, from this total). */
     announceCents: number;
     /** "Momento especial": lights, CO2… */
     specialMomentCents: number;
-    announcementsPerHour: number;
     /** Club choice: show the amount on the public screen, or only the name. */
     showAmountOnScreen: boolean;
   };
@@ -119,7 +118,6 @@ export const DEFAULT_AUCTION_CONFIG: AuctionConfig = {
     screenNameCents: 5000,
     announceCents: 15000,
     specialMomentCents: 30000,
-    announcementsPerHour: 3,
     showAmountOnScreen: true,
   },
 };
@@ -182,7 +180,6 @@ export const auctionConfigInputSchema = z
         screenNameCents: num,
         announceCents: num,
         specialMomentCents: num,
-        announcementsPerHour: num,
         showAmountOnScreen: z.boolean(),
       })
       .partial()
@@ -288,7 +285,6 @@ export function parseAuctionConfig(input: unknown): AuctionConfig {
       screenNameCents,
       announceCents,
       specialMomentCents,
-      announcementsPerHour: int(rec.announcementsPerHour ?? d.recognition.announcementsPerHour, 0, 60),
       showAmountOnScreen: rec.showAmountOnScreen ?? d.recognition.showAmountOnScreen,
     },
   };
