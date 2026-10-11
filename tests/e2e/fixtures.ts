@@ -142,6 +142,65 @@ export async function signInAnonymousGuest(request: APIRequestContext): Promise<
   return { guestId: body.user.id, accessToken: body.access_token };
 }
 
+/** A fresh Portuguese mobile number nobody used yet in this run. */
+export function freshPhoneDigits(): string {
+  return `9${String(Date.now() * 1000 + Math.floor(Math.random() * 1000)).slice(-8)}`;
+}
+
+/**
+ * Every test guest sends its SMS from "its own phone network": the
+ * per-IP SMS limit (10 per 10 min) is for real visitors, and the whole
+ * suite runs from one machine.
+ */
+export function freshClientIp(): string {
+  return `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${1 + Math.floor(Math.random() * 250)}`;
+}
+
+/**
+ * An API guest signed in with a phone number (the party's login,
+ * 2026-10-08; bids need it since 2026-10-10): anonymous session, then the
+ * SMS code the mock provider hands back in development.
+ */
+export async function signInGuest(request: APIRequestContext, digits = freshPhoneDigits()): Promise<AnonymousGuest> {
+  const guest = await signInAnonymousGuest(request);
+  const headers = { authorization: `Bearer ${guest.accessToken}`, "x-forwarded-for": freshClientIp() };
+  const phone = `+351${digits}`;
+  const sent = await request.post("/api/guest/phone", {
+    headers,
+    data: { phone, turnstileToken: "e2e-dev-always-pass" },
+  });
+  if (!sent.ok()) throw new Error(`SMS code failed (${sent.status()}): ${await sent.text()}`);
+  const { devCode } = (await sent.json()) as { devCode?: string };
+  const verified = await request.post("/api/guest/phone", { headers, data: { phone, code: devCode } });
+  if (!verified.ok()) throw new Error(`SMS verify failed (${verified.status()}): ${await verified.text()}`);
+  const body = (await verified.json()) as { session?: { accessToken: string } };
+  // A number seen before: the server signed us in as its guest.
+  if (body.session) {
+    const { url, anonKey } = supabaseEnv();
+    const me = await request.get(`${url}/auth/v1/user`, {
+      headers: { apikey: anonKey, authorization: `Bearer ${body.session.accessToken}` },
+    });
+    const user = (await me.json()) as { id: string };
+    return { guestId: user.id, accessToken: body.session.accessToken };
+  }
+  return guest;
+}
+
+/**
+ * A guest's balance at the seeded club, read straight from the wallet
+ * (service key): works after the night ended, when the guest API no
+ * longer answers.
+ */
+export async function walletBalance(request: APIRequestContext, guestId: string): Promise<number> {
+  const { url, serviceKey } = supabaseEnv();
+  if (!serviceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY missing — needed to read the wallet");
+  const res = await request.get(`${url}/rest/v1/wallet_entries?guest_id=eq.${guestId}&select=amount_cents`, {
+    headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}` },
+  });
+  if (!res.ok()) throw new Error(`wallet read failed (${res.status()})`);
+  return ((await res.json()) as Array<{ amount_cents: number }>).reduce((sum, e) => sum + e.amount_cents, 0);
+}
+
 export interface SearchTrack {
   id: string;
   title: string;
@@ -206,7 +265,7 @@ export async function bidViaApi(
   },
 ): Promise<ApiBid> {
   const token = opts.token ?? tokenFromGuestPath(await getGuestPath(request));
-  const guest = opts.guest ?? (await signInAnonymousGuest(request));
+  const guest = opts.guest ?? (await signInGuest(request));
   const trackId =
     opts.trackId ?? (await searchTracks(request, guest, token)).filter((t) => t.available).at(-1)?.id ?? "";
   const bid = (totalCents: number) =>
@@ -358,12 +417,16 @@ export async function enterParty(
   page: Page,
   who: { digits?: string; handle?: string } = {},
 ): Promise<{ digits: string; handle: string }> {
-  const digits = who.digits ?? `9${String(Date.now() * 1000 + Math.floor(Math.random() * 1000)).slice(-8)}`;
+  const digits = who.digits ?? freshPhoneDigits();
   const handle = who.handle ?? `e2e${Math.random().toString(36).slice(2, 10)}`;
   const phone = page.locator("#gate-phone");
   const nav = page.getByRole("navigation");
   await phone.or(nav).first().waitFor({ timeout: 20_000 });
   if (!(await phone.isVisible())) return { digits, handle };
+  const ip = freshClientIp();
+  await page.route("**/api/guest/phone", (route) =>
+    route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": ip } }),
+  );
   await phone.fill(digits);
   await page.getByRole("button", { name: /enviar código|send code/i }).click();
   const dev = (await page.getByText(/código de teste|test code/i).textContent({ timeout: 15_000 })) ?? "";
