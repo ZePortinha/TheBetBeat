@@ -9,6 +9,8 @@
  *   - A backer may send the bidder a short message (10 characters).
  */
 
+import { hasBlockedWord } from "@/lib/guests/blocked-words";
+
 export interface BidPart {
   guestId: string;
   amountCents: number;
@@ -36,59 +38,6 @@ export function bidLeader(ownerId: string, parts: readonly BidPart[]): string {
 
 export const MESSAGE_MAX_CHARS = 10;
 
-/**
- * Words a backing message may not carry (pt-PT and EN): insults, slurs,
- * sexual and violent terms. Compared without accents, separators or digit
- * swaps, so "p.u.t.a" or "f4ck" are caught too.
- */
-const BLOCKED = [
-  // pt
-  "puta", "putas", "puto", "putos", "caralho", "foda", "fodase", "foder", "fodido", "merda", "cona", "piça",
-  "pila", "cabrao", "cabra", "corno", "cornos", "paneleiro", "panasca", "bicha", "maricas", "rabeta", "preto",
-  "macaco", "cigano", "monhe", "atrasado", "mongoloide", "otario", "idiota", "estupido", "cu", "punheta",
-  "broche", "mamada", "vadia", "badalhoca", "porra", "nazi", "hitler", "violar", "violo", "morre",
-  // en
-  "fuck", "fck", "fuk", "shit", "bitch", "cunt", "dick", "cock", "pussy", "whore", "slut", "bastard",
-  "asshole", "ass", "fag", "faggot", "nigger", "nigga", "retard", "rape", "kill", "die", "kys", "porn",
-  "sex", "cum",
-];
-
-function fold(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/0/g, "o")
-    .replace(/1/g, "i")
-    .replace(/3/g, "e")
-    .replace(/4/g, "a")
-    .replace(/5/g, "s")
-    .replace(/7/g, "t")
-    .replace(/@/g, "a")
-    .replace(/\$/g, "s");
-}
-
-/** Repeated letters collapsed ("fuuuck" → "fuck"). */
-const squeeze = (word: string) => word.replace(/(.)\1+/g, "$1");
-
-const BLOCKED_FOLDED = new Set(BLOCKED.flatMap((w) => [fold(w).replace(/[^a-z]/g, ""), squeeze(fold(w).replace(/[^a-z]/g, ""))]));
-const BLOCKED_LONG = [...BLOCKED_FOLDED].filter((w) => w.length >= 5);
-
-/** Words in the message, plus letters spelled out one by one ("p.u.t.a" → "puta"). */
-function wordsOf(folded: string): string[] {
-  const tokens = folded.split(/[^a-z]+/).filter(Boolean);
-  const words = [...tokens];
-  let run = "";
-  for (const t of [...tokens, ""]) {
-    if (t.length === 1) run += t;
-    else {
-      if (run.length > 1) words.push(run);
-      run = "";
-    }
-  }
-  return words.flatMap((w) => [w, squeeze(w)]);
-}
-
 export type MessageCheck =
   | { ok: true; message: string | null }
   | { ok: false; reason: "too_long" | "invalid" | "blocked" };
@@ -109,9 +58,10 @@ export function checkBackingMessage(raw: string | null | undefined): MessageChec
   if (/[\p{Cc}\p{Cf}<>]/u.test(message.replace(/‍/g, ""))) return { ok: false, reason: "invalid" };
   if (/https?:|www\.|\.(com|pt|net|org|io|me|ly)\b/i.test(message)) return { ok: false, reason: "invalid" };
 
-  for (const word of wordsOf(fold(message))) {
-    // Whole words; longer ones also as the start of a word ("caralhos"), so "cu" never blocks "curti".
-    if (BLOCKED_FOLDED.has(word) || BLOCKED_LONG.some((b) => word.startsWith(b))) return { ok: false, reason: "blocked" };
+  // The same banned-word list as the @ (lib/guests/blocked-words.ts); also
+  // tried with punctuation turned into spaces, so "corno!" is one word.
+  if (hasBlockedWord(message) || hasBlockedWord(message.replace(/[^\p{L}\p{N}@$\s]/gu, " "))) {
+    return { ok: false, reason: "blocked" };
   }
   return { ok: true, message };
 }

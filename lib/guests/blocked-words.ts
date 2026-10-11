@@ -145,6 +145,18 @@ const WHOLE = [
   "nude",
   "isis",
   "kkk",
+  // Insults first listed for backing messages (PR #11), shared since
+  "idiota",
+  "idiotas",
+  "estupido",
+  "estupida",
+  "otario",
+  "otaria",
+  "atrasado",
+  "mongoloide",
+  "fck",
+  "fuk",
+  "kys",
 ];
 
 /**
