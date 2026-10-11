@@ -161,7 +161,9 @@ export function BidForm({
   const fromWallet = Math.min(walletCents, add);
   const toPay = add - fromWallet;
   const phoneValid = /^9\d{8}$/.test(phoneDigits);
+  // Backing someone keeps their name on the song: no "Como apareces" to fill.
   const displayValid =
+    target.kind === "back" ||
     display.mode === "anonymous" ||
     (display.mode === "handle" && /^@?[a-z0-9][a-z0-9._-]{1,23}$/i.test(display.handle)) ||
     (display.mode === "table" && display.table.trim().length > 0);
@@ -194,7 +196,7 @@ export function BidForm({
           slotId: slot.id,
           totalCents: effectiveTotal,
           target,
-          display,
+          display: target.kind === "back" ? { mode: "anonymous" } : display,
           ...(toPay > 0 ? { method } : {}),
           ...(toPay > 0 && method === "mbway" ? { phone: `+351${phoneDigits}` } : {}),
           ...(toPay > 0 ? { turnstileToken: turnstileToken ?? "missing" } : {}),
@@ -290,16 +292,23 @@ export function BidForm({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              aria-pressed={display.mode === "handle"}
               className={chip(display.mode === "handle")}
               onClick={() => setDisplay({ mode: "handle", handle: display.mode === "handle" ? display.handle : myHandle.current })}
             >
               {t("appearHandle")}
             </button>
-            <button type="button" className={chip(display.mode === "anonymous")} onClick={() => setDisplay({ mode: "anonymous" })}>
+            <button
+              type="button"
+              aria-pressed={display.mode === "anonymous"}
+              className={chip(display.mode === "anonymous")}
+              onClick={() => setDisplay({ mode: "anonymous" })}
+            >
               {t("appearAnonymous")}
             </button>
             <button
               type="button"
+              aria-pressed={display.mode === "table"}
               className={chip(display.mode === "table")}
               onClick={() => setDisplay({ mode: "table", table: display.mode === "table" ? display.table : "" })}
             >

@@ -538,3 +538,14 @@ Product owner: MB WAY must be real and production-ready (top priority). ifthenpa
 - **Temporary staff passwords must be changed** at first sign-in (`app_metadata.must_change_password`, min 12 characters).
 - **Mock payments stay allowed in production** while there is no ifthenpay contract (product owner, 2026-10-06), so demos keep working. They credit money that does not exist: switch to `PAYMENT_PROVIDER=ifthenpay` before any real night.
 
+## 2026-10-07 — "Populares" shows only songs a guest can bid on
+
+- **Context:** E2E bids failed with `track_not_found`: "Populares" (tonight's
+  most-bid songs) listed catalog songs even with the catalog closed, and library
+  songs without their `blocked` flag, so both looked available but were refused
+  on bid.
+- **Decision:** catalog songs appear there only while the night's catalog is
+  open; library songs carry `blocked` (shown unavailable). E2E bids pick a song
+  from the club's library, which every catalog mode accepts.
+- **Also:** the dev-only `/api/dev/auction` gains `forget-mic` so the mic test
+  does not depend on how many announcements earlier runs used this hour.
