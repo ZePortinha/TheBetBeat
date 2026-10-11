@@ -285,7 +285,7 @@ describe("bidding on the server clock", () => {
 
 describe("backing: the top spender owns the song (owner, 2026-10-11)", () => {
   it("a backer who puts in more than the bidder wins the song, with their name; the bidder gets the note", async () => {
-    const now = T0 + 50_000;
+    const now = T0 + 51_000;
     const slot = await newSlot(now);
     const [a, c] = await Promise.all([createGuest(), createGuest()]);
     const r = await bid(a, slot, 1000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
@@ -317,7 +317,7 @@ describe("backing: the top spender owns the song (owner, 2026-10-11)", () => {
   }, 60_000);
 
   it("on a tie the bidder keeps it, and raising takes it back", async () => {
-    const now = T0 + 55_000;
+    const now = T0 + 56_000;
     const slot = await newSlot(now);
     const [a, c] = await Promise.all([createGuest(), createGuest()]);
     const r = await bid(a, slot, 1000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
@@ -334,7 +334,7 @@ describe("backing: the top spender owns the song (owner, 2026-10-11)", () => {
   }, 60_000);
 
   it("a message only goes with backing someone else's bid", async () => {
-    const now = T0 + 58_000;
+    const now = T0 + 58_500;
     const slot = await newSlot(now);
     const a = await createGuest();
     const r = await bid(a, slot, 1000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
