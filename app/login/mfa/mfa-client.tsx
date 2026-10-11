@@ -125,11 +125,6 @@ export function MfaClient({
       <p className="text-sm text-text-secondary">
         {mode === "enroll" ? labels.enrollIntro : labels.verifyIntro}
       </p>
-      {labels.devHint ? (
-        <p className="rounded-card bg-surface-3 px-3 py-2 text-center text-xs text-text-secondary">
-          {labels.devHint}
-        </p>
-      ) : null}
       {mode === "enroll" && qrSvg ? (
         <div className="self-center rounded-card bg-white p-3">
           {/* Supabase returns an SVG data URI for the otpauth QR. */}
@@ -155,6 +150,11 @@ export function MfaClient({
           required
         />
       </label>
+      {labels.devHint ? (
+        <p className="rounded-card bg-surface-3 px-3 py-2 text-center text-sm text-text-secondary">
+          {labels.devHint}
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm text-ember-500">
           {labels.error}
