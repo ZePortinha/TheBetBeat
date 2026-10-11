@@ -13,7 +13,7 @@
  */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { auctionState, bidViaApi, closeAuction, enterParty, freshClientIp, getGuestUrl, loginStaff, openAuction } from "./fixtures";
+import { auctionState, bidViaApi, closeAuction, enterParty, freshClientIp, getGuestPath, getGuestUrl, loginStaff, openAuction } from "./fixtures";
 
 const PHONE_ONLY = "phone viewport only";
 
@@ -34,8 +34,9 @@ test.describe("guest app · leilões", () => {
     return guestUrl;
   }
 
-  test("a intro do logótipo bate e dá lugar à app", async ({ page }) => {
-    const guestUrl = await getGuestUrl(page);
+  test("a intro do logótipo bate e dá lugar à app", async ({ page, request }) => {
+    // Not through the page: the intro plays once per tab, and "/" plays it too.
+    const guestUrl = await getGuestPath(request);
     // Watch from the first bytes: the splash plays while the page loads.
     await page.goto(guestUrl, { waitUntil: "commit" });
     await expect(page.getByTestId("boot-intro")).toBeVisible();

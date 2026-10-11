@@ -14,6 +14,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   auctionState,
   bidViaApi,
+  enterParty,
   getGuestPath,
   getGuestUrl,
   openAuction,
@@ -60,6 +61,7 @@ test.describe("guest app · outros fluxos", () => {
     await event.click();
     await expect(page).toHaveURL(/\/s\/[^/]+$/, { timeout: 20_000 });
     await introGone(page);
+    await enterParty(page);
     await expect(
       page.getByRole("button", { name: /^licitar faixa$|^bid a track$/i }),
     ).toBeVisible({ timeout: 15_000 });
@@ -83,6 +85,7 @@ test.describe("guest app · outros fluxos", () => {
 
     await page.goto(await getGuestUrl(page));
     await introGone(page);
+    await enterParty(page);
     await page.getByRole("button", { name: /^licitar faixa$|^bid a track$/i }).click();
     await expect(page).toHaveURL(/\/search$/, { timeout: 20_000 });
     await page.getByRole("searchbox").fill(word);
@@ -113,6 +116,7 @@ test.describe("guest app · outros fluxos", () => {
 
     await page.goto(await getGuestUrl(page));
     await introGone(page);
+    await enterParty(page);
     await page.getByRole("button", { name: /^ver leilão$|^see the auction$/i }).click();
     await expect(page.getByText("@e2e_lider").first()).toBeVisible({ timeout: 15_000 });
     await page

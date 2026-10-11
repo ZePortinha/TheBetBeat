@@ -15,6 +15,16 @@
 | 8 — Real integrations & robustness | todo | Real PSP/SMS/invoicing/catalog credentials unavailable → adapters stay mocked behind interfaces; Sentry/PostHog wiring, load-test run, B12 review pending |
 | 9 — Delivery | docs done | README, `docs/OPERATIONS.md`, `docs/SECURITY.md`, DECISIONS updated. Final `db:audit` result still to paste into SECURITY.md |
 
+## 2026-10-11 - PRs #1-#6 integrated (branch claude/project-thread-cp9ey2)
+
+One branch from main with the six open PRs merged (#1, #3, #2, #4, #6, #5)
+and the conflicts resolved (see DECISIONS 2026-10-11). Verified in the cloud
+container on the real local Supabase stacks: typecheck, lint, i18n:check,
+`pnpm test` (494), `SUPABASE_TEST=1 pnpm test` (161), `pnpm db:audit`, and
+`pnpm test:e2e` (all 61 run green on Chromium; the phone project ran on
+Chromium, not WebKit). Still to check on a real phone: the Instagram video
+share and the celebration's frame rate (PR #4).
+
 ## Real MB WAY hardening (cloud session — 2026-10-06)
 
 Branch `claude/mbway-integracao-real-rz5b2z`. ifthenpay refund endpoint fixed;

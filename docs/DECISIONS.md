@@ -647,3 +647,25 @@ local Supabase stack. Most of the system already followed the skill
 Left on purpose: the red glow on the live auction card and the gold
 "you lead" state are the owner's look; the win celebration belongs to the
 "Correções de telemóvel e partilhas" thread.
+
+## 2026-10-11 - Six open PRs integrated on one branch
+
+None of PRs #1 to #6 had reached main and several conflicted, so they were
+merged in this order on `claude/project-thread-cp9ey2`: #1, #3, #2, #4, #6,
+#5. Where two touched the same place, the newer brief won:
+
+- **Last-30-s frame:** PR #2's per-second beat (`FinalStretchFrame`, opacity
+  only) with PR #4's placement on the guest app (inside the column, rounded,
+  under the tab bar): new `page` prop. The TV keeps the screen-edge frame.
+  The card and digits stay steady red (PR #2), not pulsing.
+- **Winner celebration:** PR #4's "Gold & Smoke" scene as is.
+- **Login and balance:** PR #6 (phone is the account, @ locked, 7-day
+  balance, runner-up rollover). PR #1's reserved-@ check stays on the bid
+  and profile routes; the old end-of-night keep/refund choice is gone.
+- **Destructive buttons:** PR #5's capsule shape, PR #2's `ember-700` fill
+  (white on `ember-500` failed AA contrast).
+- **Migrations:** 13-16 from PR #1, 17 from PR #6, no collisions.
+- **E2E:** PR #3's flows enter by phone now (`enterParty`); the intro test
+  reads the guest link without opening `/`, since the intro plays once per
+  tab (PR #2).
+
