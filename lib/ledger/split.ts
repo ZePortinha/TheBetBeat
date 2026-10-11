@@ -10,6 +10,9 @@
 /** Basis points denominator: 10000 bps = 100%. */
 export const BPS_DENOMINATOR = 10_000;
 
+/** BetBeat's flat fee on every event created from 2026-10-11: 11%. */
+export const PLATFORM_FEE_BPS = 1_100;
+
 export interface Split {
   /** Gross amount captured from the guest (VAT-inclusive), cents. */
   amountCents: number;
@@ -17,6 +20,8 @@ export interface Split {
   betbeatFeeCents: number;
   /** Venue share of the remainder, cents. */
   venueCents: number;
+  /** Promoter share of the remainder, cents (0 when the event has none). */
+  promoterCents: number;
   /** DJ share of the remainder, cents. */
   djCents: number;
 }
@@ -45,29 +50,41 @@ function mulBpsRound(amountCents: number, bps: number): number {
 }
 
 /**
- * Split a gross request amount into BetBeat fee, venue share and DJ share.
+ * Split a gross request amount into BetBeat fee, venue, promoter and DJ shares.
  *
- * fee   = round(amount · betbeatFeeBps / 10000)
- * rest  = amount − fee
- * venue = round(rest · venueShareBps / 10000)
- * dj    = rest − venue
+ * fee      = round(amount · betbeatFeeBps / 10000)
+ * rest     = amount − fee
+ * venue    = round(rest · venueShareBps / 10000)
+ * promoter = round(rest · promoterShareBps / 10000)
+ * dj       = rest − venue − promoter
  *
  * Invariants (property-tested): every part is a non-negative integer and
- * fee + venue + dj === amount for all non-negative integer inputs.
+ * fee + venue + promoter + dj === amount for all non-negative integer
+ * inputs with venueShareBps + promoterShareBps ≤ 10000.
  */
 export function computeSplit(
   amountCents: number,
   betbeatFeeBps: number,
   venueShareBps: number,
+  promoterShareBps = 0,
 ): Split {
   assertNonNegativeInt(amountCents, "amountCents");
   assertBps(betbeatFeeBps, "betbeatFeeBps");
   assertBps(venueShareBps, "venueShareBps");
+  assertBps(promoterShareBps, "promoterShareBps");
+  if (venueShareBps + promoterShareBps > BPS_DENOMINATOR) {
+    throw new RangeError(
+      `venueShareBps + promoterShareBps must be <= ${BPS_DENOMINATOR}, got ${venueShareBps + promoterShareBps}`,
+    );
+  }
 
   const betbeatFeeCents = mulBpsRound(amountCents, betbeatFeeBps);
   const remainderCents = amountCents - betbeatFeeCents;
   const venueCents = mulBpsRound(remainderCents, venueShareBps);
-  const djCents = remainderCents - venueCents;
+  // Both rounded halves can never exceed the remainder: ≤ rest·(v+p)/10000 + 1
+  // only when both round up, so the promoter is capped by what is left.
+  const promoterCents = Math.min(mulBpsRound(remainderCents, promoterShareBps), remainderCents - venueCents);
+  const djCents = remainderCents - venueCents - promoterCents;
 
-  return { amountCents, betbeatFeeCents, venueCents, djCents };
+  return { amountCents, betbeatFeeCents, venueCents, promoterCents, djCents };
 }

@@ -168,6 +168,8 @@ export interface StaffDtoContext {
   betbeatFeeBps: number;
   /** Venue share of the post-fee remainder, bps (session_settings). */
   venueShareBps: number;
+  /** Promoter share of the post-fee remainder, bps (0 without a promoter). */
+  promoterShareBps?: number;
   /** Zone display name, when the request came from a zoned QR. */
   zoneName: string | null;
 }
@@ -176,7 +178,7 @@ export function toStaffRequestDto(
   row: RequestRow,
   ctx: StaffDtoContext,
 ): StaffRequestPayload {
-  const split = computeSplit(row.amount_cents, ctx.betbeatFeeBps, ctx.venueShareBps);
+  const split = computeSplit(row.amount_cents, ctx.betbeatFeeBps, ctx.venueShareBps, ctx.promoterShareBps ?? 0);
   return {
     requestId: row.id,
     tier: row.tier,

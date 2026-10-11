@@ -1,13 +1,17 @@
 "use client";
 
 /**
- * Session create/edit form (B9.1). Inline validation while typing
- * (B10.8): the B5.6 "+5 € per tier" rule is checked live client-side
- * and again server-side — the server is the authority.
+ * Event create/edit form (B9.1, reworked 2026-10-11): the event, its music
+ * (styles + BPM range that steer the guests' first recommendations, and the
+ * catalog mode), and the revenue split (BetBeat's flat fee, then club,
+ * promoter and DJ, with a live 100 € example). The legacy request-tier
+ * prices stay under "Preços dos pedidos diretos". Inline validation while
+ * typing (B10.8); the server re-validates and is the authority.
  */
 
 import { useActionState, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { computeSplit } from "@/lib/ledger/split";
 import {
   saveSessionAction,
   type SessionFormState,
@@ -21,6 +25,8 @@ export interface SessionFormValues {
   endTime: string;
   djStaffId: string;
   genres: string[];
+  bpmMin: number | null;
+  bpmMax: number | null;
   catalogMode: "library" | "library_plus_catalog";
   basePriceEur: number;
   acceptanceRatePerHour: number;
@@ -33,13 +39,16 @@ export interface SessionFormValues {
   nextMinEur: number;
   nextMaxEur: number;
   venueSharePct: number;
+  promoterName: string;
+  promoterSharePct: number;
 }
 
 export interface SessionFormProps {
   venueId: string;
   djs: Array<{ id: string; name: string }>;
   genreOptions: string[];
-  betbeatFeePct: number;
+  /** BetBeat's fee on this event (flat 11% for new ones), bps. */
+  betbeatFeeBps: number;
   initial: SessionFormValues;
 }
 
@@ -74,9 +83,10 @@ export function SessionForm({
   venueId,
   djs,
   genreOptions,
-  betbeatFeePct,
+  betbeatFeeBps,
   initial,
 }: SessionFormProps) {
+  const betbeatFeePct = betbeatFeeBps / 100;
   const t = useTranslations("console.sessions");
   const [state, formAction, pending] = useActionState<SessionFormState, FormData>(
     saveSessionAction,
@@ -93,6 +103,24 @@ export function SessionForm({
     nMin: initial.nextMinEur,
     nMax: initial.nextMaxEur,
   });
+  // Revenue split + event rules, live.
+  const [shares, setShares] = useState({ venue: initial.venueSharePct, promoter: initial.promoterSharePct });
+  const [promoterName, setPromoterName] = useState(initial.promoterName);
+  const [bpm, setBpm] = useState({ min: initial.bpmMin?.toString() ?? "", max: initial.bpmMax?.toString() ?? "" });
+  const styleOptions = useMemo(
+    () => [...new Set([...initial.genres, ...genreOptions])],
+    [initial.genres, genreOptions],
+  );
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(initial.genres));
+  const [customStyles, setCustomStyles] = useState("");
+  const example = useMemo(() => {
+    const v = Math.round(shares.venue * 100);
+    const p = Math.round(shares.promoter * 100);
+    if (!(v >= 0 && p >= 0 && v + p <= 10_000)) return null;
+    return computeSplit(10_000, betbeatFeeBps, v, p);
+  }, [shares, betbeatFeeBps]);
+  const djPct = Math.max(0, 100 - shares.venue - shares.promoter);
+
   const liveErrors = useMemo(() => {
     const e: Record<string, string> = {};
     if (tiers.qMax < tiers.qMin) e.queueMaxEur = "maxBelowMin";
@@ -103,8 +131,14 @@ export function SessionForm({
     if (tiers.base < tiers.qMin || tiers.base > tiers.qMax) {
       e.basePriceEur = "baseOutsideQueue";
     }
+    if (shares.venue + shares.promoter > 100) e.promoterSharePct = "sharesOver";
+    if (shares.promoter > 0 && promoterName.trim().length === 0) e.promoterName = "promoterName";
+    if (bpm.min && bpm.max && Number(bpm.min) > Number(bpm.max)) e.bpmMax = "bpmRange";
     return e;
-  }, [tiers]);
+  }, [tiers, shares, promoterName, bpm]);
+  const noStyle = picked.size === 0 && customStyles.trim().length === 0;
+  const euros = (cents: number) =>
+    new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(cents / 100);
 
   const errorFor = (field: string): string | undefined => {
     const key = liveErrors[field] ?? state?.errors?.[field];
@@ -180,6 +214,85 @@ export function SessionForm({
               ))}
             </select>
           </Field>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-card border border-line-subtle bg-surface-1 p-6" data-testid="event-music">
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary">{t("form.music")}</h2>
+          <p className="mt-1 text-sm text-text-tertiary">{t("form.musicHint")}</p>
+        </div>
+        <fieldset>
+          <legend className="label pb-2 text-text-secondary">{t("form.genres")}</legend>
+          {errorFor("genres") ? (
+            <p role="alert" className="pb-2 text-xs text-ember-500">
+              {errorFor("genres")}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {styleOptions.map((genre) => (
+              <label
+                key={genre}
+                className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line-subtle
+                  bg-surface-2 px-4 text-sm font-semibold text-text-secondary
+                  has-checked:border-accent-500 has-checked:bg-accent-500/15 has-checked:text-text-primary"
+              >
+                <input
+                  type="checkbox"
+                  name="genres"
+                  value={genre}
+                  checked={picked.has(genre)}
+                  onChange={(e) =>
+                    setPicked((prev) => {
+                      const next = new Set(prev);
+                      if (e.target.checked) next.add(genre);
+                      else next.delete(genre);
+                      return next;
+                    })
+                  }
+                  className="accent-[var(--color-accent-500)]"
+                />
+                {genre}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <Field label={t("form.customGenres")}>
+          <input
+            name="customGenres"
+            value={customStyles}
+            onChange={(e) => setCustomStyles(e.target.value)}
+            maxLength={200}
+            placeholder={t("form.customGenresPlaceholder")}
+            className={inputCls}
+          />
+        </Field>
+        {noStyle ? <p className="text-sm text-amber-500">{t("form.pickStyle")}</p> : null}
+        <div className="grid grid-cols-3 gap-4">
+          <Field label={t("form.bpmMin")} error={errorFor("bpmMin")}>
+            <input
+              type="number"
+              name="bpmMin"
+              min={40}
+              max={220}
+              value={bpm.min}
+              onChange={(e) => setBpm((b) => ({ ...b, min: e.target.value }))}
+              placeholder="—"
+              className={`${inputCls} tnum`}
+            />
+          </Field>
+          <Field label={t("form.bpmMax")} error={errorFor("bpmMax")}>
+            <input
+              type="number"
+              name="bpmMax"
+              min={40}
+              max={220}
+              value={bpm.max}
+              onChange={(e) => setBpm((b) => ({ ...b, max: e.target.value }))}
+              placeholder="—"
+              className={`${inputCls} tnum`}
+            />
+          </Field>
           <Field label={t("form.catalogMode")} error={errorFor("catalogMode")}>
             <select
               name="catalogMode"
@@ -191,37 +304,86 @@ export function SessionForm({
             </select>
           </Field>
         </div>
-        <fieldset>
-          <legend className="label pb-2 text-text-secondary">{t("form.genres")}</legend>
-          {errorFor("genres") ? (
-            <p role="alert" className="pb-2 text-xs text-ember-500">
-              {errorFor("genres")}
-            </p>
-          ) : null}
-          <div className="grid grid-cols-3 gap-2">
-            {genreOptions.map((genre) => (
-              <label
-                key={genre}
-                className="flex items-center gap-2 rounded-button border border-line-subtle
-                  bg-surface-2 px-3 py-2 text-sm text-text-primary
-                  has-checked:border-accent-500 has-checked:bg-surface-3"
-              >
-                <input
-                  type="checkbox"
-                  name="genres"
-                  value={genre}
-                  defaultChecked={initial.genres.includes(genre)}
-                  className="accent-[var(--color-accent-500)]"
-                />
-                {genre}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <p className="text-sm text-text-tertiary">{t("form.bpmHint")}</p>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-card border border-line-subtle bg-surface-1 p-6">
-        <h2 className="text-lg font-semibold text-text-primary">{t("form.pricing")}</h2>
+      <section className="flex flex-col gap-4 rounded-card border border-line-subtle bg-surface-1 p-6" data-testid="event-split">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold text-text-primary">{t("form.split")}</h2>
+          <span className="tnum rounded-full bg-surface-3 px-3 py-1 text-sm font-semibold text-text-secondary">
+            {t("form.feeBadge", { fee: betbeatFeePct })}
+          </span>
+        </div>
+        <p className="text-sm text-text-tertiary">{t("form.splitHint", { fee: betbeatFeePct })}</p>
+        <div className="grid grid-cols-3 gap-4">
+          <Field label={t("form.venueShare")} error={errorFor("venueSharePct")}>
+            <input
+              type="number"
+              name="venueSharePct"
+              min={0}
+              max={100}
+              step="1"
+              value={shares.venue}
+              onChange={(e) => setShares((s) => ({ ...s, venue: Number(e.target.value) || 0 }))}
+              required
+              className={`${inputCls} tnum`}
+            />
+          </Field>
+          <Field label={t("form.promoterShare")} error={errorFor("promoterSharePct")}>
+            <input
+              type="number"
+              name="promoterSharePct"
+              min={0}
+              max={100}
+              step="1"
+              value={shares.promoter}
+              onChange={(e) => setShares((s) => ({ ...s, promoter: Number(e.target.value) || 0 }))}
+              required
+              className={`${inputCls} tnum`}
+            />
+          </Field>
+          <div className="flex flex-col gap-1.5">
+            <span className="label text-text-secondary">{t("form.djShare")}</span>
+            <output className="tnum flex min-h-[42px] items-center px-1 text-xl font-semibold text-text-primary" data-testid="dj-share">
+              {djPct}%
+            </output>
+          </div>
+        </div>
+        <Field label={t("form.promoterName")} error={errorFor("promoterName")}>
+          <input
+            name="promoterName"
+            value={promoterName}
+            onChange={(e) => setPromoterName(e.target.value)}
+            maxLength={80}
+            placeholder={t("form.promoterNamePlaceholder")}
+            className={inputCls}
+          />
+        </Field>
+        {example ? (
+          <div className="rounded-card border border-line-subtle bg-surface-2 p-4" data-testid="split-example">
+            <p className="label text-text-tertiary">{t("form.exampleTitle")}</p>
+            <dl className="mt-2 grid grid-cols-4 gap-3">
+              {(
+                [
+                  ["exampleBetbeat", example.betbeatFeeCents],
+                  ["exampleVenue", example.venueCents],
+                  ["examplePromoter", example.promoterCents],
+                  ["exampleDj", example.djCents],
+                ] as const
+              ).map(([key, cents]) => (
+                <div key={key} className="flex flex-col">
+                  <dt className="text-xs text-text-tertiary">{t(`form.${key}`)}</dt>
+                  <dd className="tnum text-lg font-semibold text-text-primary">{euros(cents)}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ) : null}
+      </section>
+
+      <details className="group rounded-card border border-line-subtle bg-surface-1 p-6">
+        <summary className="cursor-pointer text-lg font-semibold text-text-primary">{t("form.pricing")}</summary>
+        <div className="mt-4 flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label={t("form.basePrice")} error={errorFor("basePriceEur")}>
             <input
@@ -310,26 +472,8 @@ export function SessionForm({
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="flex flex-col gap-4 rounded-card border border-line-subtle bg-surface-1 p-6">
-        <h2 className="text-lg font-semibold text-text-primary">{t("form.split")}</h2>
-        <p className="text-sm text-text-tertiary">
-          {t("form.splitHint", { fee: betbeatFeePct })}
-        </p>
-        <Field label={t("form.venueShare")} error={errorFor("venueSharePct")}>
-          <input
-            type="number"
-            name="venueSharePct"
-            min={0}
-            max={100}
-            step="1"
-            defaultValue={initial.venueSharePct}
-            required
-            className={`${inputCls} tnum max-w-40`}
-          />
-        </Field>
-      </section>
+        </div>
+      </details>
 
       {state?.formError ? (
         <p role="alert" className="text-sm text-ember-500">
@@ -340,7 +484,7 @@ export function SessionForm({
       <div className="flex items-center gap-4">
         <button
           type="submit"
-          disabled={pending || Object.keys(liveErrors).length > 0}
+          disabled={pending || noStyle || Object.keys(liveErrors).length > 0}
           className="min-h-11 rounded-full bg-accent-500 px-6 text-base font-semibold
             text-text-on-accent transition-transform duration-100 active:scale-[0.97]
             disabled:opacity-60"

@@ -69,7 +69,7 @@
       }
     },
     "form": {
-      "general": "Geral",
+      "general": "Evento",
       "name": "Nome da sessão",
       "date": "Data",
       "startTime": "Início",
@@ -79,8 +79,8 @@
       "catalogMode": "Catálogo",
       "catalogLibrary": "Só a biblioteca do DJ",
       "catalogPlus": "Biblioteca e catálogo global",
-      "genres": "Géneros da noite",
-      "pricing": "Preços e prazos",
+      "genres": "Estilos da noite",
+      "pricing": "Preços dos pedidos diretos",
       "basePrice": "Preço base (€)",
       "rate": "Ritmo de aceitação (pedidos por hora)",
       "soonDeadline": "Prazo Em Breve (min)",
@@ -89,10 +89,28 @@
       "min": "Mínimo (€)",
       "max": "Máximo (€)",
       "split": "Divisão da receita",
-      "splitHint": "A BetBeat fica com {fee}% da receita bruta. O resto divide-se entre a casa e o DJ.",
-      "venueShare": "Parte da casa (%)",
+      "splitHint": "A BetBeat fica com {fee}% de cada licitação (taxa fixa). O resto divide-se entre a casa, o promotor e o DJ, nas percentagens abaixo.",
+      "venueShare": "Casa (%)",
       "save": "Guardar sessão",
-      "saving": "A guardar…"
+      "saving": "A guardar…",
+      "music": "Música da noite",
+      "musicHint": "Os convidados veem primeiro músicas destes estilos (e dentro do BPM, se o definires). Ex.: tema funk, as primeiras recomendações são funk.",
+      "customGenres": "Outro estilo",
+      "customGenresPlaceholder": "Ex.: funk carioca, sertanejo (separa com vírgulas)",
+      "pickStyle": "Escolhe pelo menos um estilo.",
+      "bpmMin": "BPM mínimo (opcional)",
+      "bpmMax": "BPM máximo (opcional)",
+      "bpmHint": "O BPM só ordena as recomendações. Os convidados continuam a poder licitar em qualquer música da biblioteca.",
+      "feeBadge": "Taxa BetBeat {fee}%",
+      "promoterShare": "Promotor (%)",
+      "djShare": "DJ (o resto)",
+      "promoterName": "Promotor (opcional)",
+      "promoterNamePlaceholder": "Nome da promotora ou do promotor",
+      "exampleTitle": "Numa licitação de 100 €",
+      "exampleBetbeat": "BetBeat",
+      "exampleVenue": "Casa",
+      "examplePromoter": "Promotor",
+      "exampleDj": "DJ"
     },
     "tiers": {
       "QUEUE": "Na Fila",
@@ -105,7 +123,10 @@
       "tierStep": "Este nível tem de começar pelo menos 5 € acima do anterior.",
       "tierStepMax": "O máximo não deixa espaço para os 5 € entre níveis. Sobe o máximo.",
       "baseOutsideQueue": "O preço base tem de ficar entre o mínimo e o máximo de Na Fila.",
-      "notEditable": "Esta sessão já terminou e não pode ser alterada."
+      "notEditable": "Esta sessão já terminou e não pode ser alterada.",
+      "sharesOver": "Casa e promotor juntos não podem passar de 100%.",
+      "promoterName": "Escreve o nome do promotor para lhe dar uma parte.",
+      "bpmRange": "O BPM máximo tem de ser igual ou superior ao mínimo."
     },
     "qr": {
       "title": "QR do evento",
@@ -246,6 +267,7 @@
     "title": "Receita",
     "gmv": "Receita bruta",
     "venueNet": "Líquido da casa",
+    "promoterNet": "Líquido do promotor",
     "djNet": "Líquido do DJ",
     "betbeatFee": "Taxa BetBeat",
     "refunds": "Reembolsos",
@@ -258,7 +280,8 @@
     "noPayouts": "Sem liquidações. Criam-se quando uma sessão termina.",
     "recipient": {
       "venue": "Casa",
-      "dj": "DJ"
+      "dj": "DJ",
+      "promoter": "Promotor"
     },
     "payoutStatus": {
       "pending": "Pendente",
@@ -390,7 +413,8 @@
       "feePct": "Taxa BetBeat (%)",
       "defaultSharePct": "Parte da casa por defeito (%)",
       "save": "Guardar",
-      "contractHint": "A taxa aplica-se às sessões criadas a partir de agora. A parte da casa preenche o formulário de nova sessão."
+      "contractHint": "A taxa BetBeat é fixa (11% de cada evento). A parte da casa preenche o formulário de novo evento.",
+      "feeFixed": "{fee}% (fixa)"
     },
     "live": {
       "crumbRoot": "Admin BetBeat",

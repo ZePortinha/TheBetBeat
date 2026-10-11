@@ -86,12 +86,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       requests_open: boolean;
       config: unknown;
       venue_share_bps: number;
+      promoter_share_bps: number;
       venue_settings: unknown;
     }>(
       `select s.id, s.venue_id, s.dj_staff_id, s.name, s.status, s.genres,
               s.catalog_mode, s.starts_at, s.ends_at, s.requests_open,
               coalesce(ss.config, '{}'::jsonb) as config,
               coalesce(ss.venue_share_bps, 5000) as venue_share_bps,
+              coalesce(ss.promoter_share_bps, 0) as promoter_share_bps,
               v.settings as venue_settings
          from public.sessions s
          left join public.session_settings ss on ss.session_id = s.id
@@ -117,6 +119,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const dtoCtx = {
       betbeatFeeBps: config.betbeatFeeBps,
       venueShareBps: session.venue_share_bps,
+      promoterShareBps: session.promoter_share_bps,
       zoneName: null as string | null,
     };
     const requests: StaffRequestPayload[] = reqRes.rows.map((row) =>
@@ -168,7 +171,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       [sessionId],
     );
     const totalCents = Number(revRes.rows[0]?.total ?? 0);
-    const split = computeSplit(totalCents, config.betbeatFeeBps, session.venue_share_bps);
+    const split = computeSplit(totalCents, config.betbeatFeeBps, session.venue_share_bps, session.promoter_share_bps);
 
     // Library genres with their blocked state (Definições chips).
     const genresRes = await pool.query<{ genre: string; blocked: boolean }>(

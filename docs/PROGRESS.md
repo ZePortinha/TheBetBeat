@@ -187,6 +187,17 @@ before → after on the production build: "/" perf 86 → 98, best practices 96 
 all 33 screens (was 9 across cockpit, console, landing, 404). Remaining best-practice flags on
 party pages come from the measurement setup (Turnstile blocked by the sandbox, no realtime).
 
+## DJ library, BPM and event form (cloud session, 2026-10-11)
+
+Branch `claude/bpm-biblioteca-evento-cfyj4o`, migration 18. Cockpit
+"Biblioteca" (/cockpit/library: songs, artists, albums, styles; add by hand
+or from the catalog, edit, remove), BPM + key of the songs in each open
+auction, event form with styles, BPM range and the club/promoter/DJ split at
+the flat 11% fee, "Estilo da noite" first in the guest's recommendations.
+See DECISIONS 2026-10-11. Tests: unit, integration
+(`tests/integration/library-split.integration.test.ts`) and E2E
+(`tests/e2e/library-event.spec.ts`).
+
 ## Next step
 
 Phase 8: wire Sentry (with `beforeSend` scrubbing) and PostHog behind env,

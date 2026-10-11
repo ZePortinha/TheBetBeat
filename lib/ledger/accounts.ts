@@ -4,7 +4,8 @@
  *
  * Flow for a played request of amount A with BetBeat fee F:
  *   capture:  psp_clearing +A  /  guest_escrow −A
- *   split:    guest_escrow +A  /  betbeat_revenue −F, venue_payable −V, dj_payable −D
+ *   split:    guest_escrow +A  /  betbeat_revenue −F, venue_payable −V,
+ *             promoter_payable −P (when the event has a promoter), dj_payable −D
  *   payout:   venue_payable +V /  psp_clearing −V   (and same for DJ)
  * Refund of R: guest_escrow +R / psp_clearing −R (before split).
  */
@@ -17,6 +18,8 @@ export const ACCOUNTS = {
   betbeatRevenue: "betbeat_revenue",
   /** Owed to the venue (liability until payout). */
   venuePayable: "venue_payable",
+  /** Owed to the event's promoter (liability until payout). */
+  promoterPayable: "promoter_payable",
   /** Owed to the DJ (liability until payout). */
   djPayable: "dj_payable",
   /** PSP fees expense (never charged to guests). */

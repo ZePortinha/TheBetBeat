@@ -119,7 +119,7 @@ export const fromHit = (h: CatalogHit): TrackRow => ({
   id: h.id,
   title: h.title,
   artist: h.artist,
-  genre: null,
+  genre: h.genre,
   bpm: h.bpm,
   camelot_key: h.camelotKey,
   cover_url: h.coverUrl,

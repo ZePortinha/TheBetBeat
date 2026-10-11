@@ -126,6 +126,7 @@ interface RequestJoinRow extends RequestRow {
 interface RequestPricingContext {
   config: SessionConfig;
   venueShareBps: number;
+  promoterShareBps: number;
   quotedTiers: Array<{ tier: Tier; priceCents: number }>;
 }
 
@@ -136,10 +137,12 @@ async function loadPricingContext(
   const res = await client.query<{
     config: unknown;
     venue_share_bps: number;
+    promoter_share_bps: number;
     tiers: Array<{ tier: Tier; priceCents: number }>;
   }>(
     `select coalesce(ss.config, '{}'::jsonb) as config,
             coalesce(ss.venue_share_bps, 5000) as venue_share_bps,
+            coalesce(ss.promoter_share_bps, 0) as promoter_share_bps,
             q.tiers
        from public.quotes q
        join public.sessions s on s.id = $2
@@ -152,6 +155,7 @@ async function loadPricingContext(
   return {
     config: parseSessionConfig(ctx.config),
     venueShareBps: ctx.venue_share_bps,
+    promoterShareBps: ctx.promoter_share_bps,
     quotedTiers: ctx.tiers,
   };
 }
@@ -254,7 +258,7 @@ export async function applyTransitionInTx(
       await postLedgerGroup(
         client,
         recognitionGroup(
-          computeSplit(amount, pricing.config.betbeatFeeBps, pricing.venueShareBps),
+          computeSplit(amount, pricing.config.betbeatFeeBps, pricing.venueShareBps, pricing.promoterShareBps),
           { venueId: meta.venueId, sessionId: meta.sessionId, requestId: meta.requestId, memo: "recognition:played" },
         ),
       );
@@ -490,6 +494,7 @@ async function buildPublishes(
   const staffPayload = toStaffRequestDto(row, {
     betbeatFeeBps: pricing.config.betbeatFeeBps,
     venueShareBps: pricing.venueShareBps,
+    promoterShareBps: pricing.promoterShareBps,
     zoneName: row.zone_name,
   });
   const guestPayload = toGuestRequestPayload(row);
@@ -1428,8 +1433,9 @@ export async function endSession(
   const statement = sessionStatement(entriesRes.rows);
 
   const payoutIds: string[] = [];
-  const payoutPlan: Array<{ recipient: "venue" | "dj"; amount: number; staffId: string | null }> = [
+  const payoutPlan: Array<{ recipient: "venue" | "dj" | "promoter"; amount: number; staffId: string | null }> = [
     { recipient: "venue", amount: statement.venueNet, staffId: null },
+    { recipient: "promoter", amount: statement.promoterNet, staffId: null },
     { recipient: "dj", amount: statement.djNet, staffId: header.dj_staff_id },
   ];
   for (const plan of payoutPlan) {
@@ -1502,7 +1508,7 @@ export async function executePayout(payoutId: string, now: number): Promise<bool
       id: string;
       session_id: string;
       venue_id: string;
-      recipient_type: "venue" | "dj";
+      recipient_type: "venue" | "dj" | "promoter";
       amount_cents: string | number;
       status: string;
     }>(`select * from public.payouts where id = $1 for update`, [payoutId]);

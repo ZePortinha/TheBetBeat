@@ -95,6 +95,9 @@ export default async function SessionStatementPage({
           money
           testId="statement-venue-net"
         />
+        {statement.promoterNet > 0 ? (
+          <Stat label={t("promoterNet")} value={formatEuros(statement.promoterNet)} testId="statement-promoter-net" />
+        ) : null}
         <Stat label={t("djNet")} value={formatEuros(statement.djNet)} testId="statement-dj-net" />
         <Stat
           label={t("betbeatFee")}

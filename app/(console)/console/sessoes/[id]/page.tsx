@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/console/page-header";
 import { SessionForm, type SessionFormValues } from "@/components/console/session-form";
 import { formatDateTime, requireConsole } from "../../_lib/context";
 import { endSessionAction, removeGuestListAction } from "../actions";
-import { lisbonParts, loadDjs, loadGenres, loadVenueFeeBps } from "../form-data";
+import { lisbonParts, loadDjs, loadGenres } from "../form-data";
 
 export const dynamic = "force-dynamic";
 
@@ -45,11 +45,17 @@ export default async function SessionDetailPage({
     display_slug: string;
     config: unknown;
     venue_share_bps: number;
+    promoter_share_bps: number;
+    promoter_name: string | null;
+    bpm_min: number | null;
+    bpm_max: number | null;
   }>(
     `select s.id, s.name, s.status, s.genres, s.catalog_mode, s.starts_at,
             s.ends_at, s.dj_staff_id, s.display_slug,
             coalesce(ss.config, '{}'::jsonb) as config,
-            coalesce(ss.venue_share_bps, 5000) as venue_share_bps
+            coalesce(ss.venue_share_bps, 5000) as venue_share_bps,
+            coalesce(ss.promoter_share_bps, 0) as promoter_share_bps,
+            ss.promoter_name, s.bpm_min, s.bpm_max
        from public.sessions s
        left join public.session_settings ss on ss.session_id = s.id
       where s.id = $1 and s.venue_id = $2`,
@@ -58,10 +64,9 @@ export default async function SessionDetailPage({
   const session = res.rows[0];
   if (!session) notFound();
 
-  const [djs, genres, feeBps, guestListRes] = await Promise.all([
+  const [djs, genres, guestListRes] = await Promise.all([
     loadDjs(venue.id),
     loadGenres(venue.id),
-    loadVenueFeeBps(venue.id),
     query<{ id: string; phone_encrypted: string }>(
       `select id, phone_encrypted from public.session_guest_list
         where session_id = $1 order by created_at desc`,
@@ -94,6 +99,8 @@ export default async function SessionDetailPage({
     endTime: end.time,
     djStaffId: session.dj_staff_id ?? "",
     genres: session.genres,
+    bpmMin: session.bpm_min,
+    bpmMax: session.bpm_max,
     catalogMode: session.catalog_mode,
     basePriceEur: config.basePriceCents / 100,
     acceptanceRatePerHour: config.acceptanceRatePerHour,
@@ -106,6 +113,8 @@ export default async function SessionDetailPage({
     nextMinEur: config.tierLimits.NEXT.minCents / 100,
     nextMaxEur: config.tierLimits.NEXT.maxCents / 100,
     venueSharePct: session.venue_share_bps / 100,
+    promoterName: session.promoter_name ?? "",
+    promoterSharePct: session.promoter_share_bps / 100,
   };
 
   const live = session.status === "live" || session.status === "paused";
@@ -215,7 +224,7 @@ export default async function SessionDetailPage({
           venueId={venue.id}
           djs={djs}
           genreOptions={genres}
-          betbeatFeePct={feeBps / 100}
+          betbeatFeeBps={config.betbeatFeeBps}
           initial={initial}
         />
       ) : (

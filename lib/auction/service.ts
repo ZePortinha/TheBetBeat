@@ -109,6 +109,8 @@ export interface Night {
   config: AuctionConfig;
   betbeatFeeBps: number;
   venueShareBps: number;
+  /** The promoter's part of what is left after the fee (0 = no promoter). */
+  promoterShareBps: number;
 }
 
 /** A club config that fails to parse must never stop a night: defaults. */
@@ -134,11 +136,13 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     venue_auction: unknown;
     session_config: unknown;
     venue_share_bps: number;
+    promoter_share_bps: number;
   }>(
     `select s.id, s.venue_id, s.status, s.requests_open, s.catalog_mode, s.starts_at, s.ends_at, s.auction_config,
             v.settings -> 'auction' as venue_auction,
             coalesce(ss.config, '{}'::jsonb) as session_config,
-            coalesce(ss.venue_share_bps, 5000) as venue_share_bps
+            coalesce(ss.venue_share_bps, 5000) as venue_share_bps,
+            coalesce(ss.promoter_share_bps, 0) as promoter_share_bps
        from public.sessions s
        join public.venues v on v.id = s.venue_id
        left join public.session_settings ss on ss.session_id = s.id
@@ -158,6 +162,7 @@ export async function loadNight(db: Db, sessionId: string): Promise<Night | null
     config: safeAuctionConfig(row.auction_config ?? row.venue_auction ?? {}),
     betbeatFeeBps: parseSessionConfig(row.session_config).betbeatFeeBps,
     venueShareBps: row.venue_share_bps,
+    promoterShareBps: row.promoter_share_bps,
   };
 }
 
@@ -1272,7 +1277,7 @@ async function markPlayedInTx(client: PoolClient, slot: SlotRow, night: Night, n
   if (total > 0) {
     await postLedgerGroup(
       client,
-      recognitionGroup(computeSplit(total, night.betbeatFeeBps, night.venueShareBps), {
+      recognitionGroup(computeSplit(total, night.betbeatFeeBps, night.venueShareBps, night.promoterShareBps), {
         venueId: night.venueId,
         sessionId: night.sessionId,
         memo: "recognition:auction",
