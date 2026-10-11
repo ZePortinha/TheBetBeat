@@ -56,11 +56,16 @@ export async function POST(request: Request) {
   if (!parsed.success) return apiError("invalid_request", 400);
 
   await ensureGuestRow(identity.guestId, parsed.data.locale);
-  const me = await getPool().query<{ phone_hash: string | null; phone_verified_at: Date | null }>(
-    `select phone_hash, phone_verified_at from public.guests where id = $1`,
+  const me = await getPool().query<{ phone_hash: string | null; phone_verified_at: Date | null; handle: string | null }>(
+    `select phone_hash, phone_verified_at, handle from public.guests where id = $1`,
     [identity.guestId],
   );
   const provenHash = me.rows[0]?.phone_verified_at ? me.rows[0].phone_hash : null;
+  // The @ picked at the first login stays with the number for good (2026-10-10).
+  const current = me.rows[0]?.handle ?? null;
+  if (parsed.data.handle && provenHash && current && current.toLowerCase() !== parsed.data.handle.toLowerCase()) {
+    return apiError("handle_locked", 409);
+  }
   if (parsed.data.handle && (await handleTaken(getPool(), parsed.data.handle, provenHash))) {
     return apiError("handle_taken", 409);
   }

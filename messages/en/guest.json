@@ -227,7 +227,7 @@
     "phoneHint": "We send a code by SMS. Your number is saved and filled in for you when you pay with MB WAY.",
     "phoneLabel": "Mobile number",
     "sendCode": "Send code",
-    "optionalNote": "It is optional: you can request songs without signing in.",
+    "optionalNote": "We only use your number to let you in and for MB WAY.",
     "codeTitle": "Enter the code",
     "codeHint": "We sent a 6-digit code to {phone}.",
     "codeLabel": "6-digit code",
@@ -239,13 +239,13 @@
     "signedInHint": "This number is filled in for you when you pay with MB WAY.",
     "phoneRow": "Mobile number",
     "backToSet": "Back to the set",
-    "forget": "Forget this number",
     "partyTitle": "Join the party",
     "partyHint": "Enter the number on the party's guest list. We send a code by SMS and you go straight into the right party.",
     "partyQrNote": "Not on the list? Scan the QR on the floor to join.",
     "noPartyTitle": "We could not find your party",
     "noPartyHint": "The number {phone} is not on the list of any party happening now. Check with the venue or scan the QR on the floor.",
-    "otherNumber": "Use another number"
+    "otherNumber": "Use another number",
+    "signOut": "Sign out on this phone"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -285,7 +285,10 @@
     "bid_not_found": "That bid is no longer active.",
     "insufficient_funds": "Your balance is not enough. Choose how to pay the rest.",
     "below_track_minimum": "This track starts higher: the transition from what is playing is harder. We updated the minimum.",
-    "handle_taken": "That @ belongs to another number. If it is yours, sign in with your number in the account to get it back, or pick another."
+    "handle_taken": "That @ belongs to another number. If it is yours, sign in with your number in the account to get it back, or pick another.",
+    "login_failed": "We couldn't sign you in right now. Ask for a new code.",
+    "handle_locked": "Your @ stays linked to your number for good.",
+    "login_required": "Sign in with your number to bid."
   },
   "auction": {
     "dockCta": "Bid a track",
@@ -317,7 +320,6 @@
     "anonymous": "Anonymous",
     "wallet": "Balance",
     "walletRefund": "Refund",
-    "walletHint": "Use your balance on the next bid. Whatever is left returns to your payment method at the end of the night.",
     "myBids": "My bids",
     "backed": "backed",
     "bidStatus": {
@@ -327,7 +329,8 @@
       "playing": "Playing now",
       "played": "Played",
       "refunded": "Not played, refunded",
-      "lost": "Did not win"
+      "lost": "Did not win",
+      "rolledOn": "Second place, moved to the next auction"
     },
     "chooseSlot": "Choose the auction",
     "topNow": "Currently",
@@ -364,10 +367,6 @@
     "rankingHint": "Only money behind tracks that already played counts.",
     "rankingEmpty": "Nobody is in the ranking yet",
     "rankingEmptyHint": "It appears here as soon as the first winning track plays.",
-    "endOfNight": "At the end of the night, any balance left:",
-    "refundAtEnd": "Refund it",
-    "keepForNext": "Keep for another night",
-    "walletKeptHint": "It stays in the app for another night at this club. If you do not use it within {days} days, we refund it to your payment method.",
     "closing": "Closing the auction…",
     "assistant": {
       "title": "Transition assistant",
@@ -410,7 +409,6 @@
     "enterAuction": "See auction",
     "youOutbidShort": "You were outbid",
     "walletTitle": "Your balance",
-    "walletRefundNow": "Refund to my payment method now",
     "pickedBy": "Picked by {label}",
     "pickedAnon": "Picked at auction, anonymous",
     "djPick": "DJ's pick",
@@ -422,7 +420,20 @@
     "shareInstagram": "Share on Instagram",
     "shareTitle": "Auction winner",
     "shareSaved": "Image saved. Open Instagram and post it to your Stories.",
-    "shareError": "We couldn't open sharing. Try again."
+    "shareError": "We couldn't open sharing. Try again.",
+    "walletAvailable": "Available",
+    "walletDeadline": "Withdraw or use it until {date}. After that it goes back to your payment method on its own.",
+    "walletEmpty": "When one of your bids is outbid, the money comes straight back here.",
+    "walletHeld": "{amount} on its way to the next auction",
+    "walletHeldHint": "You came second: your track opens the next auction with this amount.",
+    "walletRuleSecond": "Second place? The money moves to the next auction on its own, same track. Come first and it plays; second again and it moves on again.",
+    "walletRuleThird": "Third or lower? The money stays here in your balance for {days} days.",
+    "walletWithdraw": "Withdraw balance",
+    "walletWithdrawHint": "It goes back to the MB WAY or card it came from. After {days} days it goes back without you asking.",
+    "walletWithdrawn": "Done. {amount} on its way to your payment method.",
+    "walletWithdrawFailed": "We couldn't send it back right now. Your balance is still here; try again in a moment.",
+    "rolledIn": "from the previous auction",
+    "appearPublic": "Public · @{handle}"
   },
   "entry": {
     "title": "Join the party",
@@ -436,5 +447,17 @@
     "liveEmpty": "No live events right now. Check back later.",
     "auctionLive": "Auction live",
     "forVenues": "For venues"
+  },
+  "gate": {
+    "title": "Join the party",
+    "hint": "Type your number and we text you a code. Been here before? You go straight in with your @.",
+    "note": "Your number is saved and pre-fills MB WAY when you pay.",
+    "handleTitle": "Pick your @",
+    "handleHint": "It's the name on the venue screen and in the ranking. It stays with your number for next time.",
+    "handleLabel": "Your @",
+    "handlePlaceholder": "your-name",
+    "handleInvalid": "Use 2 to 24 letters, numbers, dot, hyphen or _.",
+    "handleTaken": "That @ is taken. Pick another one.",
+    "enter": "Enter"
   }
 }

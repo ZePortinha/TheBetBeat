@@ -212,7 +212,6 @@ export default async function AuctionsPage({
             <Num name="playTargetMin" value={config.playTargetMin} label={t("dj.playTargetMin")} />
             <Num name="refundAfterMin" value={config.refundAfterMin} label={t("dj.refundAfterMin")} />
             <div className="my-2 border-t border-line-subtle" />
-            <Check name="keepBalance" checked={config.keepBalanceAllowed} label={t("dj.keepBalance")} />
             <Num name="keepBalanceDays" value={config.keepBalanceDays} label={t("dj.keepBalanceDays")} />
             <p className="text-xs text-text-tertiary">{t("dj.keepBalanceHint")}</p>
           </Card>

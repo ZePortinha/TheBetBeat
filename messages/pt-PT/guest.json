@@ -227,7 +227,7 @@
     "phoneHint": "Enviamos um código por SMS. O número fica guardado e aparece já preenchido quando pagares com MB WAY.",
     "phoneLabel": "Telemóvel",
     "sendCode": "Enviar código",
-    "optionalNote": "É opcional: podes pedir músicas sem entrar.",
+    "optionalNote": "Usamos o número só para entrares na festa e para o MB WAY.",
     "codeTitle": "Escreve o código",
     "codeHint": "Enviámos um código de 6 dígitos para {phone}.",
     "codeLabel": "Código de 6 dígitos",
@@ -239,13 +239,13 @@
     "signedInHint": "Este número aparece já preenchido quando pagares com MB WAY.",
     "phoneRow": "Telemóvel",
     "backToSet": "Voltar ao set",
-    "forget": "Esquecer este número",
     "partyTitle": "Entrar na festa",
     "partyHint": "Escreve o número que está na lista da festa. Enviamos um código por SMS e entras logo na festa certa.",
     "partyQrNote": "Não estás na lista? Lê o QR da pista para entrar.",
     "noPartyTitle": "Não encontrámos a tua festa",
     "noPartyHint": "O número {phone} não está na lista de nenhuma festa a decorrer agora. Confirma com a casa ou lê o QR da pista.",
-    "otherNumber": "Usar outro número"
+    "otherNumber": "Usar outro número",
+    "signOut": "Sair neste telemóvel"
   },
   "errors": {
     "generic": "Algo correu mal. Tenta novamente.",
@@ -285,7 +285,10 @@
     "bid_not_found": "Essa licitação já não está ativa.",
     "insufficient_funds": "O saldo não chega. Escolhe como pagar o resto.",
     "below_track_minimum": "O preço de partida desta faixa é mais alto: a transição a partir do que está a tocar é mais difícil. Atualizámos o mínimo.",
-    "handle_taken": "Esse @ já pertence a outro número. Se é teu, entra com o teu número na conta para o recuperar, ou escolhe outro."
+    "handle_taken": "Esse @ já pertence a outro número. Se é teu, entra com o teu número na conta para o recuperar, ou escolhe outro.",
+    "login_failed": "Não conseguimos entrar na tua conta agora. Pede um código novo.",
+    "handle_locked": "O teu @ fica para sempre ligado ao teu número.",
+    "login_required": "Entra com o teu número para licitar."
   },
   "auction": {
     "dockCta": "Licitar faixa",
@@ -317,7 +320,6 @@
     "anonymous": "Anónimo",
     "wallet": "Saldo",
     "walletRefund": "Devolver",
-    "walletHint": "Usa o saldo na próxima licitação. O que sobrar volta ao teu meio de pagamento no fim da noite.",
     "myBids": "As minhas licitações",
     "backed": "apoiada",
     "bidStatus": {
@@ -327,7 +329,8 @@
       "playing": "A tocar agora",
       "played": "Tocou",
       "refunded": "Não tocou, devolvido",
-      "lost": "Não venceu"
+      "lost": "Não venceu",
+      "rolledOn": "2.º lugar, passou para o próximo leilão"
     },
     "chooseSlot": "Escolhe o leilão",
     "topNow": "Vai em",
@@ -364,10 +367,6 @@
     "rankingHint": "Só conta o dinheiro das faixas que já tocaram.",
     "rankingEmpty": "Ainda ninguém entrou no ranking",
     "rankingEmptyHint": "Assim que a primeira faixa vencedora tocar, aparece aqui.",
-    "endOfNight": "No fim da noite, o saldo que sobrar:",
-    "refundAtEnd": "Devolver",
-    "keepForNext": "Guardar para outra noite",
-    "walletKeptHint": "Fica guardado na app para outra noite nesta casa. Se não o usares em {days} dias, devolvemos ao teu meio de pagamento.",
     "closing": "A fechar o leilão…",
     "assistant": {
       "title": "Assistente de transição",
@@ -410,7 +409,6 @@
     "enterAuction": "Ver leilão",
     "youOutbidShort": "Foste ultrapassado",
     "walletTitle": "O teu saldo",
-    "walletRefundNow": "Devolver agora ao meu meio de pagamento",
     "pickedBy": "Escolhida por {label}",
     "pickedAnon": "Escolhida em leilão, anónimo",
     "djPick": "Escolha do DJ",
@@ -422,7 +420,20 @@
     "shareInstagram": "Partilhar no Instagram",
     "shareTitle": "Vencedor do leilão",
     "shareSaved": "Imagem guardada. Abre o Instagram e publica nas Stories.",
-    "shareError": "Não conseguimos abrir a partilha. Tenta outra vez."
+    "shareError": "Não conseguimos abrir a partilha. Tenta outra vez.",
+    "walletAvailable": "Disponível",
+    "walletDeadline": "Podes levantar ou usar até {date}. Depois volta sozinho ao teu meio de pagamento.",
+    "walletEmpty": "Quando uma licitação tua é ultrapassada, o dinheiro volta logo para aqui.",
+    "walletHeld": "{amount} a caminho do próximo leilão",
+    "walletHeldHint": "Ficaste em 2.º lugar: a tua faixa abre o próximo leilão com este valor.",
+    "walletRuleSecond": "Ficas em 2.º? O dinheiro passa sozinho para o próximo leilão, com a mesma faixa. Se venceres, toca; se voltares a ficar em 2.º, passa outra vez.",
+    "walletRuleThird": "Ficas em 3.º ou abaixo? O dinheiro fica aqui no saldo durante {days} dias.",
+    "walletWithdraw": "Levantar saldo",
+    "walletWithdrawHint": "Volta ao MB WAY ou cartão de onde veio. Passados {days} dias, volta sem precisares de pedir.",
+    "walletWithdrawn": "Feito. {amount} a caminho do teu meio de pagamento.",
+    "walletWithdrawFailed": "Não conseguimos devolver agora. O saldo continua aqui; tenta daqui a pouco.",
+    "rolledIn": "veio do leilão anterior",
+    "appearPublic": "Público · @{handle}"
   },
   "entry": {
     "title": "Entra na festa",
@@ -436,5 +447,17 @@
     "liveEmpty": "Nenhum evento em direto agora. Volta mais logo.",
     "auctionLive": "Leilão aberto",
     "forVenues": "Para casas"
+  },
+  "gate": {
+    "title": "Entra na festa",
+    "hint": "Escreve o teu número e enviamos um código por SMS. Se já cá estiveste, entras logo com o teu @.",
+    "note": "O número fica guardado e aparece já preenchido quando pagares com MB WAY.",
+    "handleTitle": "Escolhe o teu @",
+    "handleHint": "É o nome que aparece no ecrã e no ranking. Fica ligado ao teu número para a próxima vez.",
+    "handleLabel": "O teu @",
+    "handlePlaceholder": "o-teu-nome",
+    "handleInvalid": "Usa 2 a 24 letras, números, ponto, hífen ou _.",
+    "handleTaken": "Esse @ já está a ser usado. Escolhe outro.",
+    "enter": "Entrar"
   }
 }

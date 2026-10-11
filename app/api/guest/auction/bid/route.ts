@@ -9,7 +9,7 @@ import { encrypt, hashPhone } from "@/lib/security/crypto";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { apiError, clientIp, correlationId, rateLimitedResponse } from "../../_lib/http";
-import { ensureGuestRow, getGuestIdentity } from "../../_lib/auth";
+import { ensureGuestRow, getGuestIdentity, isSignedIn } from "../../_lib/auth";
 import { resolveGuestContext } from "../../_lib/context";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,8 @@ const bodySchema = z
     ]),
     display: z.discriminatedUnion("mode", [
       z.object({ mode: z.literal("anonymous") }).strict(),
-      z.object({ mode: z.literal("handle"), handle: z.string().regex(/^@?[a-z0-9][a-z0-9._-]{1,23}$/i) }).strict(),
+      // Signed in: "public" means the guest's own @ (sent without one).
+      z.object({ mode: z.literal("handle"), handle: z.string().regex(/^@?[a-z0-9][a-z0-9._-]{1,23}$/i).optional() }).strict(),
       z.object({ mode: z.literal("table"), table: z.string().trim().min(1).max(20) }).strict(),
     ]),
     method: z.enum(["mbway", "card", "apple_pay", "google_pay"]).optional(),
@@ -68,17 +69,24 @@ export async function POST(request: Request) {
   if ((slotRes.rowCount ?? 0) === 0) return apiError("slot_not_found", 404);
 
   await ensureGuestRow(identity.guestId);
-  const display: DisplayChoice =
-    body.display.mode === "handle"
-      ? { mode: "handle", handle: body.display.handle.replace(/^@/, "").toLowerCase() }
-      : body.display;
-  if (display.mode === "handle") {
-    const me = await getPool().query<{ phone_hash: string | null; phone_verified_at: Date | null }>(
-      `select phone_hash, phone_verified_at from public.guests where id = $1`,
-      [identity.guestId],
-    );
-    // Only a proven number counts as owning an @ (a typed one could be anyone's).
-    const provenHash = me.rows[0]?.phone_verified_at ? me.rows[0].phone_hash : null;
+  // Money moves only for a guest signed in with their number (2026-10-10).
+  if (!(await isSignedIn(identity.guestId))) return apiError("login_required", 401);
+  const me = await getPool().query<{ phone_hash: string | null; phone_verified_at: Date | null; handle: string | null }>(
+    `select phone_hash, phone_verified_at, handle from public.guests where id = $1`,
+    [identity.guestId],
+  );
+  // Only a proven number counts as owning an @ (a typed one could be anyone's).
+  const provenHash = me.rows[0]?.phone_verified_at ? me.rows[0].phone_hash : null;
+  const ownHandle = provenHash ? (me.rows[0]?.handle ?? null) : null;
+  let display: DisplayChoice;
+  if (body.display.mode !== "handle") {
+    display = body.display;
+  } else if (ownHandle) {
+    // The @ chosen at the first login is the guest's name for good.
+    display = { mode: "handle", handle: ownHandle };
+  } else {
+    if (!body.display.handle) return apiError("invalid_request", 400);
+    display = { mode: "handle", handle: body.display.handle.replace(/^@/, "").toLowerCase() };
     if (await handleTaken(getPool(), display.handle, provenHash)) return apiError("handle_taken", 409);
     // The @ is the guest's public name: remember it (and their consent).
     await getPool().query(
@@ -86,6 +94,9 @@ export async function POST(request: Request) {
       [identity.guestId, display.handle],
     );
     if (provenHash) await linkPhoneHandle(getPool(), identity.guestId, provenHash);
+  }
+  if (display.mode === "handle") {
+    await getPool().query(`update public.guests set ranking_optin = true where id = $1`, [identity.guestId]);
   }
 
   // A catalog track is priced by its transition: make sure we know its BPM
@@ -118,7 +129,9 @@ export async function POST(request: Request) {
   const human = await verifyTurnstile(body.turnstileToken ?? "missing", clientIp(request));
   if (!human) return apiError("bot_check_failed", 403);
 
-  if (body.phone) {
+  // A signed-in guest may pay with another MB WAY number: the account's
+  // number never changes because of it.
+  if (body.phone && !provenHash) {
     await getPool().query(
       `update public.guests set phone_encrypted = $2, phone_hash = $3, phone_verified_at = null
         where id = $1 and phone_hash is distinct from $3`,
