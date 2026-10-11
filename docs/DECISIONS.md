@@ -786,3 +786,20 @@ event criteria (music style) that decide the first recommendations.
 - Fixed on the way: the rekordbox/CSV import wrote its audit row with one
   parameter as both text and uuid, which Postgres refuses, so every import
   answered 500.
+
+## 2026-10-11 - PRs #8 to #12 integrated on one branch
+
+Merged from main in this order on `claude/integrar-pr8-pr12-032zvs`: #8, #9,
+#10, #11, #12. Only docs/DECISIONS.md and the guest error messages
+conflicted (both sides kept).
+
+- **Banned words, one list:** backing messages (#11) now call
+  `hasBlockedWord` from `lib/guests/blocked-words.ts` (#10), also with
+  punctuation read as spaces; #11's own list is gone. The insults only it
+  had (idiota, estupido, otario, atrasado, mongoloide, fck, fuk, kys) moved
+  into the shared WHOLE list, so @s refuse them too.
+- **Migrations:** 18 (#12) and 20 (#11), no collision; 19 is unused.
+- **Admin:** #11 dropped "Máximo de anúncios por hora" from Leilões
+  (the shoutout from the Leilões threshold, 150 € by default, is always
+  given); #12 made the BetBeat fee a fixed 11% in Casas. Different pages
+  and fields; both stand.
