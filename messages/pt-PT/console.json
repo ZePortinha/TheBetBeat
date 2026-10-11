@@ -237,7 +237,7 @@
     "inviting": "A convidar…",
     "invite": "Convidar",
     "tempPasswordTitle": "Conta criada para {email}",
-    "tempPasswordHint": "Palavra-passe temporária. Aparece só uma vez: copia-a e envia-a com segurança.",
+    "tempPasswordHint": "Palavra-passe temporária. Aparece só uma vez: copia-a e envia-a com segurança. No primeiro acesso, a pessoa escolhe a sua.",
     "copy": "Copiar",
     "copied": "Copiado"
   },

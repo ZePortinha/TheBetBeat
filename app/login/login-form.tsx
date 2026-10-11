@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import Script from "next/script";
+import { publicEnv } from "@/lib/security/public-env";
 import { loginAction, type LoginState } from "./actions";
 
 interface Labels {
@@ -17,6 +19,33 @@ export function LoginForm({ next, labels }: { next: string; labels: Labels }) {
     loginAction,
     null,
   );
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // Turnstile (B12.4): the widget writes its token into the form as
+  // `cf-turnstile-response`; the server requires it in production.
+  useEffect(() => {
+    const turnstile = window.turnstile;
+    if (!scriptLoaded || !turnstile || !widgetRef.current || widgetIdRef.current) return;
+    if (!publicEnv.turnstileSiteKey) return;
+    widgetIdRef.current = turnstile.render(widgetRef.current, {
+      sitekey: publicEnv.turnstileSiteKey,
+      appearance: "interaction-only",
+      size: "flexible",
+      theme: "dark",
+      callback: () => undefined,
+    });
+    return () => {
+      if (widgetIdRef.current && window.turnstile) window.turnstile.remove(widgetIdRef.current);
+      widgetIdRef.current = null;
+    };
+  }, [scriptLoaded]);
+
+  // Tokens are single-use: after a failed attempt, get a fresh one.
+  useEffect(() => {
+    if (state?.error && widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
+  }, [state]);
 
   const errorText =
     state?.error === "invalid"
@@ -35,6 +64,12 @@ export function LoginForm({ next, labels }: { next: string; labels: Labels }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onLoad={() => setScriptLoaded(true)}
+        onReady={() => setScriptLoaded(true)}
+      />
       <input type="hidden" name="next" value={next} />
       <label className="flex flex-col gap-1.5">
         <span className="label text-text-secondary">{labels.email}</span>
@@ -57,6 +92,7 @@ export function LoginForm({ next, labels }: { next: string; labels: Labels }) {
           required
         />
       </label>
+      <div ref={widgetRef} />
       {errorText ? (
         <p role="alert" className="text-sm text-ember-500">
           {errorText}

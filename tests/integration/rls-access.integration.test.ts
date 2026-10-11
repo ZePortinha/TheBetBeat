@@ -198,6 +198,19 @@ describe("RLS access matrix (B12.2)", () => {
       const { error: e2 } = await guest.from("guests").insert({ id: other });
       expect(e2).not.toBeNull();
     });
+    it("guest can change its locale but never its phone proof or @ (migration 0014)", async () => {
+      const { error: ok } = await guest.from("guests").update({ locale: "en" }).eq("id", guestId);
+      expect(ok).toBeNull();
+      for (const patch of [
+        { phone_verified_at: new Date().toISOString() },
+        { phone_hash: "f".repeat(64) },
+        { handle: "betbeat" },
+        { ranking_optin: true },
+      ]) {
+        const { error } = await guest.from("guests").update(patch).eq("id", guestId);
+        expect(error, JSON.stringify(patch)).not.toBeNull();
+      }
+    });
     it("guest cannot read venue/session/staff/library tables", async () => {
       for (const t of ["venues", "zones", "staff", "sessions", "library_tracks",
         "session_settings", "genre_multipliers", "session_tracks", "request_events"] as Table[]) {
@@ -229,6 +242,11 @@ describe("RLS access matrix (B12.2)", () => {
       const { data } = await manager.from("venues").update({ name: current?.name ?? "" })
         .eq("id", VENUE).select("id");
       expect(data?.length).toBe(1);
+      // Platform-owned columns stay server-only (migration 0014).
+      const { error: fee } = await manager.from("venues").update({ betbeat_fee_bps: 0 }).eq("id", VENUE);
+      expect(fee).not.toBeNull();
+      const { error: flags } = await manager.from("venues").update({ settings: {} }).eq("id", VENUE);
+      expect(flags).not.toBeNull();
       const { error } = await manager.from("staff")
         .update({ role: "admin" }).eq("venue_id", VENUE);
       // No UPDATE privilege on staff for authenticated → error (or no-op).

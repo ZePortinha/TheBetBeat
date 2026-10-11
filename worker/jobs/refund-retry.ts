@@ -15,6 +15,9 @@
  *    ORIGINAL idempotency key — a refund that actually went through on a
  *    previous crashed attempt is returned as-is by the provider, never
  *    executed twice;
+ *  - when the provider cannot tell whether an earlier attempt moved money
+ *    (PaymentOutcomeUnknownError: ifthenpay timed out mid-refund), the
+ *    refund is NOT retried: budget burnt, admin alerted at once;
  *  - a provider failure throws, so pg-boss retries with exponential
  *    backoff (retryDelay × 2^n + jitter — see backoffScheduleSeconds);
  *  - once total attempts reach WORKER_REFUND_MAX_ATTEMPTS (default 5) the
@@ -29,7 +32,7 @@
 import type PgBoss from "pg-boss";
 import type { PoolClient } from "pg";
 import { query, withTransaction } from "@/lib/db";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentProvider, PaymentOutcomeUnknownError } from "@/lib/payments";
 import { refundGroup } from "@/lib/ledger/groups";
 import { postLedgerGroup } from "@/lib/ledger/post";
 
@@ -272,6 +275,19 @@ export async function processRefundRetry(
     return { refundId, status: "succeeded" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown provider error";
+    if (error instanceof PaymentOutcomeUnknownError) {
+      // Retrying could pay the guest twice: a person checks the PSP first.
+      await withTransaction(async (client) => {
+        await client.query(
+          `update public.refunds set status = 'failed', attempts = $2, last_error = $3
+            where id = $1 and status = 'processing'`,
+          [row.id, config.maxAttempts, `outcome unknown: ${message}`.slice(0, 500)],
+        );
+        await insertAdminAlert(client, row, attempts, `outcome unknown, check the PSP before retrying: ${message}`);
+      });
+      console.error(`[worker:refunds] refund ${row.id} outcome unknown at the PSP — admin alerted, not retried`);
+      return { refundId, status: "exhausted" };
+    }
     await query(
       `update public.refunds set status = 'failed', last_error = $2
         where id = $1 and status = 'processing'`,

@@ -9,7 +9,7 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import { publicChannel } from "@/lib/realtime/events";
-import { useRealtimeChannel } from "@/lib/realtime/client";
+import { PUBLIC_HINT_MS, useRealtimeChannel } from "@/lib/realtime/client";
 import { apiFetch } from "./api";
 import { RankingPodium } from "./auction-screens";
 import { LiveDot, PartyHeading, PartyTopBar } from "./party-chrome";
@@ -27,7 +27,7 @@ function useSessionState(token: string, sessionId: string, initial: SessionState
     const id = setInterval(() => void refetch(), 15_000);
     return () => clearInterval(id);
   }, [refetch]);
-  useRealtimeChannel(publicChannel(sessionId), { private: false }, () => void refetch());
+  useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: PUBLIC_HINT_MS }, () => void refetch());
   return state;
 }
 

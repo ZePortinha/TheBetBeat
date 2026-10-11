@@ -6,16 +6,19 @@ export async function verifyTurnstile(
   token: string,
   remoteIp?: string,
 ): Promise<boolean> {
+  // Cloudflare caps tokens at 2048 characters; never send junk upstream.
+  if (token.length === 0 || token.length > 4096) return false;
   try {
     const res = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        signal: AbortSignal.timeout(5_000),
         body: new URLSearchParams({
           secret: env.TURNSTILE_SECRET_KEY,
           response: token,
-          ...(remoteIp ? { remoteip: remoteIp } : {}),
+          ...(remoteIp && remoteIp !== "local" ? { remoteip: remoteIp } : {}),
         }),
       },
     );

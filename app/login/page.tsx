@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
+import { safeNextPath } from "@/lib/security/redirect";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { ClearStaffCaches } from "./clear-staff-caches";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Entrar" };
@@ -14,6 +16,7 @@ export default async function LoginPage({
 
   return (
     <AuthShell title={t("title")} subtitle={t("subtitle")}>
+      <ClearStaffCaches />
       {params.error === "forbidden" ? (
         <p
           role="alert"
@@ -23,7 +26,7 @@ export default async function LoginPage({
         </p>
       ) : null}
       <LoginForm
-        next={params.next ?? "/cockpit"}
+        next={safeNextPath(params.next, "/cockpit")}
         labels={{
           email: t("email"),
           password: t("password"),

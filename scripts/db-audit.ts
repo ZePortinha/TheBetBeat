@@ -38,6 +38,8 @@ const SERVER_ONLY_WRITE = new Set([
   "wallet_preferences",
   "push_subscriptions",
   "phone_handles",
+  "psp_operations",
+  "rate_limits",
 ]);
 
 /** Tables anon (no session at all) may never touch. */
@@ -49,7 +51,22 @@ const NO_ANON = new Set([
   "auction_intents", "wallet_entries", "auction_slot_metrics", "wallet_preferences",
   "push_subscriptions",
   "phone_handles",
+  "psp_operations",
+  "rate_limits",
 ]);
+
+/**
+ * Client-writable tables: RLS picks the rows, these column grants pick the
+ * columns (migration 0014). A table-wide INSERT/UPDATE on them, or a column
+ * outside this list, is mass assignment (e.g. guests.phone_verified_at,
+ * venues.betbeat_fee_bps) and fails the audit.
+ */
+const CLIENT_WRITE_COLUMNS: Record<string, Partial<Record<"INSERT" | "UPDATE", string[]>>> = {
+  guests: { INSERT: ["id", "locale"], UPDATE: ["id", "locale"] },
+  venues: { UPDATE: ["name"] },
+  zones: { INSERT: ["venue_id", "name"], UPDATE: ["name"] },
+  genre_multipliers: { UPDATE: ["multiplier", "auto_apply"] },
+};
 
 async function main() {
   const client = new Client({ connectionString: DATABASE_URL });
@@ -111,6 +128,25 @@ async function main() {
     }
     if (g.grantee === "anon" && NO_ANON.has(g.table_name)) {
       failures.push(`anon holds ${g.privilege_type} on ${g.table_name}`);
+    }
+  }
+
+  // 3b. Column-level writes (no mass assignment through PostgREST).
+  for (const g of grants.rows) {
+    if (g.table_name in CLIENT_WRITE_COLUMNS && (g.privilege_type === "INSERT" || g.privilege_type === "UPDATE")) {
+      failures.push(`${g.grantee} holds table-wide ${g.privilege_type} on ${g.table_name} (grant columns instead)`);
+    }
+  }
+  const cols = await client.query<{ table_name: string; column_name: string; grantee: string; privilege_type: string }>(
+    `select table_name, column_name, grantee, privilege_type
+     from information_schema.column_privileges
+     where table_schema = 'public' and grantee in ('anon', 'authenticated')
+       and privilege_type in ('INSERT', 'UPDATE')`,
+  );
+  for (const c of cols.rows) {
+    const allowed = CLIENT_WRITE_COLUMNS[c.table_name]?.[c.privilege_type as "INSERT" | "UPDATE"] ?? [];
+    if (c.grantee === "anon" || !allowed.includes(c.column_name)) {
+      failures.push(`${c.grantee} may ${c.privilege_type} ${c.table_name}.${c.column_name}`);
     }
   }
 

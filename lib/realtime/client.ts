@@ -32,9 +32,17 @@ export interface UseRealtimeChannelOptions {
   maxBackoffMs?: number;
   /** Attempts before reporting "offline" (keeps retrying regardless). */
   offlineAfterAttempts?: number;
+  /**
+   * Public channels only carry "something changed, refetch" hints, and on a
+   * public channel ANY client can broadcast. Coalesces events so a flood of
+   * fake hints costs at most one refetch per interval (the last one wins).
+   */
+  minIntervalMs?: number;
 }
 
 const DEFAULT_MAX_BACKOFF_MS = 30_000;
+/** Public "refetch" hints: at most two refetches a second per screen. */
+export const PUBLIC_HINT_MS = 500;
 const DEFAULT_OFFLINE_AFTER = 4;
 
 function backoffDelayMs(attempt: number, maxMs: number): number {
@@ -62,6 +70,7 @@ export function useRealtimeChannel(
 
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
+  const minIntervalMs = options.minIntervalMs ?? 0;
 
   const isPrivate = options.private;
   const maxBackoffMs = options.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS;
@@ -78,6 +87,27 @@ export function useRealtimeChannel(
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let attempts = 0;
     let disposed = false;
+    let lastDelivered = 0;
+    let pending: EventEnvelope | null = null;
+    let coalesceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const deliver = (envelope: EventEnvelope) => {
+      if (minIntervalMs <= 0) {
+        onEventRef.current(envelope);
+        return;
+      }
+      pending = envelope;
+      if (coalesceTimer !== null) return;
+      const wait = Math.max(0, lastDelivered + minIntervalMs - Date.now());
+      coalesceTimer = setTimeout(() => {
+        coalesceTimer = null;
+        if (disposed || !pending) return;
+        lastDelivered = Date.now();
+        const next = pending;
+        pending = null;
+        onEventRef.current(next);
+      }, wait);
+    };
 
     setState("connecting");
 
@@ -117,7 +147,7 @@ export function useRealtimeChannel(
         .on("broadcast", { event: "*" }, (message) => {
           const envelope = message.payload as EventEnvelope | undefined;
           if (envelope && typeof envelope === "object" && "event" in envelope) {
-            onEventRef.current(envelope);
+            deliver(envelope);
           }
         })
         .subscribe((status) => {
@@ -143,9 +173,10 @@ export function useRealtimeChannel(
     return () => {
       disposed = true;
       if (retryTimer !== null) clearTimeout(retryTimer);
+      if (coalesceTimer !== null) clearTimeout(coalesceTimer);
       teardownChannel();
     };
-  }, [topic, isPrivate, maxBackoffMs, offlineAfter]);
+  }, [topic, isPrivate, maxBackoffMs, offlineAfter, minIntervalMs]);
 
   return state;
 }

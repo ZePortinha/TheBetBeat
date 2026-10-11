@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { handleTaken, linkPhoneHandle } from "@/lib/guests/phone-handle";
+import { isReservedHandle } from "@/lib/guests/reserved-handles";
 import { placeBid, startTopUpBid, type BidRequest } from "@/lib/auction/service";
 import { ensureTrackBpm } from "@/lib/catalog/service";
 import type { DisplayChoice } from "@/lib/auction/recognition";
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
       ? { mode: "handle", handle: body.display.handle.replace(/^@/, "").toLowerCase() }
       : body.display;
   if (display.mode === "handle") {
+    if (isReservedHandle(display.handle)) return apiError("handle_taken", 409);
     const me = await getPool().query<{ phone_hash: string | null; phone_verified_at: Date | null }>(
       `select phone_hash, phone_verified_at from public.guests where id = $1`,
       [identity.guestId],

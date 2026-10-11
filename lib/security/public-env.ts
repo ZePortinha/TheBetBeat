@@ -7,6 +7,8 @@ export const publicEnv = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
   turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+  /** "1" when Supabase Auth has CAPTCHA (Turnstile) on: sign-ins carry a token. */
+  supabaseCaptcha: process.env.NEXT_PUBLIC_SUPABASE_CAPTCHA === "1",
   posthogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "",
   posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "",
 } as const;

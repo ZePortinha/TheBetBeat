@@ -121,7 +121,7 @@ describe("MockSmsProvider", () => {
 
   it("logs only the MASKED phone number", async () => {
     await new MockSmsProvider().send(PHONE, "olá");
-    const logged = infoSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    const logged = infoSpy.mock.calls.map((c: unknown[]) => c.join(" ")).join("\n");
     expect(logged).toContain(MASKED);
     expect(logged).not.toContain("912345678");
   });

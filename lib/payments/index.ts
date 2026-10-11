@@ -24,6 +24,7 @@ export {
   MOCK_MBWAY_NEVER_CONFIRM_PHONE,
 } from "./mock";
 export { buildMockWebhook, signWebhookBody, verifySignedWebhook } from "./webhooks";
+export { PaymentOutcomeUnknownError } from "./journal";
 
 // On globalThis: dev hot reload re-evaluates modules per route, and two
 // copies of the mock would not see each other's payments.
@@ -52,9 +53,11 @@ async function createProvider(): Promise<PaymentProvider> {
     // development and are unavailable in production until a card gateway.
     case "ifthenpay": {
       const { IfthenpayProvider } = await import("./ifthenpay");
+      const { pgJournal } = await import("./journal-pg");
       return new IfthenpayProvider({
         mbWayKey: env.IFTHENPAY_MBWAY_KEY!,
         backofficeKey: env.IFTHENPAY_BACKOFFICE_KEY!,
+        journal: pgJournal,
         fallback:
           env.NODE_ENV === "production" ? null : new MockPaymentProvider({ webhookSecret: env.PAYMENT_WEBHOOK_SECRET }),
       });

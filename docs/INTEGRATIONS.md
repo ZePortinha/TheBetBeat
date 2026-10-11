@@ -27,6 +27,51 @@ ifthenpay's refund API.
    The app checks the key, then double-checks the payment with ifthenpay's
    status API before crediting anything. The worker also polls pending MB WAY
    payments every 15 seconds, so a lost callback does not lose a payment.
+   Keep `orderId=[ORDER_ID]` in the URL: it is how orphan payments are found
+   (below). ifthenpay activates callbacks on request (suporte@ifthenpay.com).
+5. Run `pnpm db:reset` (or apply migration 0013) and restart `pnpm worker`.
+6. Go-live check, before opening to guests:
+
+   ```
+   IFTHENPAY_MBWAY_KEY=… IFTHENPAY_BACKOFFICE_KEY=… pnpm mbway:smoke +3519XXXXXXXX
+   ```
+
+   It sends one real 1,00 € MB WAY request to your phone, waits for you to
+   approve it and refunds it. That proves the MB WAY key, the status API and
+   the refund key. Then make one real bid on the deployed site and check that
+   the callback arrives (audit_log `webhook.payment.confirmed`, or the
+   callback log in the ifthenpay backoffice).
+
+### Exactly-once with a PSP that has no idempotency keys
+
+ifthenpay does not deduplicate requests, so the app does it
+(`lib/payments/journal.ts`, table `psp_operations`):
+
+- Every MB WAY request and every refund records its key before the call and
+  its outcome after. The same key is never sent twice, even after a restart.
+- No guest is ever refunded more than they paid for one MB WAY payment,
+  whatever the reason or key.
+- **Unknown outcome.** If ifthenpay does not answer (timeout, network, 5xx),
+  the money may or may not have moved. The app does not guess and never
+  retries on its own: the refund is marked failed with
+  `outcome unknown` and the admin gets a `refund.failed.alert` in the audit
+  log. To settle one, look up the payment in the ifthenpay backoffice
+  (Refunds), then record what happened and hand the refund back to the worker:
+
+  ```sql
+  -- 'done' if the refund went through, 'refused' if it did not
+  update public.psp_operations set state = 'done' where idempotency_key = '<refund key>';
+  update public.refunds set status = 'failed', attempts = 0 where idempotency_key = '<refund key>';
+  ```
+
+  The worker picks it up within a minute: `done` is booked (ledger) without
+  calling ifthenpay again; `refused` is sent again.
+- **Orphan payments.** If the MB WAY request call times out but ifthenpay
+  had sent it, the guest can approve a payment the app never recorded. The
+  callback finds it by `orderId`, and the worker refunds it in full a minute
+  later (audit_log `payment.orphan_detected` → `payment.orphan_refunded`).
+  If that refund fails 5 times or its outcome is unknown, the audit log gets
+  `payment.orphan_refund_failed` for the admin.
 
 Limits to know:
 - **Refunds only come out of money ifthenpay has not paid out to you yet**

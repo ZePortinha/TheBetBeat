@@ -61,4 +61,7 @@ export const LIMITS = {
   login: { limit: 10, windowMs: 10 * 60_000 }, // per IP
   smsCode: { limit: 3, windowMs: 10 * 60_000 }, // per guest and per number
   smsVerify: { limit: 10, windowMs: 10 * 60_000 }, // per guest
+  // Per IP for SMS sends: a club shares one address, so per-number and
+  // per-guest caps (plus Turnstile) do the real work.
+  smsIp: { limit: 60, windowMs: 10 * 60_000 },
 } as const;

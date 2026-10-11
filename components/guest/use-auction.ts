@@ -16,7 +16,7 @@ import { useTranslations } from "next-intl";
 import type { MyAuctionState, PublicAuctionState } from "@/lib/auction/service";
 import type { PaymentMethod } from "@/lib/domain/types";
 import { guestChannel, publicChannel } from "@/lib/realtime/events";
-import { useRealtimeChannel } from "@/lib/realtime/client";
+import { PUBLIC_HINT_MS, useRealtimeChannel } from "@/lib/realtime/client";
 import { toast } from "@/components/ui/toast";
 import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
@@ -76,7 +76,7 @@ function useAuctionSource(token: string, sessionId: string) {
     return () => clearInterval(id);
   }, []);
 
-  useRealtimeChannel(publicChannel(sessionId), { private: false }, () => void refetch());
+  useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: PUBLIC_HINT_MS }, () => void refetch());
   useRealtimeChannel(ready && guestId ? guestChannel(guestId) : null, { private: true }, (envelope) => {
     if (envelope.event === "auction.outbid") {
       navigator.vibrate?.([80, 60, 80]);
