@@ -4,8 +4,14 @@
  * Pressable — the base interaction primitive (BRIEF B10.6, checklist 1–4).
  *
  * - Feedback on pointer-DOWN: scale 0.97 within 100ms (`durations.instant`).
- * - The action confirms on pointer-UP inside the target + ~10px hit slop.
- * - Pointer capture: dragging away cancels the press, dragging back re-arms it.
+ * - The action fires on pointer-DOWN too (owner, 2026-10-11: every button
+ *   acts the moment it is pressed, not when the finger lifts).
+ * - `activateOn: "release"` keeps the old tap for the few places that need
+ *   it: rows in a scrolling list (a scroll that starts on a row must not
+ *   pick it) and actions the browser only allows from a finished tap on
+ *   touch screens (share sheet, notifications permission, clipboard). Then
+ *   the action confirms on pointer-UP inside the target + ~10px hit slop,
+ *   and dragging away cancels the press, dragging back re-arms it.
  * - Double-tap protection: repeated confirms within 400ms are ignored WITHOUT
  *   delaying the first one (debounce never delays feedback).
  * - Keyboard still works: Enter/Space on a native button produce a click with
@@ -42,7 +48,11 @@ export interface UsePressableOptions {
   hitSlop?: number;
   /** Confirms within this window after a confirmed press are ignored (ms). */
   repeatWindowMs?: number;
+  /** "press" (default) acts on pointer-down; "release" on pointer-up. */
+  activateOn?: ActivateOn;
 }
+
+export type ActivateOn = "press" | "release";
 
 export interface PressableHandlers {
   onPointerDown: React.PointerEventHandler<HTMLElement>;
@@ -50,6 +60,8 @@ export interface PressableHandlers {
   onPointerUp: React.PointerEventHandler<HTMLElement>;
   onPointerCancel: React.PointerEventHandler<HTMLElement>;
   onClick: React.MouseEventHandler<HTMLElement>;
+  /** Tells the page-wide press activation (press-activation.tsx) to leave it alone. */
+  "data-pressable": ActivateOn;
 }
 
 export interface UsePressableResult {
@@ -61,8 +73,13 @@ export interface UsePressableResult {
 export function usePressable(
   options: UsePressableOptions = {},
 ): UsePressableResult {
-  const { onPress, disabled = false, hitSlop = 10, repeatWindowMs = 400 } =
-    options;
+  const {
+    onPress,
+    disabled = false,
+    hitSlop = 10,
+    repeatWindowMs = 400,
+    activateOn = "press",
+  } = options;
 
   const [pressed, setPressed] = React.useState(false);
   const pointerIdRef = React.useRef<number | null>(null);
@@ -117,8 +134,9 @@ export function usePressable(
         // Capture can fail on detached nodes; the press still works.
       }
       setPressed(true);
+      if (activateOn === "press") confirm(event);
     },
-    [disabled],
+    [activateOn, confirm, disabled],
   );
 
   const onPointerMove = React.useCallback<
@@ -139,9 +157,9 @@ export function usePressable(
       if (pointerIdRef.current !== event.pointerId) return;
       const inside = isWithinSlop(event);
       reset();
-      if (inside && !disabled) confirm(event);
+      if (activateOn === "release" && inside && !disabled) confirm(event);
     },
-    [confirm, disabled, isWithinSlop, reset],
+    [activateOn, confirm, disabled, isWithinSlop, reset],
   );
 
   const onPointerCancel = React.useCallback<
@@ -154,8 +172,8 @@ export function usePressable(
         event.preventDefault();
         return;
       }
-      // Pointer presses already confirmed on pointer-up (and the repeat
-      // window swallows the synthetic click); only keyboard activation
+      // Pointer presses already confirmed on pointer-down/up (the click
+      // that follows is not a new press); only keyboard activation
       // (detail === 0) confirms through click.
       if (event.detail !== 0) return;
       confirm(event);
@@ -165,7 +183,14 @@ export function usePressable(
 
   return {
     pressed,
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClick },
+    handlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel,
+      onClick,
+      "data-pressable": activateOn,
+    },
   };
 }
 
@@ -206,6 +231,7 @@ export interface PressableProps
   loading?: boolean;
   hitSlop?: number;
   repeatWindowMs?: number;
+  activateOn?: ActivateOn;
   /** Visual-state override for Storybook/docs only. */
   forcePressed?: boolean;
 }
@@ -220,6 +246,7 @@ export function Pressable({
   loading = false,
   hitSlop,
   repeatWindowMs,
+  activateOn,
   forcePressed = false,
   className,
   type = "button",
@@ -236,6 +263,7 @@ export function Pressable({
     disabled: inert,
     hitSlop,
     repeatWindowMs,
+    activateOn,
   });
   const isPressed = forcePressed || pressed;
   const pressAnimation = usePressAnimation(isPressed);
@@ -246,6 +274,7 @@ export function Pressable({
       disabled={disabled}
       aria-busy={loading || undefined}
       data-pressed={isPressed || undefined}
+      data-pressable={handlers["data-pressable"]}
       className={cx(
         // The after pseudo-element extends the hit area ~10px (B10.6 #1).
         "relative isolate touch-manipulation select-none after:absolute after:-inset-2.5 after:content-['']",

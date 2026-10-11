@@ -259,6 +259,8 @@ export function WinCelebration({
             fullWidth
             loading={sharing}
             aria-busy={preparing || undefined}
+            // The share sheet only opens from a finished tap on phones.
+            activateOn="release"
             onPress={() => {
               if (videoState === "recording") setWantShare(true);
               else void share();

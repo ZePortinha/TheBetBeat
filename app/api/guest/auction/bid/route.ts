@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
-import { handleTaken, linkPhoneHandle } from "@/lib/guests/phone-handle";
-import { isReservedHandle } from "@/lib/guests/reserved-handles";
+import { claimHandle, linkPhoneHandle } from "@/lib/guests/phone-handle";
 import { placeBid, startTopUpBid, type BidRequest } from "@/lib/auction/service";
 import { ensureTrackBpm } from "@/lib/catalog/service";
 import type { DisplayChoice } from "@/lib/auction/recognition";
@@ -88,13 +87,10 @@ export async function POST(request: Request) {
   } else {
     if (!body.display.handle) return apiError("invalid_request", 400);
     display = { mode: "handle", handle: body.display.handle.replace(/^@/, "").toLowerCase() };
-    if (isReservedHandle(display.handle)) return apiError("handle_taken", 409);
-    if (await handleTaken(getPool(), display.handle, provenHash)) return apiError("handle_taken", 409);
-    // The @ is the guest's public name: remember it (and their consent).
-    await getPool().query(
-      `update public.guests set handle = $2, ranking_optin = true where id = $1`,
-      [identity.guestId, display.handle],
-    );
+    // The @ is the guest's public name: word rules, database, then remember it.
+    const claimed = await claimHandle(getPool(), identity.guestId, display.handle, provenHash);
+    if (claimed === "not_allowed") return apiError("handle_not_allowed", 422);
+    if (claimed === "taken") return apiError("handle_taken", 409);
     if (provenHash) await linkPhoneHandle(getPool(), identity.guestId, provenHash);
   }
   if (display.mode === "handle") {

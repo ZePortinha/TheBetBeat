@@ -13,7 +13,7 @@
  */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { auctionState, bidViaApi, closeAuction, enterParty, freshClientIp, getGuestPath, getGuestUrl, loginStaff, openAuction } from "./fixtures";
+import { auctionState, bidViaApi, closeAuction, enterParty, freshClientIp, freshPhoneDigits, getGuestPath, getGuestUrl, loginStaff, openAuction } from "./fixtures";
 
 const PHONE_ONLY = "phone viewport only";
 
@@ -151,6 +151,52 @@ test.describe("guest app · leilões", () => {
       // The @ chosen first is for good.
       const change = await page2.request.post("/api/guest/profile", { data: { handle: "outro-nome" } });
       expect(change.status()).toBe(409);
+    } finally {
+      await other.close();
+    }
+  });
+
+  test("@: palavras proibidas e @ já usado avisam enquanto se escreve; Entrar atua ao pressionar", async ({ page, browser }) => {
+    const guestUrl = await getGuestUrl(page);
+    await page.goto(guestUrl);
+    const first = await enterParty(page);
+
+    const other = await browser.newContext({ viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true });
+    try {
+      const page2 = await other.newPage();
+      const ip = freshClientIp();
+      await page2.route("**/api/guest/phone", (route) =>
+        route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": ip } }),
+      );
+      await page2.goto(guestUrl);
+      await page2.locator("#gate-phone").fill(freshPhoneDigits());
+      await page2.getByRole("button", { name: /enviar código|send code/i }).click();
+      const dev = (await page2.getByText(/código de teste|test code/i).textContent({ timeout: 15_000 })) ?? "";
+      await page2.getByRole("textbox", { name: /código de 6 dígitos|6-digit code/i }).fill(/\d{6}/.exec(dev)?.[0] ?? "");
+      const field = page2.locator("#gate-handle");
+      const enter = page2.getByRole("button", { name: /^entrar$|^enter$/i });
+
+      // Someone else's @ (any case) is taken, straight from the database.
+      await field.fill(first.handle.toUpperCase());
+      await expect(page2.getByText(/esse @ já está a ser usado|that @ is taken/i)).toBeVisible({ timeout: 10_000 });
+      await expect(enter).toBeDisabled();
+      // Problem words, even disguised, are not allowed.
+      await field.fill("c4r4lh0.22");
+      await expect(page2.getByText(/esse @ não é permitido|that @ is not allowed/i)).toBeVisible({ timeout: 10_000 });
+      await expect(enter).toBeDisabled();
+      // The server says no too, whatever the page shows.
+      const direct = await page2.request.post("/api/guest/profile", { data: { handle: "fuck.you" } });
+      expect(direct.status()).toBe(422);
+
+      await field.fill(`e2e${Math.random().toString(36).slice(2, 10)}`);
+      await expect(page2.getByText(/^disponível$|^available$/i)).toBeVisible({ timeout: 10_000 });
+      // The button acts on the press itself: the party opens before the finger lifts.
+      const box = await enter.boundingBox();
+      if (!box) throw new Error("no Entrar button");
+      await page2.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page2.mouse.down();
+      await expect(page2.getByRole("navigation")).toBeVisible({ timeout: 15_000 });
+      await page2.mouse.up();
     } finally {
       await other.close();
     }

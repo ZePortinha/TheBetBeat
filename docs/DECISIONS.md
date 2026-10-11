@@ -669,3 +669,39 @@ merged in this order on `claude/project-thread-cp9ey2`: #1, #3, #2, #4, #6,
   reads the guest link without opening `/`, since the intro plays once per
   tab (PR #2).
 
+
+## 2026-10-11 - Banned words in @s, taken @s from the database, buttons act on press
+
+Owner's request: forbid problematic Portuguese and English words in the @
+chosen at sign-up, confirm against the database whether the @ already
+exists, and make every button act the moment it is pressed.
+
+- **Banned words:** `lib/guests/blocked-words.ts`, two lists kept in the
+  repo. ANYWHERE words are caught inside any @; WHOLE words only as the
+  whole @ or one of its parts (split at dot, hyphen, _ and digits), because
+  they hide in ordinary words ("computador", "pilates", "sexta"). Accents,
+  case and digits used as letters (f0d4, 1 as i or l) are undone and
+  repeated letters collapsed before comparing. The guest sees "Esse @ não é
+  permitido" (`handle_not_allowed`, 422); reserved names (PR #1) still
+  answer like a taken @.
+- **Taken @:** before, only the @ tied to another proven number was
+  refused; `guests.handle` itself was not unique. Now `claimHandle`
+  (lib/guests/phone-handle.ts) refuses an @ held by any other guest (any
+  case), except guests signed in with the same number, and checks and
+  writes in one transaction behind an advisory lock on the @, so two phones
+  cannot both get it. No unique index: old rows may already repeat an @,
+  and a migration number now would collide with the parallel threads.
+  `GET /api/guest/handle?h=` lets the @ field say "Disponível", "já está a
+  ser usado" or "não é permitido" while the guest types (rate-limited,
+  answers only the status).
+- **Buttons act on press (overrides B10.6 "confirms on pointer-up" and
+  the ui rule "drag-away cancels"):** `usePressable` (Button, Pressable)
+  fires on pointer-down; `PressActivation` (mounted in app/providers.tsx)
+  does the same for every plain button, link, switch and checkbox, and
+  drops the browser's own click when the finger lifts so nothing runs
+  twice. Kept on release (`activateOn="release"` or `data-press="release"`):
+  rows in scrolling lists (TrackRow, the live-events list on "/"), so a
+  scroll that starts on a row does not pick it; and share sheet,
+  notifications permission, clipboard and downloads, which browsers allow
+  only from a finished tap on touch screens. HoldButton stays
+  hold-to-confirm.

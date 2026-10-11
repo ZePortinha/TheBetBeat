@@ -4,8 +4,7 @@ import { getPool } from "@/lib/db";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { apiError, rateLimitedResponse } from "../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../_lib/auth";
-import { handleTaken, linkPhoneHandle } from "@/lib/guests/phone-handle";
-import { isReservedHandle } from "@/lib/guests/reserved-handles";
+import { claimHandle, linkPhoneHandle } from "@/lib/guests/phone-handle";
 
 export const dynamic = "force-dynamic";
 
@@ -67,21 +66,20 @@ export async function POST(request: Request) {
   if (parsed.data.handle && provenHash && current && current.toLowerCase() !== parsed.data.handle.toLowerCase()) {
     return apiError("handle_locked", 409);
   }
-  if (
-    parsed.data.handle &&
-    (isReservedHandle(parsed.data.handle) || (await handleTaken(getPool(), parsed.data.handle, provenHash)))
-  ) {
-    return apiError("handle_taken", 409);
+  // The @ is checked against the word rules and the database, and taken
+  // in the same step, so two phones cannot end up with the same @.
+  if (parsed.data.handle && parsed.data.handle.toLowerCase() !== current?.toLowerCase()) {
+    const claimed = await claimHandle(getPool(), identity.guestId, parsed.data.handle, provenHash);
+    if (claimed === "not_allowed") return apiError("handle_not_allowed", 422);
+    if (claimed === "taken") return apiError("handle_taken", 409);
   }
   await getPool().query(
     `update public.guests
-        set handle = coalesce($2, handle),
-            ranking_optin = coalesce($3, ranking_optin),
-            locale = coalesce($4, locale)
+        set ranking_optin = coalesce($2, ranking_optin),
+            locale = coalesce($3, locale)
       where id = $1`,
     [
       identity.guestId,
-      parsed.data.handle ?? null,
       parsed.data.rankingOptin ?? null,
       parsed.data.locale ?? null,
     ],
