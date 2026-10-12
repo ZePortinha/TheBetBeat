@@ -6,7 +6,8 @@
  * Security (B12.2): requireStaff via requireConsole on every action,
  * venue scoping through assertVenueAccess + venue-scoped SQL, zod STRICT
  * allowlists (no price/status/role/venue mass assignment: betbeatFeeBps
- * always comes from the venue row, never the body), audit_log per
+ * is BetBeat's flat 11% for new events and the stored one on edits, never
+ * the body), audit_log per
  * mutation. B5.6: tier-min configs that break the "+5 € per tier"
  * ordering are REJECTED with inline field errors (B10.8), then
  * parseSessionConfig normalizes the stored config as the final guard.
@@ -18,6 +19,8 @@ import { revalidatePath } from "next/cache";
 import { query, withTransaction } from "@/lib/db";
 import { parseSessionConfig, MIN_TIER_STEP_CENTS } from "@/lib/domain/config";
 import { parsePtMobiles } from "@/lib/domain/phone";
+import { normalizeStyle } from "@/lib/catalog/styles";
+import { PLATFORM_FEE_BPS } from "@/lib/ledger/split";
 import { endSession } from "@/lib/domain/service";
 import { encrypt, hashPhone } from "@/lib/security/crypto";
 import { assertVenueAccess, audit, requireConsole } from "../_lib/context";
@@ -27,6 +30,11 @@ import { assertVenueAccess, audit, requireConsole } from "../_lib/context";
 /* ------------------------------------------------------------------ */
 
 const eur = z.coerce.number().finite().min(0).max(100_000);
+/** Empty field → no bound. */
+const optionalBpm = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? undefined : v),
+  z.coerce.number().int().min(40).max(220).optional(),
+);
 
 const sessionFormSchema = z
   .object({
@@ -38,6 +46,8 @@ const sessionFormSchema = z
     endTime: z.string().regex(/^\d{2}:\d{2}$/),
     djStaffId: z.string().uuid(),
     genres: z.array(z.string().trim().min(1).max(40)).min(1).max(12),
+    bpmMin: optionalBpm,
+    bpmMax: optionalBpm,
     catalogMode: z.enum(["library", "library_plus_catalog"]),
     basePriceEur: eur,
     acceptanceRatePerHour: z.coerce.number().finite().min(1).max(60),
@@ -50,6 +60,8 @@ const sessionFormSchema = z
     nextMinEur: eur,
     nextMaxEur: eur,
     venueSharePct: z.coerce.number().finite().min(0).max(100),
+    promoterName: z.string().trim().max(80),
+    promoterSharePct: z.coerce.number().finite().min(0).max(100),
   })
   .strict();
 
@@ -106,7 +118,16 @@ function readForm(formData: FormData): unknown {
     startTime: formData.get("startTime"),
     endTime: formData.get("endTime"),
     djStaffId: formData.get("djStaffId"),
-    genres: formData.getAll("genres"),
+    // Picked chips plus the "other style" field (comma separated).
+    genres: [
+      ...formData.getAll("genres"),
+      ...String(formData.get("customGenres") ?? "")
+        .split(",")
+        .map((g) => g.trim())
+        .filter(Boolean),
+    ],
+    bpmMin: formData.get("bpmMin") ?? undefined,
+    bpmMax: formData.get("bpmMax") ?? undefined,
     catalogMode: formData.get("catalogMode"),
     basePriceEur: formData.get("basePriceEur"),
     acceptanceRatePerHour: formData.get("acceptanceRatePerHour"),
@@ -119,7 +140,18 @@ function readForm(formData: FormData): unknown {
     nextMinEur: formData.get("nextMinEur"),
     nextMaxEur: formData.get("nextMaxEur"),
     venueSharePct: formData.get("venueSharePct"),
+    promoterName: formData.get("promoterName") ?? "",
+    promoterSharePct: formData.get("promoterSharePct") ?? 0,
   };
+}
+
+/** Club + promoter can never take more than what is left after the fee; the BPM range must be a range. */
+function validateEventRules(data: z.infer<typeof sessionFormSchema>): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (data.venueSharePct + data.promoterSharePct > 100) errors.promoterSharePct = "sharesOver";
+  if (data.promoterSharePct > 0 && data.promoterName.length === 0) errors.promoterName = "promoterName";
+  if (data.bpmMin !== undefined && data.bpmMax !== undefined && data.bpmMin > data.bpmMax) errors.bpmMax = "bpmRange";
+  return errors;
 }
 
 /**
@@ -169,7 +201,7 @@ export async function saveSessionAction(
   const data = parsed.data;
   const venueId = assertVenueAccess(ctx, data.venueId);
 
-  const tierErrors = validateTierOrdering(data);
+  const tierErrors = { ...validateTierOrdering(data), ...validateEventRules(data) };
   if (Object.keys(tierErrors).length > 0) return { errors: tierErrors };
 
   const startsAtMs = lisbonToUtcMs(data.date, data.startTime);
@@ -186,13 +218,23 @@ export async function saveSessionAction(
   );
   if (dj.rows.length === 0) return { errors: { djStaffId: "invalid" } };
 
-  // betbeatFeeBps is NEVER client-provided: read from the venue contract.
-  const venueRow = await query<{ betbeat_fee_bps: number }>(
-    `select betbeat_fee_bps from public.venues where id = $1`,
-    [venueId],
-  );
-  const betbeatFeeBps = venueRow.rows[0]?.betbeat_fee_bps ?? 2000;
+  // betbeatFeeBps is NEVER client-provided: BetBeat's flat 11% for a new
+  // event; an edited event keeps the fee it was created with.
+  let betbeatFeeBps = PLATFORM_FEE_BPS;
+  if (data.sessionId) {
+    const stored = await query<{ config: unknown }>(
+      `select ss.config from public.session_settings ss
+         join public.sessions s on s.id = ss.session_id
+        where ss.session_id = $1 and s.venue_id = $2`,
+      [data.sessionId, venueId],
+    );
+    if (stored.rows[0]) betbeatFeeBps = parseSessionConfig(stored.rows[0].config).betbeatFeeBps;
+  }
   const venueShareBps = Math.round(data.venueSharePct * 100);
+  const promoterShareBps = Math.round(data.promoterSharePct * 100);
+  const promoterName = promoterShareBps > 0 ? data.promoterName : null;
+  const bpmMin = data.bpmMin ?? null;
+  const bpmMax = data.bpmMax ?? null;
 
   const config = parseSessionConfig({
     basePriceCents: toCents(data.basePriceEur),
@@ -208,7 +250,7 @@ export async function saveSessionAction(
     venueShareBps,
   });
 
-  const genres = data.genres.map((g) => g.toLowerCase());
+  const genres = [...new Set(data.genres.map(normalizeStyle))].slice(0, 12);
 
   if (data.sessionId) {
     // Edit — venue-scoped UPDATE; ended sessions are immutable.
@@ -223,7 +265,8 @@ export async function saveSessionAction(
       await client.query(
         `update public.sessions
             set name = $2, dj_staff_id = $3, genres = $4, catalog_mode = $5,
-                starts_at = to_timestamp($6 / 1000.0), ends_at = to_timestamp($7 / 1000.0)
+                starts_at = to_timestamp($6 / 1000.0), ends_at = to_timestamp($7 / 1000.0),
+                bpm_min = $8, bpm_max = $9
           where id = $1`,
         [
           data.sessionId,
@@ -233,13 +276,15 @@ export async function saveSessionAction(
           data.catalogMode,
           startsAtMs,
           endsAtMs,
+          bpmMin,
+          bpmMax,
         ],
       );
       await client.query(
         `update public.session_settings
-            set config = $2, venue_share_bps = $3, updated_at = now()
+            set config = $2, venue_share_bps = $3, promoter_share_bps = $4, promoter_name = $5, updated_at = now()
           where session_id = $1`,
-        [data.sessionId, JSON.stringify(config), venueShareBps],
+        [data.sessionId, JSON.stringify(config), venueShareBps, promoterShareBps, promoterName],
       );
       await client.query(
         `insert into public.audit_log (actor, action, entity, entity_id, venue_id, payload)
@@ -248,7 +293,7 @@ export async function saveSessionAction(
           ctx.actor,
           data.sessionId,
           venueId,
-          JSON.stringify({ name: data.name, venueShareBps }),
+          JSON.stringify({ name: data.name, venueShareBps, promoterShareBps, genres, bpmMin, bpmMax }),
         ],
       );
       return true;
@@ -261,17 +306,17 @@ export async function saveSessionAction(
   const created = await withTransaction(async (client) => {
     const res = await client.query<{ id: string }>(
       `insert into public.sessions
-         (venue_id, dj_staff_id, name, genres, catalog_mode, starts_at, ends_at)
-       values ($1, $2, $3, $4, $5, to_timestamp($6 / 1000.0), to_timestamp($7 / 1000.0))
+         (venue_id, dj_staff_id, name, genres, catalog_mode, starts_at, ends_at, bpm_min, bpm_max)
+       values ($1, $2, $3, $4, $5, to_timestamp($6 / 1000.0), to_timestamp($7 / 1000.0), $8, $9)
        returning id`,
-      [venueId, data.djStaffId, data.name, genres, data.catalogMode, startsAtMs, endsAtMs],
+      [venueId, data.djStaffId, data.name, genres, data.catalogMode, startsAtMs, endsAtMs, bpmMin, bpmMax],
     );
     const sessionId = res.rows[0]?.id;
     if (!sessionId) throw new Error("session insert returned no row");
     await client.query(
-      `insert into public.session_settings (session_id, config, venue_share_bps)
-       values ($1, $2, $3)`,
-      [sessionId, JSON.stringify(config), venueShareBps],
+      `insert into public.session_settings (session_id, config, venue_share_bps, promoter_share_bps, promoter_name)
+       values ($1, $2, $3, $4, $5)`,
+      [sessionId, JSON.stringify(config), venueShareBps, promoterShareBps, promoterName],
     );
     await client.query(
       `insert into public.audit_log (actor, action, entity, entity_id, venue_id, payload)
@@ -280,7 +325,7 @@ export async function saveSessionAction(
         ctx.actor,
         sessionId,
         venueId,
-        JSON.stringify({ name: data.name, venueShareBps, betbeatFeeBps }),
+        JSON.stringify({ name: data.name, venueShareBps, promoterShareBps, betbeatFeeBps, genres, bpmMin, bpmMax }),
       ],
     );
     return sessionId;

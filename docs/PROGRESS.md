@@ -55,6 +55,13 @@ webhooks and DJ accept/reject races. Green: typecheck, lint,
 integration suites (47 tests) on a plain Postgres 16 with a Supabase stub.
 Still to run locally: `pnpm db:reset`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
 `pnpm test:e2e`; restart Supabase (config.toml: min password 12).
+## 2026-10-11 - Backing messages, top-spender winner, 150 € shoutout (branch claude/apoios-vencedor-shoutout-87072g)
+
+Backing carries a 10-character note for the bidder; the guest who spends the
+most on a song wins it (runner-up rollover follows); winning bids from 150 €
+always get the DJ's mic shoutout, stated in the bid panel and the balance
+rules. Migration 20. See DECISIONS of the same date.
+
 ## 2026-10-10 - Phone login and balance with rollover (branch claude/login-telemovel-saldo-y25pn1)
 
 Owner's brief (see DECISIONS 2026-10-10): the number is the account on any
@@ -179,6 +186,17 @@ before → after on the production build: "/" perf 86 → 98, best practices 96 
 95 → 98, best practices 96 → 100, SEO 90 → 100; axe: 0 violations on
 all 33 screens (was 9 across cockpit, console, landing, 404). Remaining best-practice flags on
 party pages come from the measurement setup (Turnstile blocked by the sandbox, no realtime).
+
+## DJ library, BPM and event form (cloud session, 2026-10-11)
+
+Branch `claude/bpm-biblioteca-evento-cfyj4o`, migration 18. Cockpit
+"Biblioteca" (/cockpit/library: songs, artists, albums, styles; add by hand
+or from the catalog, edit, remove), BPM + key of the songs in each open
+auction, event form with styles, BPM range and the club/promoter/DJ split at
+the flat 11% fee, "Estilo da noite" first in the guest's recommendations.
+See DECISIONS 2026-10-11. Tests: unit, integration
+(`tests/integration/library-split.integration.test.ts`) and E2E
+(`tests/e2e/library-event.spec.ts`).
 
 ## Next step
 

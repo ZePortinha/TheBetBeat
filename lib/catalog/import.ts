@@ -22,6 +22,16 @@ export interface ImportedTrack {
   bpm: number | null;
   camelotKey: string | null;
   durationSec: number | null;
+  /** Album and release year, when the file has them (left out otherwise). */
+  album?: string;
+  year?: number;
+}
+
+/** A 4-digit release year (1900–2100), else undefined. */
+function parseYear(raw: string | undefined): number | undefined {
+  const m = /^\s*(\d{4})/.exec(raw ?? "");
+  const year = m ? Number(m[1]) : NaN;
+  return year >= 1900 && year <= 2100 ? year : undefined;
 }
 
 /** Parse outcome: accepted tracks plus how many rows/elements were skipped. */
@@ -173,6 +183,8 @@ export function parseRekordboxXml(xml: string): ImportResult {
       bpm: parseBpm(attrs.get("AverageBpm")),
       camelotKey: parseCamelot(attrs.get("Tonality")),
       durationSec: parseDurationSec(attrs.get("TotalTime")),
+      album: emptyToNull(attrs.get("Album"))?.slice(0, 120) ?? undefined,
+      year: parseYear(attrs.get("Year")),
     });
   }
 
@@ -254,13 +266,16 @@ const CSV_COLUMNS = [
   "bpm",
   "key",
   "duration_sec",
+  "album",
+  "year",
 ] as const;
 
 type CsvColumn = (typeof CSV_COLUMNS)[number];
 
 /**
  * Parse a DJ library CSV with the header columns
- * `title,artist,genre,bpm,key,duration_sec` (any order, case-insensitive;
+ * `title,artist,genre,bpm,key,duration_sec` and optionally `album,year`
+ * (any order, case-insensitive;
  * extra columns ignored). Quoted fields may contain commas. Malformed rows
  * (wrong field count or empty title) are skipped, processing is capped at
  * {@link MAX_CSV_ROWS} data rows, and files larger than 10 MB are rejected.
@@ -318,6 +333,8 @@ export function parseLibraryCsv(csv: string): ImportResult {
       bpm: parseBpm(cell(row, "bpm")),
       camelotKey: parseCamelot(cell(row, "key")),
       durationSec: parseDurationSec(cell(row, "duration_sec")),
+      album: emptyToNull(cell(row, "album"))?.slice(0, 120) ?? undefined,
+      year: parseYear(cell(row, "year")),
     });
   }
 

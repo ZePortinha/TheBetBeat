@@ -58,6 +58,8 @@ export function TrackRow({
   const { pressed, handlers } = usePressable({
     onPress: onSelect ? () => onSelect() : undefined,
     disabled: !available,
+    // Rows live in scrolling lists: a scroll that starts on a row must not pick it.
+    activateOn: "release",
   });
   const pressAnimation = usePressAnimation(pressed);
 

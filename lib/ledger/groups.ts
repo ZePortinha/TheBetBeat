@@ -20,7 +20,7 @@ export interface LedgerMeta {
   memo?: string;
 }
 
-export type PayoutRecipient = "venue" | "dj";
+export type PayoutRecipient = "venue" | "dj" | "promoter";
 
 function assertPositiveInt(value: number, name: string): void {
   if (!Number.isSafeInteger(value) || value <= 0) {
@@ -83,29 +83,33 @@ export function captureGroup(amountCents: number, meta: LedgerMeta): LedgerLine[
  *   guest_escrow     +A
  *   betbeat_revenue  −fee
  *   venue_payable    −venue
+ *   promoter_payable −promoter (omitted when 0)
  *   dj_payable       −dj
  */
 export function recognitionGroup(split: Split, meta: LedgerMeta): LedgerLine[] {
   const { amountCents, betbeatFeeCents, venueCents, djCents } = split;
+  const promoterCents = split.promoterCents ?? 0;
   assertPositiveInt(amountCents, "split.amountCents");
   for (const [name, value] of [
     ["split.betbeatFeeCents", betbeatFeeCents],
     ["split.venueCents", venueCents],
+    ["split.promoterCents", promoterCents],
     ["split.djCents", djCents],
   ] as const) {
     if (!Number.isSafeInteger(value) || value < 0) {
       throw new RangeError(`${name} must be a non-negative safe integer, got ${value}`);
     }
   }
-  if (betbeatFeeCents + venueCents + djCents !== amountCents) {
+  if (betbeatFeeCents + venueCents + promoterCents + djCents !== amountCents) {
     throw new Error(
-      `Split parts (${betbeatFeeCents} + ${venueCents} + ${djCents}) do not sum to amount ${amountCents}`,
+      `Split parts (${betbeatFeeCents} + ${venueCents} + ${promoterCents} + ${djCents}) do not sum to amount ${amountCents}`,
     );
   }
   return group([
     line(ACCOUNTS.guestEscrow, amountCents, meta),
     line(ACCOUNTS.betbeatRevenue, -betbeatFeeCents, meta),
     line(ACCOUNTS.venuePayable, -venueCents, meta),
+    line(ACCOUNTS.promoterPayable, -promoterCents, meta),
     line(ACCOUNTS.djPayable, -djCents, meta),
   ]);
 }
@@ -129,7 +133,7 @@ export function refundGroup(amountCents: number, meta: LedgerMeta): LedgerLine[]
  * SEPA payout after session close: the payable is settled through PSP
  * clearing.
  *
- *   venue_payable | dj_payable  +A
+ *   venue_payable | promoter_payable | dj_payable  +A
  *   psp_clearing                −A
  */
 export function payoutGroup(
@@ -138,7 +142,12 @@ export function payoutGroup(
   meta: LedgerMeta,
 ): LedgerLine[] {
   assertPositiveInt(amountCents, "amountCents");
-  const payable = recipient === "venue" ? ACCOUNTS.venuePayable : ACCOUNTS.djPayable;
+  const payable =
+    recipient === "venue"
+      ? ACCOUNTS.venuePayable
+      : recipient === "promoter"
+        ? ACCOUNTS.promoterPayable
+        : ACCOUNTS.djPayable;
   return group([
     line(payable, amountCents, meta),
     line(ACCOUNTS.pspClearing, -amountCents, meta),

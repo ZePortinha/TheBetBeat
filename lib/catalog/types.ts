@@ -28,6 +28,8 @@ export interface CatalogProvider {
   /** One page of results (`offset` = how many to skip). */
   search(query: string, limit?: number, offset?: number): Promise<CatalogTrack[]>;
   getTrack(providerTrackId: string): Promise<CatalogTrack | null>;
+  /** Songs of one music style ("funk"), most relevant first. */
+  byStyle?(style: string, limit?: number): Promise<CatalogTrack[]>;
   /** What people play most right now (when the provider has charts). */
   trending?(limit?: number): Promise<CatalogTrack[]>;
   /** Albums by name ("take care" → Drake's Take Care). */

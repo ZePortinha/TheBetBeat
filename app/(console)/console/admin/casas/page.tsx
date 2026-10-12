@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Building2 } from "lucide-react";
 import { query } from "@/lib/db";
+import { PLATFORM_FEE_BPS } from "@/lib/ledger/split";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/fit-chip";
 import { PageHeader } from "@/components/console/page-header";
@@ -136,19 +137,12 @@ export default async function AdminVenuesPage({
                 <Td>
                   <form action={updateVenueContractAction} className="flex flex-wrap items-end gap-3">
                     <input type="hidden" name="venueId" value={v.id} />
-                    <label className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1">
                       <span className="text-xs text-text-tertiary">{t("feePct")}</span>
-                      <input
-                        type="number"
-                        name="betbeatFeePct"
-                        min={0}
-                        max={50}
-                        step={0.5}
-                        defaultValue={v.betbeat_fee_bps / 100}
-                        required
-                        className={inputCls}
-                      />
-                    </label>
+                      <span className="tnum min-h-9 py-1.5 text-sm text-text-primary">
+                        {t("feeFixed", { fee: PLATFORM_FEE_BPS / 100 })}
+                      </span>
+                    </div>
                     <label className="flex flex-col gap-1">
                       <span className="text-xs text-text-tertiary">{t("defaultSharePct")}</span>
                       <input

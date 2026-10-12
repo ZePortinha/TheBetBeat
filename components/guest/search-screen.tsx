@@ -27,6 +27,7 @@ const DEBOUNCE_MS = 200;
 export const TRANSITION_CHIP = { easy: "fits", medium: "possible", hard: "off_style", unknown: null } as const;
 
 const SECTION_LABEL_KEY = {
+  style: "sectionStyle",
   results: "sectionResults",
   catalog: "sectionCatalog",
   trending: "sectionTrending",

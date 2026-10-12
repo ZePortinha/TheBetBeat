@@ -65,7 +65,8 @@
       "submit": "Verificar",
       "error": "Código inválido. Tenta novamente.",
       "loading": "A preparar…",
-      "qrAlt": "Código QR para a app de autenticação"
+      "qrAlt": "Código QR para a app de autenticação",
+      "devHint": "Modo de desenvolvimento: podes usar o código de teste {code}."
     },
     "newPassword": {
       "title": "Nova palavra-passe",

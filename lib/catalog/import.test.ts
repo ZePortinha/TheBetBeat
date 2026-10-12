@@ -44,6 +44,7 @@ describe("parseRekordboxXml", () => {
       bpm: 122,
       camelotKey: "8A", // Tonality="Am"
       durationSec: 345,
+      album: "Fictional LP",
     });
 
     // Standard XML entities are decoded; empty genre becomes null.
@@ -219,5 +220,17 @@ describe("parseLibraryCsv", () => {
       expect(e).toBeInstanceOf(ImportError);
       expect((e as ImportError).code).toBe("TOO_LARGE");
     }
+  });
+
+  it("reads album and year from rekordbox and CSV when present", () => {
+    const xml = `<?xml version="1.0"?><DJ_PLAYLISTS><COLLECTION>
+      <TRACK TrackID="1" Name="Cadência" Artist="Duque do Norte" Album="Esquina" Year="2019" Genre="Funk" AverageBpm="108.00" />
+    </COLLECTION></DJ_PLAYLISTS>`;
+    expect(parseRekordboxXml(xml).tracks[0]).toMatchObject({ album: "Esquina", year: 2019 });
+    const csv = "title,artist,genre,album,year\nCadência,Duque do Norte,Funk,Esquina,2019\nLua no Cais,Maré Alta,Kizomba,,abc";
+    const { tracks } = parseLibraryCsv(csv);
+    expect(tracks[0]).toMatchObject({ album: "Esquina", year: 2019 });
+    expect(tracks[1]?.album).toBeUndefined();
+    expect(tracks[1]?.year).toBeUndefined();
   });
 });

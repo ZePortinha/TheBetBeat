@@ -14,7 +14,7 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { AtSign, MessageSquareText, Smartphone } from "lucide-react";
+import { AtSign, CircleCheck, MessageSquareText, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +25,8 @@ import { LocaleToggle } from "./locale-toggle";
 import { Intro } from "./phone-login-screen";
 
 type Step = "loading" | "phone" | "code" | "handle";
+/** What the server said about the @ being typed (2026-10-11). */
+type HandleStatus = "idle" | "checking" | "ok" | "taken" | "not_allowed";
 
 interface PhoneDto {
   phone: string | null;
@@ -80,6 +82,28 @@ export function PhoneGate({ venueName, onEntered }: { venueName: string; onEnter
   const pretty = `+351 ${digits.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}`;
   const handleValue = handle.replace(/^@/, "");
   const handleValid = HANDLE.test(handleValue);
+  const [handleStatus, setHandleStatus] = React.useState<HandleStatus>("idle");
+
+  // While the guest types, ask the server if the @ is free and allowed
+  // (word rules + database), a moment after the last key.
+  React.useEffect(() => {
+    if (step !== "handle" || !handleValid) {
+      setHandleStatus("idle");
+      return;
+    }
+    setHandleStatus("checking");
+    let stale = false;
+    const timer = window.setTimeout(async () => {
+      const res = await apiFetch<{ status: "ok" | "taken" | "not_allowed" }>(
+        `/api/guest/handle?h=${encodeURIComponent(handleValue.toLowerCase())}`,
+      );
+      if (!stale) setHandleStatus(res.ok ? res.data.status : "idle");
+    }, 300);
+    return () => {
+      stale = true;
+      window.clearTimeout(timer);
+    };
+  }, [step, handleValue, handleValid]);
   const fail = (res: { code: string; id: string | null }) => setError(errorMessage((k, v) => tErr(k, v), res));
 
   async function sendCode() {
@@ -136,7 +160,11 @@ export function PhoneGate({ venueName, onEntered }: { venueName: string; onEnter
       body: JSON.stringify({ handle: handleValue.toLowerCase(), rankingOptin: true }),
     });
     setBusy(false);
-    if (!res.ok) return res.code === "handle_taken" ? setError(t("handleTaken")) : fail(res);
+    if (!res.ok) {
+      if (res.code === "handle_taken") return setHandleStatus("taken");
+      if (res.code === "handle_not_allowed") return setHandleStatus("not_allowed");
+      return fail(res);
+    }
     onEntered();
   }
 
@@ -257,16 +285,33 @@ export function PhoneGate({ venueName, onEntered }: { venueName: string; onEnter
                 placeholder={t("handlePlaceholder")}
                 value={handleValue}
                 onChange={(e) => setHandle(e.target.value.replace(/\s/g, "").slice(0, 24))}
-                aria-invalid={handleValue.length > 0 && !handleValid}
+                aria-invalid={(handleValue.length > 0 && !handleValid) || handleStatus === "taken" || handleStatus === "not_allowed"}
                 className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-text-tertiary focus-visible:outline-none"
               />
             </div>
             {handleValue.length > 0 && !handleValid ? (
               <p className="mt-2 text-sm text-amber-500">{t("handleInvalid")}</p>
             ) : null}
+            <p aria-live="polite" className="mt-2 min-h-5 text-sm">
+              {handleStatus === "checking" ? <span className="text-text-tertiary">{t("handleChecking")}</span> : null}
+              {handleStatus === "ok" ? (
+                <span className="inline-flex items-center gap-1.5 text-text-secondary">
+                  <CircleCheck aria-hidden className="size-4 text-accent-400" strokeWidth={2} />
+                  {t("handleAvailable")}
+                </span>
+              ) : null}
+              {handleStatus === "taken" ? <span className="text-ember-500">{t("handleTaken")}</span> : null}
+              {handleStatus === "not_allowed" ? <span className="text-ember-500">{t("handleNotAllowed")}</span> : null}
+            </p>
           </div>
           {errorLine}
-          <Button fullWidth size="lg" loading={busy} disabled={!handleValid} onPress={() => void saveHandle()}>
+          <Button
+            fullWidth
+            size="lg"
+            loading={busy}
+            disabled={!handleValid || handleStatus === "taken" || handleStatus === "not_allowed"}
+            onPress={() => void saveHandle()}
+          >
             {t("enter")}
           </Button>
         </section>

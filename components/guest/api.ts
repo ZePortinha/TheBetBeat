@@ -41,6 +41,7 @@ export async function apiFetch<T>(
 /** Error codes that have a dedicated guest translation. */
 const KNOWN_ERROR_CODES = new Set([
   "handle_taken",
+  "handle_not_allowed",
   "rate_limited",
   "bot_check_failed",
   "quote_expired",
@@ -74,6 +75,9 @@ const KNOWN_ERROR_CODES = new Set([
   "bid_not_found",
   "insufficient_funds",
   "below_track_minimum",
+  "message_blocked",
+  "message_invalid",
+  "message_not_allowed",
 ]);
 
 /**

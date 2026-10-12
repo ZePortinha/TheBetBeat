@@ -207,7 +207,7 @@ export function RankingPodium({ token }: { token: string }) {
         </section>
       ) : null}
 
-      <Button size="lg" fullWidth variant="secondary" loading={sharing} onPress={() => void share()}>
+      <Button size="lg" fullWidth variant="secondary" loading={sharing} activateOn="release" onPress={() => void share()}>
         <Instagram size={20} aria-hidden />
         {t("shareRanking")}
       </Button>

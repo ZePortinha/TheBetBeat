@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPool } from "@/lib/db";
 import type { Role } from "@/lib/domain/types";
+import { hasStaffMfa } from "@/lib/security/staff-mfa";
 import { mustChangePassword } from "@/lib/security/password";
 
 export interface StaffApiContext {
@@ -83,8 +84,7 @@ export async function requireStaffApi(): Promise<StaffApiResult> {
   // Without AAL2 only plain DJ memberships count, so a stolen manager
   // password alone cannot drive the cockpit API.
   if (memberships.some((m) => m.role !== "dj")) {
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal?.currentLevel !== "aal2") memberships = memberships.filter((m) => m.role === "dj");
+    if (!(await hasStaffMfa(supabase, user.id))) memberships = memberships.filter((m) => m.role === "dj");
     if (memberships.length === 0) return { ok: false, response: apiError(403, "mfa_required") };
   }
 

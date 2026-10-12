@@ -73,7 +73,7 @@ export interface SearchTrackDto {
 
 export interface SearchResponseDto {
   sections: Array<{
-    key: "results" | "catalog" | "trending" | "fits" | "popular" | "recent";
+    key: "style" | "results" | "catalog" | "trending" | "fits" | "popular" | "recent";
     tracks: SearchTrackDto[];
   }>;
   /** The full catalog has more results (next page). */

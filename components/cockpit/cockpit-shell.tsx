@@ -12,7 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
-import { Activity, BarChart3, Settings } from "lucide-react";
+import { Activity, BarChart3, Library, Settings } from "lucide-react";
 import { durations, easeStandard } from "@/lib/motion";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { cx } from "@/components/ui/pressable";
@@ -102,6 +102,7 @@ export function OfflineBanner() {
 const NAV = [
   { href: "/cockpit", key: "live", Icon: Activity },
   { href: "/cockpit/session", key: "session", Icon: BarChart3 },
+  { href: "/cockpit/library", key: "library", Icon: Library },
   { href: "/cockpit/settings", key: "settings", Icon: Settings },
 ] as const;
 

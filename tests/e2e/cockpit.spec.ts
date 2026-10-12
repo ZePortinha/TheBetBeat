@@ -19,7 +19,6 @@ import {
   auctionState,
   bidViaApi,
   closeAuction,
-  forgetMicAnnouncements,
   loginStaff,
   openAuction,
   SEED,
@@ -92,11 +91,9 @@ test.describe("cockpit · leilões", () => {
     expect((await auctionState(request)).open.length).toBeGreaterThan(0);
   });
 
-  test("150 € ou mais: alerta para anunciar ao microfone", async ({ page, request }) => {
-    // At most 3 mic announcements an hour: earlier runs must not use them up.
-    await forgetMicAnnouncements(request);
+  test("150 € ou mais: alerta de shoutout ao microfone", async ({ page, request }) => {
     await winnerWaiting(request, 15_000, "e2e_mic");
-    const alert = page.getByRole("alert").filter({ hasText: "Anunciar ao microfone" });
+    const alert = page.getByRole("alert").filter({ hasText: "Shoutout ao microfone" });
     await expect(alert).toBeVisible({ timeout: 15_000 });
     await expect(alert).toContainText("@e2e_mic");
     await alert.getByRole("button", { name: "Anunciado" }).click();

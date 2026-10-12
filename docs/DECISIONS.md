@@ -669,3 +669,137 @@ merged in this order on `claude/project-thread-cp9ey2`: #1, #3, #2, #4, #6,
   reads the guest link without opening `/`, since the intro plays once per
   tab (PR #2).
 
+
+## 2026-10-11 — Development test code for the manager/admin two-step check
+
+Managers/admins must pass TOTP MFA (AAL2) before the console. Locally there is
+often no authenticator enrolled, which locked Vouga out. Outside production,
+`/login/mfa` now also accepts a fixed test code (`DEV_MFA_CODE`, default
+`000000`, `off` disables). The server then sets an httpOnly cookie HMAC-bound to
+the user, which `requireStaff` and the cockpit API accept in place of AAL2
+(`lib/security/dev-mfa.ts`, `lib/security/staff-mfa.ts`). With
+`NODE_ENV=production` the code and the cookie are always refused.
+
+## 2026-10-11 - Banned words in @s, taken @s from the database, buttons act on press
+
+Owner's request: forbid problematic Portuguese and English words in the @
+chosen at sign-up, confirm against the database whether the @ already
+exists, and make every button act the moment it is pressed.
+
+- **Banned words:** `lib/guests/blocked-words.ts`, two lists kept in the
+  repo. ANYWHERE words are caught inside any @; WHOLE words only as the
+  whole @ or one of its parts (split at dot, hyphen, _ and digits), because
+  they hide in ordinary words ("computador", "pilates", "sexta"). Accents,
+  case and digits used as letters (f0d4, 1 as i or l) are undone and
+  repeated letters collapsed before comparing. The guest sees "Esse @ não é
+  permitido" (`handle_not_allowed`, 422); reserved names (PR #1) still
+  answer like a taken @.
+- **Taken @:** before, only the @ tied to another proven number was
+  refused; `guests.handle` itself was not unique. Now `claimHandle`
+  (lib/guests/phone-handle.ts) refuses an @ held by any other guest (any
+  case), except guests signed in with the same number, and checks and
+  writes in one transaction behind an advisory lock on the @, so two phones
+  cannot both get it. No unique index: old rows may already repeat an @,
+  and a migration number now would collide with the parallel threads.
+  `GET /api/guest/handle?h=` lets the @ field say "Disponível", "já está a
+  ser usado" or "não é permitido" while the guest types (rate-limited,
+  answers only the status).
+- **Buttons act on press (overrides B10.6 "confirms on pointer-up" and
+  the ui rule "drag-away cancels"):** `usePressable` (Button, Pressable)
+  fires on pointer-down; `PressActivation` (mounted in app/providers.tsx)
+  does the same for every plain button, link, switch and checkbox, and
+  drops the browser's own click when the finger lifts so nothing runs
+  twice. Kept on release (`activateOn="release"` or `data-press="release"`):
+  rows in scrolling lists (TrackRow, the live-events list on "/"), so a
+  scroll that starts on a row does not pick it; and share sheet,
+  notifications permission, clipboard and downloads, which browsers allow
+  only from a finished tap on touch screens. HoldButton stays
+  hold-to-confirm.
+
+## 2026-10-11 - Backing messages, top-spender winner, 150 € shoutout
+
+Owner's brief (one of three threads; the others own catalog/console and @
+handles/buttons).
+
+- **The song belongs to whoever spent the most on it.** The auction is
+  still between songs (bid totals, unchanged); inside a song, the guest
+  with the most money in it owns it (`lib/auction/backing.bidLeader`). The
+  bidder keeps it on a tie; between backers, the first to reach the amount.
+  `auction_bids.leader_guest_id` follows every money move and the bid shows
+  that guest's chosen name; at the close `auction_slots.winner_guest_id`
+  records the winner: their name on the screens, their celebration and
+  push, their shoutout. The other contributors' money is spent the same
+  way (one receipt each). `owner_guest_id` stays the guest who picked the
+  track: they keep the "Subir" button and the track is fixed to them.
+- **Runner-up rollover follows the same rule:** the second-place song rolls
+  in the name of whoever led it when it was outbid (the rolled bid is
+  theirs; each contributor's share still rolls with them).
+- **Backers choose how they appear** ("Como apareces"), since the song may
+  become theirs.
+- **Backing message:** optional, 10 characters (graphemes, an emoji is one),
+  only on someone else's bid, only the bidder sees it (toast + "As minhas
+  licitações"). No links, no control characters, and a PT/EN blocklist in
+  `lib/auction/backing.ts` (whole words, word starts for long ones,
+  spelled-out letters, digit swaps). The @-handle thread builds its own
+  forbidden-word list; merge the two once both are in main.
+- **Shoutout from 150 € (`recognition.announceCents`):** promised in the
+  bid panel before paying (non-negotiable #4), so it is now guaranteed:
+  the hourly mic cap (`announcementsPerHour`) is gone, and an anonymous
+  winner gets it too, without a name. The console field went with it.
+- **Migration 20** (not 18/19) so it cannot collide with the two parallel
+  threads.
+
+## 2026-10-11 - DJ library, BPM on the auction, event form, promoter split
+
+Owner's ask: the DJ sees the BPM of the song being bid on; a library of
+their own by artist, album and style; the admin's event creation with the
+split between DJ and promoter and/or club on top of the fixed 11% fee, and
+event criteria (music style) that decide the first recommendations.
+
+- **Fee:** BetBeat's fee is a flat 11% (`PLATFORM_FEE_BPS`), no longer a
+  per-venue contract. New events take it; an edited event keeps the fee it
+  was created with; migration 18 moves every venue to 1100 and Admin ›
+  Casas shows it read-only. Existing events' snapshots are untouched.
+- **Split:** fee off the gross, then the club's % and the promoter's % of
+  the rest, the DJ gets what is left (rounding remainder too). New ledger
+  account `promoter_payable`, `promoter` payouts at the end of the night,
+  `promoterNet` on the statement. Club + promoter ≤ 100% (DB check too).
+  The promoter is a name on the event (no account yet): its payout is
+  created pending like the others; paying it needs its IBAN (Phase 8).
+- **Library scope:** the library stays per club (`library_tracks.venue_id`),
+  not per DJ: guests bid on the club's songs and every DJ of the club
+  shares it. Added album, year, cover and the catalog id. A song guests
+  already bid on is blocked instead of deleted (bids and receipts point at
+  it).
+- **Event criteria:** styles (`sessions.genres`, any style, common ones
+  offered) and an optional BPM range. They only ORDER recommendations: a
+  new first section "Estilo da noite" (library songs of the style inside
+  the BPM range first, then catalog songs of the style when the catalog is
+  open), and the other sections put the style first. Nothing is refused for
+  being off-style; the DJ's genre blocks still do that.
+- **BPM in the cockpit:** each open auction shows the leading song's BPM
+  and key big, plus the other songs still bidding with theirs. A catalog
+  song with no BPM yet shows "BPM a medir" and is queued for the worker.
+- **Legacy tier prices** on the event form moved under a collapsed
+  "Preços dos pedidos diretos": slot auctions replaced them on the guest
+  side, but the request flow still reads them.
+- Fixed on the way: the rekordbox/CSV import wrote its audit row with one
+  parameter as both text and uuid, which Postgres refuses, so every import
+  answered 500.
+
+## 2026-10-11 - PRs #8 to #12 integrated on one branch
+
+Merged from main in this order on `claude/integrar-pr8-pr12-032zvs`: #8, #9,
+#10, #11, #12. Only docs/DECISIONS.md and the guest error messages
+conflicted (both sides kept).
+
+- **Banned words, one list:** backing messages (#11) now call
+  `hasBlockedWord` from `lib/guests/blocked-words.ts` (#10), also with
+  punctuation read as spaces; #11's own list is gone. The insults only it
+  had (idiota, estupido, otario, atrasado, mongoloide, fck, fuk, kys) moved
+  into the shared WHOLE list, so @s refuse them too.
+- **Migrations:** 18 (#12) and 20 (#11), no collision; 19 is unused.
+- **Admin:** #11 dropped "Máximo de anúncios por hora" from Leilões
+  (the shoutout from the Leilões threshold, 150 € by default, is always
+  given); #12 made the BetBeat fee a fixed 11% in Casas. Different pages
+  and fields; both stand.

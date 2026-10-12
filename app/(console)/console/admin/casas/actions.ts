@@ -10,12 +10,12 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { query } from "@/lib/db";
+import { PLATFORM_FEE_BPS } from "@/lib/ledger/split";
 import { audit, requireAdminConsole } from "../../_lib/context";
 
 const feeSchema = z
   .object({
     venueId: z.string().uuid(),
-    betbeatFeePct: z.coerce.number().finite().min(0).max(50),
     defaultVenueSharePct: z.coerce.number().finite().min(0).max(100),
   })
   .strict();
@@ -24,12 +24,12 @@ export async function updateVenueContractAction(formData: FormData): Promise<voi
   const ctx = await requireAdminConsole("/console/admin/casas");
   const parsed = feeSchema.safeParse({
     venueId: formData.get("venueId"),
-    betbeatFeePct: formData.get("betbeatFeePct"),
     defaultVenueSharePct: formData.get("defaultVenueSharePct"),
   });
   if (!parsed.success) redirect("/console/admin/casas?error=invalid");
 
-  const feeBps = Math.round(parsed.data.betbeatFeePct * 100);
+  // BetBeat's fee is flat (11%) since 2026-10-11: only the club's default share is editable.
+  const feeBps = PLATFORM_FEE_BPS;
   const shareBps = Math.round(parsed.data.defaultVenueSharePct * 100);
   await query(
     `update public.venues

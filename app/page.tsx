@@ -132,7 +132,9 @@ export default async function Home() {
             <ul className="flex flex-col gap-2">
               {events.map((e) => (
                 <li key={e.id}>
+                  {/* A list you scroll: a scroll that starts on a card must not open it. */}
                   <Link
+                    data-press="release"
                     href={`/s/${encodeURIComponent(signToken({ kind: "session", venueId: e.venue_id, slug: e.id }))}`}
                     className="flex min-h-16 items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 transition-transform duration-100 active:scale-[0.97]"
                   >

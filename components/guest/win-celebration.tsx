@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * "Vencedor" — the moment a guest's bid wins (2026-10-08 redesign): a flat,
- * sharp 2D stage (win-scene: mirror ball, coloured stage lights, champagne,
- * confetti) on a canvas behind the album art, the title and the amount.
+ * "Vencedor" — the moment a guest's bid wins ("Gold & Smoke", 2026-10-10):
+ * a 2D stage (win-scene: champagne bottle, flying cork, the album art pressed
+ * into a spinning glass vinyl) on a canvas behind the title and the amount.
  * No 3D and no extra download, so it opens at once and stays smooth on any
  * phone. "Partilhar no Instagram" shares the same animation as a video
  * (win-video), recorded quietly in the background while the guest watches.
@@ -17,7 +17,6 @@ import { Crown, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { toast } from "@/components/ui/toast";
-import { Disc } from "@/components/ui/disc";
 import { startWinScene } from "./win-scene";
 import { recordWinVideo, videoType } from "./win-video";
 
@@ -77,13 +76,20 @@ function useCoverBitmap(slotId: string, coverUrl?: string | null): ImageBitmap |
   React.useEffect(() => {
     if (!coverUrl) return;
     let cancelled = false;
+    let loaded: ImageBitmap | null = null;
     fetch(`/api/guest/auction/${slotId}/cover`)
       .then((r) => (r.ok ? r.blob() : Promise.reject()))
       .then((b) => createImageBitmap(b))
-      .then((img) => { if (!cancelled) setBmp(img); })
+      .then((img) => {
+        loaded = img;
+        if (!cancelled) setBmp(img);
+        else img.close();
+      })
       .catch(() => {});
-    return () => { cancelled = true; bmp?.close(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+      loaded?.close();
+    };
   }, [slotId, coverUrl]);
   return bmp;
 }
@@ -113,12 +119,17 @@ export function WinCelebration({
   const amount = useCountUp(totalCents, 900, !reduced);
   const title = t("winTitle");
   const coverBmp = useCoverBitmap(slotId, coverUrl);
+  const coverRef = React.useRef<ImageBitmap | null>(null);
+  coverRef.current = coverBmp;
 
-  // The stage starts on the first frame: no import, no 3D to warm up.
+  // The stage starts on the first frame; the cover is pressed into the
+  // spinning vinyl the moment it arrives, without restarting the scene.
+  // Reduced motion draws one still frame, so it redraws with the cover.
+  const stillCover = reduced ? coverBmp : null;
   React.useEffect(() => {
     if (!stage.current) return;
-    return startWinScene(stage.current, { cover: coverBmp, still: reduced });
-  }, [reduced, coverBmp]);
+    return startWinScene(stage.current, { coverRef, still: reduced });
+  }, [reduced, stillCover]);
 
   // The Instagram video records in the background, once the opening burst
   // has played on screen (so the two never compete for the same frames).
@@ -191,24 +202,8 @@ export function WinCelebration({
       <canvas ref={stage} aria-hidden className="absolute inset-0 size-full" />
 
       <div className="relative flex h-full flex-col items-center gap-5 px-6 pb-[max(env(safe-area-inset-bottom),24px)] pt-[19dvh] [text-shadow:0_2px_18px_rgba(0,0,0,0.85)]">
-        {/* The album art: pops in with the flash, sharp edges, a red glow. */}
-        <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-          <motion.div
-            className="aspect-square h-full max-h-[min(62vw,34dvh)] overflow-hidden rounded-card shadow-glow-accent ring-2 ring-white/85"
-            initial={reduced ? false : { scale: 0.4, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", bounce: 0.35, duration: 0.55, delay: 0.05 }}
-          >
-            {coverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- catalog covers come from the provider's CDN
-              <img src={coverUrl.replace(/\/\d+x\d+-/, "/500x500-")} alt="" className="size-full object-cover" />
-            ) : (
-              <div className="flex size-full items-center justify-center bg-surface-1">
-                <Disc seed={trackTitle} className="size-4/5" />
-              </div>
-            )}
-          </motion.div>
-        </div>
+        {/* The spinning vinyl (drawn on the stage) lives in this space. */}
+        <div className="min-h-0 w-full flex-1" />
 
         <div className="flex flex-col items-center">
           <p className="label flex items-center gap-1.5 text-amber-500">
@@ -249,25 +244,26 @@ export function WinCelebration({
         </div>
 
         <motion.div
-          className="flex w-full max-w-xs flex-col gap-2"
+          className="flex w-full max-w-[17.5rem] flex-col gap-2"
           initial={reduced ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.25, delay: 0.7 }}
         >
           <Button
-            size="lg"
             fullWidth
             loading={sharing}
             aria-busy={preparing || undefined}
+            // The share sheet only opens from a finished tap on phones.
+            activateOn="release"
             onPress={() => {
               if (videoState === "recording") setWantShare(true);
               else void share();
             }}
           >
-            <Instagram size={20} aria-hidden />
+            <Instagram size={18} aria-hidden />
             {preparing ? t("sharePreparing") : t("shareInstagram")}
           </Button>
-          <Button size="lg" variant="secondary" fullWidth onPress={onClose}>
+          <Button variant="secondary" fullWidth onPress={onClose}>
             {t("winClose")}
           </Button>
         </motion.div>

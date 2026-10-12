@@ -86,7 +86,7 @@ export function PushPrompt({ token, show }: { token: string; show: boolean }) {
         <p className="flex-1 text-sm text-text-secondary">{t("prompt")}</p>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <Button size="md" variant="secondary" loading={busy} onPress={() => void enable()}>
+        <Button size="md" variant="secondary" loading={busy} activateOn="release" onPress={() => void enable()}>
           {t("enable")}
         </Button>
         <Button size="md" variant="ghost" onPress={later}>

@@ -232,7 +232,7 @@ function PlayedCelebration({
         title={t("title")}
         hint={t("subtitle", { track: detail.trackTitle })}
       />
-      <Button fullWidth size="lg" loading={sharing} onPress={() => void share()}>
+      <Button fullWidth size="lg" loading={sharing} activateOn="release" onPress={() => void share()}>
         {t("share")}
       </Button>
       <Button variant="ghost" fullWidth onPress={() => router.push(`/s/${token}`)}>

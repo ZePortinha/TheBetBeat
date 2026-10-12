@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/domain/types";
 import { mustChangePassword } from "@/lib/security/password";
+import { hasStaffMfa } from "@/lib/security/staff-mfa";
 
 export interface StaffContext {
   userId: string;
@@ -63,8 +64,7 @@ export async function requireStaff(
   // MFA is mandatory for managers and admins (B12.3).
   const needsMfa = match.some((m) => m.role === "manager" || m.role === "admin");
   if (needsMfa) {
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal?.currentLevel !== "aal2") {
+    if (!(await hasStaffMfa(supabase, user.id))) {
       redirect(`/login/mfa?next=${encodeURIComponent(nextPath)}`);
     }
   }

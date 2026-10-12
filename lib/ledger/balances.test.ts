@@ -18,6 +18,7 @@ describe("deriveBalances", () => {
       guest_escrow: 0,
       betbeat_revenue: 0,
       venue_payable: 0,
+      promoter_payable: 0,
       dj_payable: 0,
       psp_fees: 0,
     });
@@ -82,6 +83,7 @@ describe("full lifecycle: capture → recognition → partial refund → payout"
       betbeat_revenue: -440,
       // Fully paid out.
       venue_payable: 0,
+      promoter_payable: 0,
       dj_payable: 0,
       psp_fees: 0,
     });
@@ -99,6 +101,7 @@ describe("full lifecycle: capture → recognition → partial refund → payout"
       refunds: 1400, // SOON → QUEUE difference
       betbeatFee: 440, // 20% of 2 × 1100
       venueNet: 880, // 50% of the remainder
+      promoterNet: 0,
       djNet: 880, // the other 50%
     });
   });
@@ -115,6 +118,7 @@ describe("full lifecycle: capture → recognition → partial refund → payout"
       refunds: 0,
       betbeatFee: 220,
       venueNet: 440,
+      promoterNet: 0,
       djNet: 440,
     });
     // gmv − refunds = recognized + still in escrow.

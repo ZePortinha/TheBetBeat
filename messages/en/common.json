@@ -65,7 +65,8 @@
       "submit": "Verify",
       "error": "Invalid code. Try again.",
       "loading": "Preparing…",
-      "qrAlt": "QR code for the authenticator app"
+      "qrAlt": "QR code for the authenticator app",
+      "devHint": "Development mode: you can use the test code {code}."
     },
     "newPassword": {
       "title": "New password",

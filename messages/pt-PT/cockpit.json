@@ -3,6 +3,7 @@
     "live": "Ao Vivo",
     "queue": "Fila",
     "session": "Sessão & Receita",
+    "library": "Biblioteca",
     "settings": "Definições"
   },
   "topBar": {
@@ -259,7 +260,7 @@
     "playing": "Pôr a tocar",
     "played": "Tocou",
     "reject": "Recusar e reabrir o leilão",
-    "micTitle": "Anunciar ao microfone",
+    "micTitle": "Shoutout ao microfone",
     "micBody": "{label} pagou {amount} por {track}",
     "announced": "Anunciado",
     "special": "Momento especial: dá-lhe destaque na pista",
@@ -270,6 +271,9 @@
     "nextAt": "O próximo abre às {time}.",
     "closesAt": "Fecha às {time}",
     "bids": "{count, plural, one {# licitação} other {# licitações}}",
+    "bpm": "{bpm} BPM",
+    "bpmUnknown": "BPM a medir",
+    "contenders": "Outras músicas em licitação",
     "noBids": "Sem licitações. Mínimo {amount}.",
     "pause": "Pausar",
     "resume": "Retomar",
@@ -289,6 +293,74 @@
       "medium": "transição média",
       "hard": "transição difícil",
       "unknown": "BPM desconhecido"
+    }
+  },
+  "library": {
+    "title": "Biblioteca",
+    "subtitle": "As tuas músicas, por artista, álbum e estilo. Os convidados licitam nestas primeiro.",
+    "noVenue": "Ainda não tens uma casa associada. Pede ao gestor que te adicione à equipa.",
+    "summary": "{tracks, plural, one {# música} other {# músicas}} · {artists, plural, one {# artista} other {# artistas}} · {albums, plural, one {# álbum} other {# álbuns}} · {styles, plural, one {# estilo} other {# estilos}}",
+    "views": {
+      "tracks": "Músicas",
+      "artists": "Artistas",
+      "albums": "Álbuns",
+      "styles": "Estilos"
+    },
+    "viewsLabel": "Ver a biblioteca por",
+    "search": "Procurar na biblioteca",
+    "add": "Adicionar música",
+    "fromCatalog": "Do catálogo",
+    "clearFilter": "Ver tudo",
+    "filterArtist": "Artista: {name}",
+    "filterAlbum": "Álbum: {name}",
+    "filterGenre": "Estilo: {name}",
+    "emptyTitle": "A biblioteca está vazia",
+    "emptyHint": "Adiciona músicas à mão, do catálogo ou importa o rekordbox nas Definições.",
+    "noResults": "Nada encontrado com estes filtros.",
+    "artistLine": "{tracks, plural, one {# música} other {# músicas}} · {albums, plural, =0 {sem álbum} one {# álbum} other {# álbuns}}",
+    "albumLine": "{artist} · {tracks, plural, one {# música} other {# músicas}}",
+    "styleLine": "{tracks, plural, one {# música} other {# músicas}} · {artists, plural, one {# artista} other {# artistas}}",
+    "blocked": "Bloqueada",
+    "styleBlocked": "Estilo bloqueado",
+    "bpm": "{bpm} BPM",
+    "form": {
+      "addTitle": "Nova música",
+      "editTitle": "Editar música",
+      "title": "Título",
+      "artist": "Artista",
+      "album": "Álbum (opcional)",
+      "genre": "Estilo",
+      "bpm": "BPM",
+      "key": "Tom (Camelot, ex. 8A)",
+      "year": "Ano",
+      "save": "Guardar",
+      "saving": "A guardar…",
+      "remove": "Remover da biblioteca",
+      "required": "Preenche título, artista e estilo.",
+      "invalidBpm": "O BPM tem de estar entre 40 e 250.",
+      "invalidYear": "O ano tem de estar entre 1900 e 2100."
+    },
+    "catalog": {
+      "title": "Adicionar do catálogo",
+      "hint": "Procura uma música, um artista ou um álbum. Escolhe o estilo com que entram na biblioteca.",
+      "search": "Procurar no catálogo",
+      "genre": "Estilo",
+      "songs": "Músicas",
+      "albums": "Álbuns",
+      "addSelected": "{count, plural, one {Adicionar # música} other {Adicionar # músicas}}",
+      "addAlbum": "Adicionar álbum",
+      "needGenre": "Escolhe o estilo primeiro.",
+      "nothing": "Nada encontrado no catálogo.",
+      "unavailable": "O catálogo não respondeu. Tenta outra vez."
+    },
+    "toast": {
+      "added": "Música adicionada",
+      "duplicate": "Essa música já está na biblioteca",
+      "saved": "Alterações guardadas",
+      "deleted": "Música removida",
+      "blocked": "Já teve licitações: ficou bloqueada em vez de apagada",
+      "catalogAdded": "{added, plural, =0 {Nada novo: já estavam na biblioteca} one {# música adicionada} other {# músicas adicionadas}}",
+      "error": "Não foi possível. Tenta outra vez."
     }
   }
 }

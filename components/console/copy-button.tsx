@@ -40,6 +40,8 @@ export function CopyButton({
   return (
     <button
       type="button"
+      // Clipboard access needs a finished tap on phones (press-activation.tsx).
+      data-press="release"
       onClick={copy}
       className="inline-flex min-h-9 items-center gap-1.5 rounded-full border
         border-line-subtle bg-surface-2 px-3 text-sm text-text-primary

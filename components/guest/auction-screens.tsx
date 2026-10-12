@@ -19,7 +19,7 @@ import { useAnimate, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { AudioWaveform, Crown, Gavel, Sparkles, Wallet } from "lucide-react";
+import { AudioWaveform, Crown, Gavel, MessageCircle, Mic, Sparkles, Wallet } from "lucide-react";
 import type { PublicSlot, PublicWinner, UpcomingSlot } from "@/lib/auction/service";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -33,11 +33,11 @@ import { GavelStrike } from "@/components/ui/gavel-strike";
 import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { durations } from "@/lib/motion";
 import { apiFetch } from "./api";
-import { BidForm, type BidTargetInput } from "./bid-form";
+import { BidForm, ShoutoutNote, type BidTargetInput } from "./bid-form";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
 import { WinCelebration } from "./win-celebration";
-import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, useAuction, type AuctionState } from "./use-auction";
+import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, pickSlot, useAuction, type AuctionState } from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
 
 type SheetState = { slot: PublicSlot; target: BidTargetInput; current: number; title: string } | null;
@@ -208,6 +208,9 @@ function AuctionCard({
       )}
 
       {mine && !leading ? <p className="mt-3 text-sm font-semibold text-ember-500">{t("youOutbid")}</p> : null}
+      {mine && leading && mine.takenOver ? (
+        <p className="mt-3 text-sm font-semibold text-amber-500">{t("takenOver", { name: top?.by ?? t("anonymousBidder") })}</p>
+      ) : null}
 
       <div className={cx("mt-4 flex flex-col gap-2", ended && "hidden")}>
         {!mine ? (
@@ -253,7 +256,7 @@ function SlotPicker({ slots, selectedId, serverNow, onPick }: { slots: PublicSlo
   const t = useTranslations("guest.auction");
   const locale = useLocale();
   return (
-    <div className="grid grid-flow-col auto-cols-fr gap-2" role="radiogroup" aria-label={t("chooseSlot")}>
+    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("chooseSlot")}>
       {slots.map((s) => (
         <Pressable
           key={s.id}
@@ -266,7 +269,9 @@ function SlotPicker({ slots, selectedId, serverNow, onPick }: { slots: PublicSlo
           )}
         >
           <span className="truncate text-sm font-semibold text-text-primary">{slotName(s, t, locale)}</span>
-          <span className="tnum text-xs text-text-secondary">{countdown(s.closesAt, serverNow)}</span>
+          <span className="tnum text-xs text-text-secondary">
+            {Date.parse(s.closesAt) <= serverNow ? t("slotClosing") : countdown(s.closesAt, serverNow)}
+          </span>
         </Pressable>
       ))}
     </div>
@@ -309,7 +314,7 @@ export function AuctionScreen({ token }: { token: string }) {
   const [sheet, setSheet] = React.useState<SheetState>(null);
 
   if (!state) return <Skeleton height={360} rounded="card" />;
-  const selected = state.open.find((s) => s.id === chosenSlotId) ?? state.open[0] ?? null;
+  const selected = pickSlot(state, chosenSlotId, serverNow);
   // With nothing open the next one is the big countdown; the list shows the rest.
   const later = selected ? state.upcoming : state.upcoming.slice(1);
 
@@ -355,6 +360,7 @@ export function AuctionScreen({ token }: { token: string }) {
       <PushPrompt token={token} show={(state.me?.bids.length ?? 0) > 0} />
       <UpcomingList slots={later} serverNow={serverNow} />
       <p className="text-center text-xs text-text-tertiary">{t("rulesNote")}</p>
+      <ShoutoutNote announceCents={state.rules.announceCents} className="-mt-2" />
 
       <BottomSheet
         open={sheet !== null}
@@ -391,7 +397,7 @@ export function AuctionContextBar({ token }: { token: string }) {
   const locale = useLocale();
   const { state, serverNow, chosenSlotId } = useAuction();
   if (!state) return <Skeleton height={56} rounded="card" />;
-  const slot = state.open.find((s) => s.id === chosenSlotId) ?? state.open[0] ?? null;
+  const slot = pickSlot(state, chosenSlotId, serverNow);
   return (
     <Link
       href={`/s/${token}/auction`}
@@ -706,6 +712,18 @@ export function WalletPill({ token }: { token: string }) {
               <span className="tnum w-8 shrink-0 font-semibold text-text-tertiary">3.º+</span>
               {t("walletRuleThird", { days })}
             </li>
+            <li className="flex gap-2">
+              <span className="w-8 shrink-0 text-accent-400">
+                <Mic size={16} aria-hidden className="mt-0.5" />
+              </span>
+              {t("walletRuleShoutout", { amount: formatEurosDisplay(state.rules.announceCents) })}
+            </li>
+            <li className="flex gap-2">
+              <span className="w-8 shrink-0 text-accent-400">
+                <Crown size={16} aria-hidden className="mt-0.5" />
+              </span>
+              {t("walletRuleTopSpender")}
+            </li>
           </ol>
 
           {withdrawn !== null ? (
@@ -744,10 +762,20 @@ export function MyBids({ empty }: { empty?: React.ReactNode }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-semibold text-text-primary">{b.trackTitle}</p>
             <p className="truncate text-sm text-text-secondary">
-              {b.rolledOn && b.status === "lost" ? t("bidStatus.rolledOn") : t(`bidStatus.${b.status}`)}
+              {b.rolledOn && b.status === "lost"
+                ? t("bidStatus.rolledOn")
+                : b.status === "next" && !b.winner
+                  ? t("bidStatus.nextNotMine")
+                  : t(`bidStatus.${b.status}`)}
               {b.owner ? "" : ` · ${t("backed")}`}
               {b.rolled ? ` · ${t("rolledIn")}` : ""}
             </p>
+            {b.messages.map((m, i) => (
+              <p key={i} className="mt-1 flex items-center gap-1.5 truncate text-sm text-text-primary">
+                <MessageCircle size={14} className="shrink-0 text-accent-400" aria-hidden />
+                <span className="truncate">{t("messageFrom", { message: m.text, name: m.by ?? t("anonymous") })}</span>
+              </p>
+            ))}
           </div>
           <p className="tnum shrink-0 text-sm font-semibold text-text-primary">
             {b.myCents > 0 ? formatEurosDisplay(b.myCents) : "—"}
@@ -773,7 +801,7 @@ export function BidScreen({
   const { state, serverNow, chosenSlotId, chooseSlot } = useAuction();
 
   if (!state || !ready) return <Skeleton height={320} rounded="card" />;
-  const slot = state.open.find((s) => s.id === chosenSlotId) ?? state.open[0] ?? null;
+  const slot = pickSlot(state, chosenSlotId, serverNow);
   const mine = slot ? state.me?.bids.find((b) => b.slotId === slot.id && b.owner) : undefined;
   // Same rules as the server (lib/auction/transition): harder transitions start higher.
   const assessment = assessTransition(track, state.nowPlaying, state.rules.transition);
