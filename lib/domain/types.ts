@@ -103,9 +103,9 @@ export interface SessionConfig {
   decisionWindowQueueMin: number; // default 10
   /** Tier price limits, cents (B5.6). */
   tierLimits: Record<Tier, { minCents: number; maxCents: number }>;
-  /** BetBeat fee (bps of GMV, default 2000 = 20%) and venue/DJ split of the rest. */
+  /** Ritmo fee (bps of GMV, default 2000 = 20%) and venue/DJ split of the rest. */
   betbeatFeeBps: number;
-  venueShareBps: number; // of the remainder after the BetBeat fee
+  venueShareBps: number; // of the remainder after the Ritmo fee
   /** Minimum musical fit allowed for requests (0 disables the block). */
   minFitScore: number;
   /** Track repeat block window, minutes (default 60). */

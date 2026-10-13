@@ -375,7 +375,7 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
         style={{ ...displayFont, fontSize: "clamp(0.75rem, 1.6vmin, 1rem)", fontWeight: 600 }}
         aria-hidden="true"
       >
-        BetBeat
+        Ritmo
       </span>
     </main>
   );

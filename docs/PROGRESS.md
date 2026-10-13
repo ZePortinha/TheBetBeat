@@ -39,7 +39,7 @@ docs/INTEGRATIONS.md, steps 5–6). Details in DECISIONS.
 ## Security hardening (cloud session, overnight — 2026-10-06)
 
 Same branch. Column grants (migration 0014) stop guests and managers writing
-protected columns through PostgREST (verified phone, @handle, BetBeat fee);
+protected columns through PostgREST (verified phone, @handle, Ritmo fee);
 `db:audit` now checks column privileges. Also: client IP from the right end of
 X-Forwarded-For (`TRUSTED_PROXY_HOPS`), Origin check on API writes, MFA (AAL2)
 on the cockpit API for managers, safe post-login/MFA redirects, preview SSRF

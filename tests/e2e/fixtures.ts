@@ -41,7 +41,7 @@ export const SEED = {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "admin@betbeat.local",
       password: "betbeat-dev",
-      name: "BetBeat Ops",
+      name: "Ritmo Ops",
       mfa: true,
     },
   },

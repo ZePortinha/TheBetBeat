@@ -64,7 +64,7 @@ interface LiveEvent {
   open_auctions: number;
 }
 
-/** Every event live on BetBeat right now, newest first. */
+/** Every event live on Ritmo right now, newest first. */
 async function liveEvents(): Promise<LiveEvent[]> {
   try {
     const res = await query<LiveEvent>(
@@ -88,8 +88,8 @@ async function liveEvents(): Promise<LiveEvent[]> {
 
 /**
  * "/" — the guests' front door (2026-10-06): the camera reads the event's
- * QR first; below it, every event live on BetBeat right now. Clubs find
- * BetBeat at /casas.
+ * QR first; below it, every event live on Ritmo right now. Clubs find
+ * Ritmo at /casas.
  */
 export default async function Home() {
   const t = await getTranslations("guest.entry");

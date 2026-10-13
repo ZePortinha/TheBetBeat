@@ -1,4 +1,4 @@
-# BetBeat
+# Ritmo
 
 Guests at a nightclub pay to request songs from the DJ, choosing how long they are
 willing to wait (dynamic pricing). The DJ always decides what plays; if a song does
@@ -9,9 +9,9 @@ not play, the guest is automatically refunded. One Next.js app serves four surfa
 | Guest app (PWA, pt-PT + EN) | `/s/[qrToken]` | phone, 393×852 |
 | DJ cockpit (PWA, offline-capable) | `/cockpit` | iPad landscape, 1194×834 |
 | Venue display | `/display/[token]` | TV 1920×1080 / 1080×1920 |
-| Venue panel + BetBeat admin | `/console` | desktop, 1440×900 |
+| Venue panel + Ritmo admin | `/console` | desktop, 1440×900 |
 
-The product specification is `BETBEAT_BRIEF.md` (source of truth). Progress and
+The product specification is `RITMO_BRIEF.md` (source of truth). Progress and
 decisions live in `docs/PROGRESS.md` and `docs/DECISIONS.md`; the security
 posture in `docs/SECURITY.md`; how to run a night in `docs/OPERATIONS.md`.
 
@@ -33,7 +33,7 @@ Open `http://localhost:3000`: the dev index links to the guest app (signed QR of
 the seeded "Pista" zone), the cockpit, the display and the console. Seeded staff
 logins (local only, password `betbeat-dev`): `dj.helix@betbeat.local` (DJ),
 `manager@betbeat.local` (manager, TOTP MFA enrolled on first login),
-`admin@betbeat.local` (BetBeat admin).
+`admin@betbeat.local` (Ritmo admin).
 
 ### Environment variables
 
@@ -187,4 +187,4 @@ Code, names, comments and commits in English. UI copy in pt-PT (plus EN on the
 guest app), always in `messages/<locale>/*.json`. Money in integer cents, time in
 UTC, displayed in Europe/Lisbon. `now` is injected everywhere in domain code.
 Only fictional data. Forbidden words in the UI: "aposta", "apostar", "odds",
-"ganhar" (BetBeat is not gambling: the outcome is deterministic and refunded).
+"ganhar" (Ritmo is not gambling: the outcome is deterministic and refunded).

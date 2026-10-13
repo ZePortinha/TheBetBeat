@@ -16,7 +16,7 @@ const inputCls =
   "text-text-primary tnum focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25";
 
 /**
- * Admin BetBeat — Casas & contratos (B9 admin). Platform admins only.
+ * Admin Ritmo — Casas & contratos (B9 admin). Platform admins only.
  * Fee/split live on the venue row; sessions inherit the fee at creation
  * (sessoes/actions.ts never trusts a client-provided fee).
  */

@@ -86,7 +86,7 @@ describe("buildRefundMessage", () => {
         reason: "rejected_by_dj",
       }),
     ).toBe(
-      "BetBeat: devolvemos 12,50 € do teu pedido «Balada do Mar». " +
+      "Ritmo: devolvemos 12,50 € do teu pedido «Balada do Mar». " +
         "Motivo: o DJ não aceitou o pedido.",
     );
   });
@@ -99,7 +99,7 @@ describe("buildRefundMessage", () => {
         reason: "tier_demoted",
       }),
     ).toBe(
-      "BetBeat: devolvemos 4 € do teu pedido «Noite Azul». " +
+      "Ritmo: devolvemos 4 € do teu pedido «Noite Azul». " +
         "Motivo: a música não tocou no prazo prometido.",
     );
   });
@@ -182,7 +182,7 @@ describe("notifyGuestRefund", () => {
   it("prefers SMS when the guest gave a phone", async () => {
     const result = await notifyGuestRefund({ ...base, phoneE164: PHONE });
     expect(result.message).toBe(
-      "BetBeat: devolvemos 12,50 € do teu pedido «Balada do Mar». " +
+      "Ritmo: devolvemos 12,50 € do teu pedido «Balada do Mar». " +
         "Motivo: o pedido expirou sem resposta do DJ.",
     );
     expect(result.sms?.ok).toBe(true);
@@ -210,7 +210,7 @@ describe("notifyGuestRefund", () => {
     expect(result.sms).toBeUndefined();
     expect(result.email?.ok).toBe(true);
     expect(emailOutbox).toHaveLength(1);
-    expect(emailOutbox[0]?.subject).toBe("BetBeat — reembolso do teu pedido");
+    expect(emailOutbox[0]?.subject).toBe("Ritmo — reembolso do teu pedido");
     expect(emailOutbox[0]?.body).toBe(result.message);
   });
 

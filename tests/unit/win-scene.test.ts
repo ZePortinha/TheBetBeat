@@ -23,7 +23,7 @@ const text = {
   amount: "12 €",
   trackTitle: "Midnight Circuit",
   trackArtist: "Kova Ray",
-  brand: "BetBeat × Club Meridiano",
+  brand: "Ritmo × Club Meridiano",
   footer: "qui · 8 out · 01:24",
 };
 

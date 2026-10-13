@@ -1,5 +1,5 @@
 /**
- * Landing — the public face of BetBeat (server components).
+ * Landing — the public face of Ritmo (server components).
  *
  * Design read: an Apple product page, dark. Centred hero with the record
  * as the product shot, highlight tiles with inline bold lead-ins, a bento

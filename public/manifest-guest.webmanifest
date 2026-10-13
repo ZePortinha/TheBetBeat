@@ -1,6 +1,6 @@
 {
-  "name": "BetBeat",
-  "short_name": "BetBeat",
+  "name": "Ritmo",
+  "short_name": "Ritmo",
   "description": "Pede a tua música ao DJ.",
   "start_url": "/",
   "display": "standalone",

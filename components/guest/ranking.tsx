@@ -119,7 +119,7 @@ function PodiumStep({ place, label, cents }: { place: Place; label: string | nul
 async function shareRanking(token: string, title: string): Promise<"shared" | "saved"> {
   const res = await fetch(`/api/guest/ranking/card?token=${encodeURIComponent(token)}`);
   if (!res.ok) throw new Error("card");
-  const file = new File([await res.blob()], "betbeat-ranking.png", { type: "image/png" });
+  const file = new File([await res.blob()], "ritmo-ranking.png", { type: "image/png" });
   const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
   if (typeof nav.share === "function" && nav.canShare?.({ files: [file] })) {
     await nav.share({ files: [file], title });

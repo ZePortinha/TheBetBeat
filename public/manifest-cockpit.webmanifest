@@ -1,7 +1,7 @@
 {
-  "name": "BetBeat Cockpit",
+  "name": "Ritmo Cockpit",
   "short_name": "Cockpit",
-  "description": "Cockpit do DJ — BetBeat.",
+  "description": "Cockpit do DJ — Ritmo.",
   "start_url": "/cockpit",
   "display": "standalone",
   "orientation": "landscape",

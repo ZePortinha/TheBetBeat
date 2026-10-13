@@ -1,5 +1,5 @@
 {
-  "appName": "BetBeat",
+  "appName": "Ritmo",
   "tagline": "Pede a tua música ao DJ.",
   "actions": {
     "back": "Voltar",
@@ -48,7 +48,7 @@
   },
   "auth": {
     "title": "Entrar",
-    "subtitle": "Acesso para DJs, gestores e equipa BetBeat.",
+    "subtitle": "Acesso para DJs, gestores e equipa Ritmo.",
     "email": "Email",
     "password": "Palavra-passe",
     "submit": "Entrar",
@@ -81,7 +81,7 @@
     }
   },
   "devIndex": {
-    "title": "BetBeat · desenvolvimento",
+    "title": "Ritmo · desenvolvimento",
     "guest": "App do Convidado",
     "cockpit": "Cockpit do DJ",
     "display": "Ecrã da Casa",
@@ -146,15 +146,15 @@
       "body": "Reembolso total e automático. Se fores ultrapassado num leilão, o valor volta ao teu saldo."
     },
     "footer": {
-      "rights": "© 2026 BetBeat",
+      "rights": "© 2026 Ritmo",
       "nav": "Ligações do rodapé"
     }
   },
   "meta": {
     "description": "Pede a tua música ao DJ da festa. Escolhe a faixa, licita no leilão aberto e, se não tocar, devolvemos tudo.",
-    "ogAlt": "BetBeat: pede a tua música ao DJ",
+    "ogAlt": "Ritmo: pede a tua música ao DJ",
     "venuesTitle": "Para DJs e casas",
-    "venuesDescription": "BetBeat para casas noturnas e DJs: os convidados pedem músicas a pagar, o DJ decide sempre o que toca e o que não toca é devolvido automaticamente.",
+    "venuesDescription": "Ritmo para casas noturnas e DJs: os convidados pedem músicas a pagar, o DJ decide sempre o que toca e o que não toca é devolvido automaticamente.",
     "staffLogin": "Entrar",
     "mfa": "Verificação em dois passos",
     "partyLogin": "Entrar na festa",

@@ -6,7 +6,7 @@
  * Security (B12.2): requireStaff via requireConsole on every action,
  * venue scoping through assertVenueAccess + venue-scoped SQL, zod STRICT
  * allowlists (no price/status/role/venue mass assignment: betbeatFeeBps
- * is BetBeat's flat 11% for new events and the stored one on edits, never
+ * is Ritmo's flat 11% for new events and the stored one on edits, never
  * the body), audit_log per
  * mutation. B5.6: tier-min configs that break the "+5 € per tier"
  * ordering are REJECTED with inline field errors (B10.8), then
@@ -218,7 +218,7 @@ export async function saveSessionAction(
   );
   if (dj.rows.length === 0) return { errors: { djStaffId: "invalid" } };
 
-  // betbeatFeeBps is NEVER client-provided: BetBeat's flat 11% for a new
+  // betbeatFeeBps is NEVER client-provided: Ritmo's flat 11% for a new
   // event; an edited event keeps the fee it was created with.
   let betbeatFeeBps = PLATFORM_FEE_BPS;
   if (data.sessionId) {

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * BottomSheet — Vaul's Drawer dressed in the BetBeat material (BRIEF B10.4/6).
+ * BottomSheet — Vaul's Drawer dressed in the Ritmo material (BRIEF B10.4/6).
  *
  * - Rounded-sheet top, translucent `.material` surface, grab handle.
  * - Scrim dims and (via `shouldScaleBackground`) pushes the page back —

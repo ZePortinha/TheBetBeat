@@ -189,7 +189,7 @@ Product bugs it exposed, all fixed at the root:
 - **Context:** the product owner asked for the colour palette and typeface of
   the Helvetica specimen (red, black, off-white; one grotesque) as inspiration.
   This supersedes the warm black + gold + Unbounded + Instrument Serif of B10.
-  `BETBEAT_BRIEF.md` is untouched and now outdated on those two points; it
+  `RITMO_BRIEF.md` is untouched and now outdated on those two points; it
   needs aligning with the team.
 - **Decision:** tokens in `styles/tokens.css`: neutral black `#0b0b0c` with
   four surfaces, off-white text `#f2f2f0`, one accent red `#e8112d`
@@ -236,7 +236,7 @@ Product bugs it exposed, all fixed at the root:
   the guarantee as a red tile, small-print footer). Login/MFA is a centred
   Apple ID-style column. The guest session links are an iOS inset grouped
   list with red icon tiles; the back control is an accent chevron.
-- `BETBEAT_BRIEF.md` B10 stays outdated on palette, type and radii; align
+- `RITMO_BRIEF.md` B10 stays outdated on palette, type and radii; align
   with the team.
 
 ## 2026-10-05 - Optional guest sign-in with phone number + SMS code
@@ -298,7 +298,7 @@ Product bugs it exposed, all fixed at the root:
   previous palette and type, so that theme was removed again. The guest
   app keeps the Apple palette + red and SF Pro / Inter like the rest.
 - **Chrome:** `app/(guest)/s/[qrToken]/layout.tsx` mounts `PartyChrome`
-  once per party: "BETBEAT × venue" top bar (home, top, account), and a
+  once per party: "RITMO × venue" top bar (home, top, account), and a
   material tab bar (Pedir faixa → search, Fila ao vivo, Rankings) that
   persists across tabs; hidden on one-request and account screens. Main
   CTAs float above it (`DockCta`, a fade, never a second translucent bar).
@@ -512,8 +512,8 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 
 ## 2026-10-06 - Guests' front door: QR camera + live events; per-event QR
 
-- "/" is now the guests' entry. First comes the camera reading the event's QR: native BarcodeDetector where available, jsQR elsewhere (iPhone). Below it is the list of events live on BetBeat right now. The venue landing moved to /casas.
-- The scanner only follows a BetBeat guest path (/s/<token>) and always stays on this site: a QR pointing elsewhere is refused. `Permissions-Policy` now allows the camera for this origin.
+- "/" is now the guests' entry. First comes the camera reading the event's QR: native BarcodeDetector where available, jsQR elsewhere (iPhone). Below it is the list of events live on Ritmo right now. The venue landing moved to /casas.
+- The scanner only follows a Ritmo guest path (/s/<token>) and always stays on this site: a QR pointing elsewhere is refused. `Permissions-Policy` now allows the camera for this origin.
 - New signed token kind `session`: an event QR opens that event only (through the venue's first zone), never another night at the same venue. The zone QR still opens whatever is live there.
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
@@ -571,7 +571,7 @@ Measured in a cloud session without Docker: Postgres 16 with stubbed `auth`/`rea
 Product owner asked for better animation quality on the logo, the auction ending and the win. Reviewed frame by frame on `/dev/motion` (dev-only stage; `?scene=intro|final|win`).
 
 - Countdowns (guest card, teaser, strip, venue display, "next opens") roll digit by digit like a mechanical clock (`TickingCountdown`, springDefault); only changed digits move. The leader's amount rolls the same way. The looping `animate-pulse` on the last minute is gone (B10.6: no loops except live indicators).
-- Last 30 s: the edge glow beats once per second, on the second the digits roll, driven per tick with Web Animations on opacity (`FinalStretchFrame`). The old 1 s box-shadow keyframes repainted the whole viewport every frame and drifted out of step with the clock. Last 10 s: each beat is the BetBeat lub-dub. The digits tick (scale 1.08 → 1) on the beat; cards just run hot (static red border + glow) instead of flashing. Last 5 s of an auction I am in: a 12 ms haptic tick per second. Never more than two pulses a second (under the 3 Hz flash limit). Reduced motion: steady red edge, digits cross-fade.
+- Last 30 s: the edge glow beats once per second, on the second the digits roll, driven per tick with Web Animations on opacity (`FinalStretchFrame`). The old 1 s box-shadow keyframes repainted the whole viewport every frame and drifted out of step with the clock. Last 10 s: each beat is the Ritmo lub-dub. The digits tick (scale 1.08 → 1) on the beat; cards just run hot (static red border + glow) instead of flashing. Last 5 s of an auction I am in: a 12 ms haptic tick per second. Never more than two pulses a second (under the 3 Hz flash limit). Reduced motion: steady red edge, digits cross-fade.
 - Closing: the gavel strikes (springMomentum: a blow may overshoot) with a ring from the point of impact and one 40 ms buzz for guests in the auction, timed to the impact.
 - Logo intro: on leaving, the mark comes towards the viewer (scale 1.9) and dissolves as the black lifts, instead of a flat fade. The CSS safety fallback moved to 2.8 s so it no longer cuts the exit.
 - Winner: a bottom scrim keeps the amount, track and hint readable over the confetti and rays.
@@ -756,7 +756,7 @@ their own by artist, album and style; the admin's event creation with the
 split between DJ and promoter and/or club on top of the fixed 11% fee, and
 event criteria (music style) that decide the first recommendations.
 
-- **Fee:** BetBeat's fee is a flat 11% (`PLATFORM_FEE_BPS`), no longer a
+- **Fee:** Ritmo's fee is a flat 11% (`PLATFORM_FEE_BPS`), no longer a
   per-venue contract. New events take it; an edited event keeps the fee it
   was created with; migration 18 moves every venue to 1100 and Admin ›
   Casas shows it read-only. Existing events' snapshots are untouched.
@@ -801,5 +801,32 @@ conflicted (both sides kept).
 - **Migrations:** 18 (#12) and 20 (#11), no collision; 19 is unused.
 - **Admin:** #11 dropped "Máximo de anúncios por hora" from Leilões
   (the shoutout from the Leilões threshold, 150 € by default, is always
-  given); #12 made the BetBeat fee a fixed 11% in Casas. Different pages
+  given); #12 made the Ritmo fee a fixed 11% in Casas. Different pages
   and fields; both stand.
+
+## 2026-10-13 - The product is now called Ritmo
+
+The owner renamed the app from BetBeat to Ritmo ("bet" read as gambling, and
+the product is meant for beach clubs and restaurants too, not only clubs).
+
+- **Renamed:** every user-facing string (messages, metadata, PWA manifests,
+  the bottle label in the winner celebration, share cards and their file
+  names, SMS/email texts, the MB WAY payment description, the TOTP issuer),
+  code comments, README, CLAUDE.md, docs, and the brief, now `RITMO_BRIEF.md`
+  (content otherwise untouched).
+- **Reserved @s:** "ritmo" and its brand-like spellings (ritmopt,
+  oficialritmo, …) are blocked; because "ritmo" is also an ordinary word, an
+  @ that merely contains it (e.g. "ritmoquente") stays allowed. The old
+  "betbeat" rules stay.
+- **Kept on purpose, because renaming would break running data or setups:**
+  DB columns and functions (`betbeat_fee_bps`, `betbeat_revenue`) and the TS
+  fields mapped to them (`betbeatFee*`), message keys (`betbeatFee`,
+  `exampleBetbeat`) and test ids; the Supabase project ids (`betbeat`,
+  `betbeat-test`, which name the local Docker volumes); the dev staff logins
+  (`*@betbeat.local`, password `betbeat-dev`); the guests' synthetic auth
+  email domain (`guests.betbeat.invalid`, stored on existing accounts);
+  advisory-lock, localStorage and DOM-event keys; and any domain
+  (`betbeat.pt` in the VAPID subject default, test fixtures). Domains change
+  once one is bought.
+- `.env.local` is not in git: `TWILIO_FROM=BetBeat` there must be changed
+  by hand to `Ritmo`.

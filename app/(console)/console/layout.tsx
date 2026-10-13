@@ -58,7 +58,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
       <aside className="sticky top-0 flex h-dvh w-64 shrink-0 flex-col gap-6 overflow-y-auto border-r border-line-subtle bg-bg-raised px-4 py-6 print:hidden">
         <p className="font-display flex items-center gap-2 px-3 text-xl font-extrabold tracking-tight text-text-primary">
           <BrandMark className="size-7 shrink-0" />
-          BetBeat{" "}
+          Ritmo{" "}
           <span className="text-sm font-semibold text-text-tertiary">
             {t("shell.console")}
           </span>

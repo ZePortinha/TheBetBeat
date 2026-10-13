@@ -3,7 +3,7 @@
  * refund notices. Plain REST (no SDK):
  *   POST https://api.twilio.com/2010-04-01/Accounts/{Sid}/Messages.json
  *   Basic auth Sid:Token, form body To / From / Body → { sid } (HTTP 201).
- * `from` is a Twilio number in E.164 or an alphanumeric sender ("BetBeat"),
+ * `from` is a Twilio number in E.164 or an alphanumeric sender ("Ritmo"),
  * which Portugal accepts.
  */
 import type { SmsProvider } from "./types";

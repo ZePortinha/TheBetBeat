@@ -1,7 +1,7 @@
 # Guia de operação de uma noite
 
 Para quem abre a casa, acompanha o set e fecha a noite: gestores, DJs e a equipa
-BetBeat. Linguagem de produto (B3): "Na Fila" = `QUEUE`, "Em Breve" = `SOON`,
+Ritmo. Linguagem de produto (B3): "Na Fila" = `QUEUE`, "Em Breve" = `SOON`,
 "A Seguir" = `NEXT`.
 
 Regras que nunca mudam (B1): o DJ tem a última palavra; se não tocar, o
@@ -10,7 +10,7 @@ pagar; as transições de estado e os reembolsos acontecem só no servidor.
 
 ## 1. Antes de abrir
 
-**Infraestrutura (equipa BetBeat)**
+**Infraestrutura (equipa Ritmo)**
 
 1. App (`pnpm start` ou o deploy), Supabase e o worker (`pnpm worker`) a correr.
    Sem worker não há prazos, reembolsos automáticos, payouts nem fecho
@@ -90,7 +90,7 @@ pagar; as transições de estado e os reembolsos acontecem só no servidor.
 | QR "já não é válido" | Token de outra casa/zona, ou `QR_TOKEN_SECRET` mudou | Reimprime os QR a partir da Consola. Se o segredo mudou, todos os QR antigos deixam de funcionar: é esperado. |
 | Convidado não consegue pedir ("Já tens 3 pedidos ativos", limite de gasto) | Limites por convidado (B4.7) | É proteção, não falha. Espera que um pedido toque ou seja reembolsado. |
 | DJ sem acesso ao cockpit | Conta sem papel `dj` nesta casa | Equipa → convida o DJ para a casa com o papel certo. |
-| Gestor sem código MFA | Perdeu a app de autenticação | Admin BetBeat remove o fator no Supabase Auth; no próximo login o gestor volta a inscrever. |
+| Gestor sem código MFA | Perdeu a app de autenticação | Admin Ritmo remove o fator no Supabase Auth; no próximo login o gestor volta a inscrever. |
 | Cockpit em branco sem rede | Primeira abertura sem cache | O service worker guarda o cockpit depois da primeira visita com rede. Abre-o uma vez com ligação antes do set. |
 
 Em qualquer falha de dinheiro, a auditoria (Consola → Admin → Auditoria) e os
@@ -110,7 +110,7 @@ devolver por cortesia.
    com o ator e a referência; o saldo do convidado volta a bater certo na
    reconciliação diária.
 3. Cortesia (o pedido tocou mas a casa quer devolver): só o admin, pela Consola,
-   com motivo registado. A taxa BetBeat e o split são revertidos no mesmo grupo
+   com motivo registado. A taxa Ritmo e o split são revertidos no mesmo grupo
    de lançamentos.
 4. Avisa o convidado: ele vê o reembolso em "Os meus pedidos"; se deu telemóvel
    ou email, recebe SMS ou email ("Devolvemos 12 €. Já vai a caminho.").
@@ -126,12 +126,12 @@ o resumo do set (receita bruta, reembolsos, "Recebes X €", casa, aceitação, 
 faixas). Se o DJ não terminar, a sessão fecha sozinha 30 min depois da hora de
 fim com os mesmos reembolsos.
 
-**Gestor:** Consola → Receita → sessão: GMV, líquido, comissão BetBeat,
+**Gestor:** Consola → Receita → sessão: GMV, líquido, comissão Ritmo,
 reembolsos, faturas e o estado do payout (casa e DJ). Os payouts ficam
 pendentes no fecho e são executados pelo worker (SEPA via PSP a partir da Fase
 8; mock até lá), com relatório. Exporta CSV ou PDF se a contabilidade pedir.
 
-**Equipa BetBeat:** reconciliação diária às 05:00 (worker) compara PSP, ledger e
+**Equipa Ritmo:** reconciliação diária às 05:00 (worker) compara PSP, ledger e
 pedidos; diferenças aparecem em Admin → Reconciliação. Trata-as antes de
 qualquer payout.
 

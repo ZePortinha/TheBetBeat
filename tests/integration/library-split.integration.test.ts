@@ -39,7 +39,7 @@ const library = await import("@/lib/catalog/library");
 /**
  * The DJ's library (add / dedupe / browse / remove) and the event's revenue
  * split with a promoter, end to end on the money path: a played auction
- * credits BetBeat 11%, club, promoter and DJ, and the end of the night
+ * credits Ritmo 11%, club, promoter and DJ, and the end of the night
  * creates the promoter's payout. (SUPABASE_TEST=1, local test stack.)
  */
 const VENUE_ID = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -147,7 +147,7 @@ describe("the DJ's own library", () => {
 });
 
 describe("revenue split with a promoter", () => {
-  it("a played 100 € winner credits BetBeat 11%, club 30%, promoter 20% and the DJ the rest; the night pays the promoter", async () => {
+  it("a played 100 € winner credits Ritmo 11%, club 30%, promoter 20% and the DJ the rest; the night pays the promoter", async () => {
     const now = T0 + 60_000;
     await db.query(`update public.auction_slots set status = 'cancelled' where session_id = $1 and status = 'open'`, [SESSION_ID]);
     const slot = (await auction.openExtraSlot(SESSION_ID, "staff:test-dj", now))!;
