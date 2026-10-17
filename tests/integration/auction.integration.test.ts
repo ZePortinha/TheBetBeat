@@ -69,7 +69,7 @@ async function createGuest(): Promise<string> {
        email_change_token_new, recovery_token)
      values ('00000000-0000-0000-0000-000000000000', $1, 'authenticated', 'authenticated', $2, '', now(),
        '{"provider":"anonymous","providers":["anonymous"]}', '{}', now(), now(), '', '', '', '')`,
-    [id, `auction-${RUN}-${id.slice(0, 8)}@betbeat.test`],
+    [id, `auction-${RUN}-${id.slice(0, 8)}@ritma.test`],
   );
   await db.query(`insert into public.guests (id, locale) values ($1, 'pt-PT')`, [id]);
   return id;
@@ -558,7 +558,7 @@ describe("money", () => {
     expect(await phoneHandles.checkHandle(db.getPool(), handle, a, null)).toBe("ok");
     // Word rules come before the database.
     expect(await phoneHandles.claimHandle(db.getPool(), b, `caralho${RUN}`, null)).toBe("not_allowed");
-    expect(await phoneHandles.claimHandle(db.getPool(), b, "betbeat", null)).toBe("taken");
+    expect(await phoneHandles.claimHandle(db.getPool(), b, "ritma", null)).toBe("taken");
     // Two phones racing for the same new @: exactly one gets it.
     const race = `rui${RUN}`;
     const results = await Promise.all([b, c].map((g) => phoneHandles.claimHandle(db.getPool(), g, race, null)));

@@ -51,7 +51,7 @@ describe("deriveBalances", () => {
 });
 
 describe("full lifecycle: capture → recognition → partial refund → payout", () => {
-  // Session defaults (B4.5): 20% BetBeat fee, remainder split 50/50.
+  // Session defaults (B4.5): 20% Ritma fee, remainder split 50/50.
   const feeBps = 2000;
   const venueBps = 5000;
 
@@ -75,7 +75,7 @@ describe("full lifecycle: capture → recognition → partial refund → payout"
   it("nets every account to its expected balance", () => {
     const balances = deriveBalances(asRows(ledger));
     expect(balances).toEqual({
-      // Captures 3600 − refund 1400 − payouts 1760 = 440 (BetBeat's fee cash).
+      // Captures 3600 − refund 1400 − payouts 1760 = 440 (Ritma's fee cash).
       psp_clearing: 440,
       // Everything captured was either recognized or refunded.
       guest_escrow: 0,

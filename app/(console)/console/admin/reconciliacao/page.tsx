@@ -43,7 +43,7 @@ function num(value: unknown): number {
 }
 
 /**
- * Admin BetBeat — Reconciliação (B9 admin / B4.3): renders the latest
+ * Admin Ritma — Reconciliação (B9 admin / B4.3): renders the latest
  * daily reconciliation report (audit_log 'reconciliation.daily') and the
  * last two weeks of verdicts. Read-only — the worker is the author.
  */

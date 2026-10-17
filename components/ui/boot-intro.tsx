@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Boot intro: the BetBeat mark beats twice like a heart (lub-dub at
+ * Boot intro: the Ritma mark beats twice like a heart (lub-dub at
  * 120 BPM), each beat sends a ring out like a sound wave, the name lands,
  * and the splash dissolves into the page: the mark comes towards the
  * viewer as the black lifts (~2 s, tap to skip).

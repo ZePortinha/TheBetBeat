@@ -2,7 +2,7 @@
  * Ledger account naming (B4.5). Double-entry, signed cents:
  * positive = debit, negative = credit; every group sums to zero.
  *
- * Flow for a played request of amount A with BetBeat fee F:
+ * Flow for a played request of amount A with Ritma fee F:
  *   capture:  psp_clearing +A  /  guest_escrow −A
  *   split:    guest_escrow +A  /  betbeat_revenue −F, venue_payable −V,
  *             promoter_payable −P (when the event has a promoter), dj_payable −D
@@ -14,7 +14,7 @@ export const ACCOUNTS = {
   pspClearing: "psp_clearing",
   /** Guest money held until played/refunded (liability). */
   guestEscrow: "guest_escrow",
-  /** BetBeat fee revenue. */
+  /** Ritma fee revenue. */
   betbeatRevenue: "betbeat_revenue",
   /** Owed to the venue (liability until payout). */
   venuePayable: "venue_payable",

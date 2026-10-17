@@ -208,7 +208,7 @@ async function runAndPublish<T>(
  */
 export async function ensureNightPlan(sessionId: string, now: number): Promise<number> {
   return withTransaction(async (client) => {
-    await client.query(`select pg_advisory_xact_lock(hashtextextended('betbeat:auction-plan:' || $1, 0))`, [
+    await client.query(`select pg_advisory_xact_lock(hashtextextended('ritma:auction-plan:' || $1, 0))`, [
       sessionId,
     ]);
     // Planned once: the config snapshot marks it (even a night with no slot).
@@ -265,7 +265,7 @@ async function insertSlotNowInTx(
 /* ------------------------------------------------------------------ */
 
 async function lockWallet(client: PoolClient, guestId: string, venueId: string): Promise<void> {
-  await client.query(`select pg_advisory_xact_lock(hashtextextended('betbeat:wallet:' || $1 || ':' || $2, 0))`, [
+  await client.query(`select pg_advisory_xact_lock(hashtextextended('ritma:wallet:' || $1 || ':' || $2, 0))`, [
     guestId,
     venueId,
   ]);

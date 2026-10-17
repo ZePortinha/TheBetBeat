@@ -3,7 +3,7 @@
 /**
  * The last 30 seconds of an auction: the screen edge glows red and beats
  * once per second, on the second the digits roll. In the last 10 seconds
- * each beat becomes the BetBeat heartbeat (lub-dub, like the logo).
+ * each beat becomes the Ritma heartbeat (lub-dub, like the logo).
  *
  * Opacity only (Web Animations, compositor) — the old box-shadow keyframes
  * repainted the whole viewport every frame. At most two pulses a second,

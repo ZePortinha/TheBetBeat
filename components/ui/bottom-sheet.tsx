@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * BottomSheet — Vaul's Drawer dressed in the BetBeat material (BRIEF B10.4/6).
+ * BottomSheet — Vaul's Drawer dressed in the Ritma material (BRIEF B10.4/6).
  *
  * - Rounded-sheet top, translucent `.material` surface, grab handle.
  * - Scrim dims and (via `shouldScaleBackground`) pushes the page back —
@@ -19,7 +19,7 @@ import { cx } from "@/components/ui/pressable";
 /** Collapses the slide to a short fade-like cut under reduced motion. */
 const REDUCED_MOTION_CSS = `
 @media (prefers-reduced-motion: reduce) {
-  [data-betbeat-sheet], [data-betbeat-scrim] {
+  [data-ritma-sheet], [data-ritma-scrim] {
     transition-duration: 120ms !important;
   }
 }
@@ -74,11 +74,11 @@ export function BottomSheet({
       <Drawer.Portal>
         <style>{REDUCED_MOTION_CSS}</style>
         <Drawer.Overlay
-          data-betbeat-scrim
+          data-ritma-scrim
           className="fixed inset-0 z-50 bg-bg-base/70"
         />
         <Drawer.Content
-          data-betbeat-sheet
+          data-ritma-sheet
           className={cx(
             "material fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-sheet outline-none",
             snapPoints ? "h-full" : "",

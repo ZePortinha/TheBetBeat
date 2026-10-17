@@ -210,7 +210,7 @@ function PlayedCelebration({
       const res = await fetch(url);
       if (!res.ok) throw new Error("card fetch failed");
       const blob = await res.blob();
-      const file = new File([blob], "betbeat-tocou.png", { type: "image/png" });
+      const file = new File([blob], "ritma-tocou.png", { type: "image/png" });
       const nav = navigator as Navigator & {
         canShare?: (data: ShareData) => boolean;
       };

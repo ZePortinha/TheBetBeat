@@ -10,7 +10,7 @@ import { formatDateTime, formatEuros, requireAdminConsole } from "../../_lib/con
 export const dynamic = "force-dynamic";
 
 /**
- * Admin BetBeat — Sessões ao vivo across every venue (B9 admin).
+ * Admin Ritma — Sessões ao vivo across every venue (B9 admin).
  * Read-only aggregates: live/paused sessions with their request load and
  * tonight's captured amount, plus the next 24 h of scheduled sessions.
  */

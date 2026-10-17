@@ -33,7 +33,7 @@ export default function TokensPage() {
         className="mb-10 text-4xl font-bold text-text-primary"
         style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}
       >
-        BetBeat · Tokens
+        Ritma · Tokens
       </h1>
 
       <h2 className="label mb-4 text-text-secondary">Cores</h2>

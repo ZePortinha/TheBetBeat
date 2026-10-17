@@ -11,7 +11,7 @@ import { retryRefundAction } from "./actions";
 export const dynamic = "force-dynamic";
 
 /**
- * Admin BetBeat — Falhas de pagamento e de reembolso (B9 admin).
+ * Admin Ritma — Falhas de pagamento e de reembolso (B9 admin).
  * Failed payments are informational (the guest simply never paid);
  * failed refunds are money owed to a guest (B4.4) and carry "Repetir".
  */

@@ -120,7 +120,7 @@ export function PartyChrome({
   );
 }
 
-/** "BETBEAT × VENUE" on the left (home); balance (if any) + account on the right. */
+/** "RITMA × VENUE" on the left (home); balance (if any) + account on the right. */
 export function PartyTopBar() {
   const { token, venueName } = useParty();
   const tc = useTranslations("common");

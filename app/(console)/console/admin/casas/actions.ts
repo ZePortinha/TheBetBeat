@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Admin BetBeat — Casas & contratos (B9 admin). Platform admins only
+ * Admin Ritma — Casas & contratos (B9 admin). Platform admins only
  * (requireAdminConsole = requireStaff(['admin']) + venue_id-null check).
  * zod strict; every mutation audited.
  */
@@ -28,7 +28,7 @@ export async function updateVenueContractAction(formData: FormData): Promise<voi
   });
   if (!parsed.success) redirect("/console/admin/casas?error=invalid");
 
-  // BetBeat's fee is flat (11%) since 2026-10-11: only the club's default share is editable.
+  // Ritma's fee is flat (11%) since 2026-10-11: only the club's default share is editable.
   const feeBps = PLATFORM_FEE_BPS;
   const shareBps = Math.round(parsed.data.defaultVenueSharePct * 100);
   await query(

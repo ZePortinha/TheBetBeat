@@ -13,7 +13,7 @@ import { BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "./api";
 
-const LATER_KEY = "betbeat:push-later";
+const LATER_KEY = "ritma:push-later";
 
 function supported(): boolean {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;

@@ -76,7 +76,7 @@ export async function sendGuestPushes(items: GuestPush[]): Promise<void> {
       [[...new Set(items.map((i) => i.guestId))]],
     );
     const vapidDetails = {
-      subject: env.VAPID_SUBJECT ?? "mailto:privacidade@betbeat.pt",
+      subject: env.VAPID_SUBJECT ?? "mailto:privacidade@ritma.app",
       publicKey: env.VAPID_PUBLIC_KEY,
       privateKey: env.VAPID_PRIVATE_KEY,
     };

@@ -8,7 +8,7 @@
 -- * session_settings gain the promoter's share (bps of what is left after
 --   the platform fee, like venue_share_bps) and the promoter's name. The
 --   DJ keeps the rest. Payouts can now go to the promoter.
--- * BetBeat's fee is a flat 11% of every event (was a per-venue contract).
+-- * Ritma's fee is a flat 11% of every event (was a per-venue contract).
 --   Events already created keep the fee they were planned with.
 
 alter table public.library_tracks

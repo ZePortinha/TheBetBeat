@@ -57,7 +57,7 @@ async function shareFile(file: File, title: string): Promise<"shared" | "saved">
 async function storyImage(slotId: string): Promise<File> {
   const res = await fetch(`/api/guest/auction/${slotId}/card?format=story`);
   if (!res.ok) throw new Error("card");
-  return new File([await res.blob()], "betbeat-vencedor.png", { type: "image/png" });
+  return new File([await res.blob()], "ritma-vencedor.png", { type: "image/png" });
 }
 
 /** "sáb · 21 set · 01:24" in Lisbon. */

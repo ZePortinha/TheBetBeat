@@ -39,7 +39,7 @@ function NowPlayingHero({ now, live, djName }: { now: NowPlayingDto | null; live
       ) : (
         <div aria-hidden className="absolute inset-0 -z-20 flex items-start justify-center pt-8">
           <div className="ambient-center absolute inset-0 opacity-80" />
-          <Disc seed={now?.title ?? "betbeat"} bpm={live ? now?.bpm : null} className="relative size-48" />
+          <Disc seed={now?.title ?? "ritma"} bpm={live ? now?.bpm : null} className="relative size-48" />
         </div>
       )}
       {/* Legibility: the art fades into the page behind the text. */}

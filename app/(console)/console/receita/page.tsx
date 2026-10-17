@@ -118,7 +118,7 @@ export default async function RevenuePage() {
             testId="revenue-venue-net"
           />
           <Stat label={t("djNet")} value={formatEuros(overall.djNet)} />
-          <Stat label={t("betbeatFee")} value={formatEuros(overall.betbeatFee)} />
+          <Stat label={t("platformFee")} value={formatEuros(overall.betbeatFee)} />
           <Stat label={t("refunds")} value={formatEuros(overall.refunds)} />
         </div>
       </div>

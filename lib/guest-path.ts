@@ -1,6 +1,6 @@
 /**
  * "/s/<token>" from a scanned QR (a URL on any host, or the bare path), or
- * null when it is not a BetBeat guest link. Only the path is kept, so the
+ * null when it is not a Ritma guest link. Only the path is kept, so the
  * scanner always stays on this site: a QR pointing elsewhere is never opened.
  */
 export function guestPathFrom(text: string): string | null {

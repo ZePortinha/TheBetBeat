@@ -468,7 +468,7 @@
     "denied": "Sem acesso à câmara. Permite a câmara nas definições do browser, ou escolhe o evento na lista.",
     "unsupported": "Este browser não abre a câmara. Escolhe o evento na lista abaixo.",
     "retry": "Tentar outra vez",
-    "notOurs": "Este QR não é de um evento BetBeat.",
+    "notOurs": "Este QR não é de um evento Ritma.",
     "liveTitle": "Eventos em direto",
     "liveEmpty": "Nenhum evento em direto agora. Volta mais logo.",
     "auctionLive": "Leilão aberto",

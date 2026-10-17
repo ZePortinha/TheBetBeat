@@ -63,7 +63,7 @@ export function ShareCard({
   coverUrl,
   venueName,
   dateTimeLabel,
-  wordmark = "BetBeat",
+  wordmark = "Ritma",
 }: ShareCardProps) {
   const { width, height } = SHARE_CARD_SIZES[format];
   const story = format === "story";

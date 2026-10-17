@@ -1,5 +1,5 @@
 /**
- * The BetBeat mark (same geometry as app/icon.svg and the boot intro):
+ * The Ritma mark (same geometry as app/icon.svg and the boot intro):
  * three concentric beats around a dark core. Decorative; pair it with
  * visible or sr-only text where it names the product.
  */
