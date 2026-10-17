@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Admin Ritmo — Feature flags (B9 admin). Platform admins only.
+ * Admin Ritma — Feature flags (B9 admin). Platform admins only.
  *
  * Writes ONLY allowlisted keys (flags.ts) into venues.settings: booleans
  * are set/removed, integers are bounds-checked or removed when blank.

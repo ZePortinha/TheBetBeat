@@ -1,4 +1,4 @@
-# RITMO — Brief de construção (Claude Code)
+# RITMA — Brief de construção (Claude Code)
 
 Este ficheiro é a fonte de verdade do projeto.
 - **Parte A:** como trabalhar.
@@ -15,7 +15,7 @@ Se estás a começar o projeto, começa pela Fase 0. Caso contrário, lê `docs/
 
 ### A1. Missão
 
-Construir o Ritmo com qualidade de produção: uma plataforma em que os convidados de uma discoteca pagam para pedir músicas ao DJ, com preço dinâmico, um cockpit profissional para o DJ e uma consola para a casa.
+Construir o Ritma com qualidade de produção: uma plataforma em que os convidados de uma discoteca pagam para pedir músicas ao DJ, com preço dinâmico, um cockpit profissional para o DJ e uma consola para a casa.
 
 Prioridades, por esta ordem:
 1. Segurança e fiabilidade do dinheiro.
@@ -91,7 +91,7 @@ Prioridades, por esta ordem:
     - Regras: só tokens, strings só em traduções, alvos de toque, a checklist de interação de B10.6, reduced motion e reduced transparency. Usa a skill `apple-design`.
 - **`docs/PROGRESS.md`:** estado de cada fase, próximo passo e problemas conhecidos.
 - **`docs/DECISIONS.md`:** cada decisão com data, contexto e alternativa rejeitada.
-- **Este brief:** se ainda não estiver no repositório (porque foi colado na conversa), guarda-o literalmente, sem resumir, em `RITMO_BRIEF.md`.
+- **Este brief:** se ainda não estiver no repositório (porque foi colado na conversa), guarda-o literalmente, sem resumir, em `RITMA_BRIEF.md`.
 
 ---
 
@@ -119,7 +119,7 @@ Prioridades, por esta ordem:
 
 **Crescimento**
 - O Ecrã da Casa (com o QR sempre visível) e o cartão partilhável "A minha música tocou" trazem novos convidados.
-- Cada DJ que ganha com o Ritmo leva-o para as próximas casas onde toca.
+- Cada DJ que ganha com o Ritma leva-o para as próximas casas onde toca.
 - Cada pedido gera dados de procura (por casa, hora e género) que alimentam os preços.
 
 ### B2. Superfícies (uma única app Next.js)
@@ -127,7 +127,7 @@ Prioridades, por esta ordem:
 - **`/s/[qrToken]` — App do Convidado:** PWA para telemóvel, em pt-PT e EN.
 - **`/cockpit` — Cockpit do DJ:** PWA para iPad em landscape.
 - **`/display/[token]` — Ecrã da Casa:** para TV ou LED, sem interação.
-- **`/console` — Painel da Casa e Admin Ritmo:** desktop, com acesso por papéis.
+- **`/console` — Painel da Casa e Admin Ritma:** desktop, com acesso por papéis.
 
 **Fora do MVP** (não construir, mas deixar a arquitetura preparada):
 - Deteção automática da faixa a tocar (Pro DJ Link ou histórico do software de DJ).
@@ -220,14 +220,14 @@ Prioridades, por esta ordem:
 **B4.5 Receita, split e faturação**
 
 - **Split por pedido:**
-  - Taxa Ritmo configurável (20% por defeito).
+  - Taxa Ritma configurável (20% por defeito).
   - O restante divide-se entre a casa e o DJ, com o split configurável por sessão.
 - **Ledger:** de dupla entrada e imutável. Os saldos são sempre derivados dele.
 - **Payouts:** à casa e ao DJ após o fecho da sessão (SEPA via PSP), com relatório.
 - **Faturação:**
   - Preços com IVA incluído.
   - `InvoicingProvider` para software de faturação certificado pela AT: fatura-recibo, com NIF opcional no checkout.
-  - Entidade emissora configurável (Ritmo ou casa), a validar com o contabilista.
+  - Entidade emissora configurável (Ritma ou casa), a validar com o contabilista.
 
 **B4.6 Catálogo**
 
@@ -523,7 +523,7 @@ Prioridades, por esta ordem:
   - aceitação e reembolsos;
   - receita por convidado, com a lotação introduzida pela casa.
 
-**Admin Ritmo**
+**Admin Ritma**
 - Casas e contratos (taxas, splits).
 - Sessões ao vivo.
 - Falhas de pagamento e de reembolso.
@@ -918,7 +918,7 @@ docs/
   - Compra de um serviço com resultado determinístico e reembolso garantido. Não é jogo.
   - A validar com advogado antes do lançamento, incluindo o nome da marca.
 - **Música:**
-  - O Ritmo não reproduz áudio na sala; o DJ toca a música ao abrigo das licenças da casa.
+  - O Ritma não reproduz áudio na sala; o DJ toca a música ao abrigo das licenças da casa.
   - As previews seguem os termos da API de catálogo.
 - **RGPD:**
   - dados mínimos;

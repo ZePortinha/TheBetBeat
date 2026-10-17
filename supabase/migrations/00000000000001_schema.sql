@@ -1,4 +1,4 @@
--- Ritmo schema (BRIEF B11 "Dados"). Money: integer cents. Dates: UTC.
+-- Ritma schema (BRIEF B11 "Dados"). Money: integer cents. Dates: UTC.
 create extension if not exists pgcrypto;
 create extension if not exists pg_trgm;
 
@@ -43,7 +43,7 @@ create table public.zones (
 
 create table public.staff (
   id uuid primary key default gen_random_uuid(),
-  -- venue_id NULL = platform-level Ritmo admin.
+  -- venue_id NULL = platform-level Ritma admin.
   venue_id uuid references public.venues (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
   role public.staff_role not null,

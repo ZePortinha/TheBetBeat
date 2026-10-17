@@ -1,7 +1,7 @@
 {
   "shell": {
     "console": "Consola",
-    "metaTitle": "Consola · Ritmo",
+    "metaTitle": "Consola · Ritma",
     "venue": "Casa",
     "navLabel": "Navegação da consola",
     "breadcrumbLabel": "Caminho",
@@ -15,7 +15,7 @@
     "team": "Equipa",
     "revenue": "Receita",
     "analytics": "Análise",
-    "admin": "Admin Ritmo",
+    "admin": "Admin Ritma",
     "adminVenues": "Casas e contratos",
     "adminLive": "Sessões ao vivo",
     "adminFailures": "Falhas",
@@ -89,7 +89,7 @@
       "min": "Mínimo (€)",
       "max": "Máximo (€)",
       "split": "Divisão da receita",
-      "splitHint": "A Ritmo fica com {fee}% de cada licitação (taxa fixa). O resto divide-se entre a casa, o promotor e o DJ, nas percentagens abaixo.",
+      "splitHint": "A Ritma fica com {fee}% de cada licitação (taxa fixa). O resto divide-se entre a casa, o promotor e o DJ, nas percentagens abaixo.",
       "venueShare": "Casa (%)",
       "save": "Guardar sessão",
       "saving": "A guardar…",
@@ -101,13 +101,13 @@
       "bpmMin": "BPM mínimo (opcional)",
       "bpmMax": "BPM máximo (opcional)",
       "bpmHint": "O BPM só ordena as recomendações. Os convidados continuam a poder licitar em qualquer música da biblioteca.",
-      "feeBadge": "Taxa Ritmo {fee}%",
+      "feeBadge": "Taxa Ritma {fee}%",
       "promoterShare": "Promotor (%)",
       "djShare": "DJ (o resto)",
       "promoterName": "Promotor (opcional)",
       "promoterNamePlaceholder": "Nome da promotora ou do promotor",
       "exampleTitle": "Numa licitação de 100 €",
-      "exampleBetbeat": "Ritmo",
+      "examplePlatform": "Ritma",
       "exampleVenue": "Casa",
       "examplePromoter": "Promotor",
       "exampleDj": "DJ"
@@ -180,7 +180,7 @@
     },
     "genres": {
       "title": "Recomendações por género",
-      "hint": "Todas as semanas a Ritmo recomenda um multiplicador por género com base na conversão e na procura. Aprova, ajusta à mão ou deixa aplicar automaticamente.",
+      "hint": "Todas as semanas a Ritma recomenda um multiplicador por género com base na conversão e na procura. Aprova, ajusta à mão ou deixa aplicar automaticamente.",
       "genre": "Género",
       "current": "Atual",
       "recommended": "Recomendado",
@@ -269,7 +269,7 @@
     "venueNet": "Líquido da casa",
     "promoterNet": "Líquido do promotor",
     "djNet": "Líquido do DJ",
-    "betbeatFee": "Taxa Ritmo",
+    "platformFee": "Taxa Ritma",
     "refunds": "Reembolsos",
     "bySession": "Por sessão",
     "emptyTitle": "Ainda não há receita",
@@ -390,7 +390,7 @@
   },
   "admin": {
     "venues": {
-      "crumbRoot": "Admin Ritmo",
+      "crumbRoot": "Admin Ritma",
       "title": "Casas e contratos",
       "errors": {
         "invalid": "Dados inválidos. Verifica o nome, o slug e as percentagens.",
@@ -410,14 +410,14 @@
       "gmv30d": "Receita bruta · 30 dias",
       "contract": "Contrato",
       "liveNow": "{count, plural, one {# sessão ao vivo} other {# sessões ao vivo}}",
-      "feePct": "Taxa Ritmo (%)",
+      "feePct": "Taxa Ritma (%)",
       "defaultSharePct": "Parte da casa por defeito (%)",
       "save": "Guardar",
-      "contractHint": "A taxa Ritmo é fixa (11% de cada evento). A parte da casa preenche o formulário de novo evento.",
+      "contractHint": "A taxa Ritma é fixa (11% de cada evento). A parte da casa preenche o formulário de novo evento.",
       "feeFixed": "{fee}% (fixa)"
     },
     "live": {
-      "crumbRoot": "Admin Ritmo",
+      "crumbRoot": "Admin Ritma",
       "title": "Sessões ao vivo",
       "summary": "{sessions, plural, one {# sessão} other {# sessões}} · {pending} por decidir · {gmv}",
       "emptyTitle": "Nenhuma sessão ao vivo",
@@ -438,7 +438,7 @@
       "upcomingEmpty": "Sem sessões agendadas para as próximas 24 horas."
     },
     "failures": {
-      "crumbRoot": "Admin Ritmo",
+      "crumbRoot": "Admin Ritma",
       "title": "Falhas de pagamento e reembolso",
       "errors": {
         "invalid": "Pedido inválido. Recarrega a página e tenta novamente.",
@@ -493,7 +493,7 @@
       }
     },
     "reconciliation": {
-      "crumbRoot": "Admin Ritmo",
+      "crumbRoot": "Admin Ritma",
       "title": "Reconciliação",
       "emptyTitle": "Ainda não há relatórios",
       "emptyHint": "O worker corre a reconciliação diária e o relatório aparece aqui.",
@@ -536,7 +536,7 @@
       }
     },
     "flags": {
-      "crumbRoot": "Admin Ritmo",
+      "crumbRoot": "Admin Ritma",
       "title": "Feature flags",
       "hint": "Define por casa as funcionalidades e os valores por defeito. «Herdar» usa o valor global da plataforma.",
       "errors": {
@@ -587,7 +587,7 @@
       "save": "Guardar flags"
     },
     "audit": {
-      "crumbRoot": "Admin Ritmo",
+      "crumbRoot": "Admin Ritma",
       "title": "Auditoria",
       "total": "{count, plural, one {# registo} other {# registos}}",
       "filters": {

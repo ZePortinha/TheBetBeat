@@ -1,14 +1,16 @@
 /**
  * @handles nobody can pick (2026-10-06). The @ shows on the venue screen
- * and in the ranking, so a guest calling themselves "@ritmo" or "@dj"
+ * and in the ranking, so a guest calling themselves "@ritma" or "@dj"
  * could pass for the house or the staff. Compared without separators or
  * digits, so "@dj.oficial" or "@b3tbeat_" are caught too. The client gets
  * the same answer as a taken @ ("handle_taken").
  */
 
 const RESERVED = [
-  // The brand (Ritmo since 2026-10-13; "ritmo" is also a common word, so only
-  // the brand-like spellings are blocked, not every @ that contains it).
+  // The brand (Ritma since 2026-10-17); any @ containing it is caught below.
+  "ritma",
+  // "Ritmo" was the name for a moment and is also an ordinary word, so
+  // only its brand-like spellings are blocked, not every @ containing it.
   "ritmo",
   "theritmo",
   "ritmoapp",
@@ -17,8 +19,6 @@ const RESERVED = [
   "oficialritmo",
   "ritmoofficial",
   "officialritmo",
-  "equiparitmo",
-  "teamritmo",
   // The old name.
   "betbeat",
   "thebetbeat",
@@ -71,6 +71,6 @@ const RESERVED_SET = new Set(RESERVED);
 export function isReservedHandle(handle: string): boolean {
   const n = normalise(handle);
   if (RESERVED_SET.has(n)) return true;
-  // The old brand anywhere in the name ("@betbeatpt", "@oficialbetbeat").
-  return n.includes("betbeat");
+  // The brand, or the old one, anywhere in the name ("@ritmapt", "@oficialbetbeat").
+  return n.includes("ritma") || n.includes("betbeat");
 }

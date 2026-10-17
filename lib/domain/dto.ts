@@ -164,7 +164,7 @@ export function toGuestRequestPayload(row: RequestRow): GuestRequestPayload {
 /* ------------------------------------------------------------------ */
 
 export interface StaffDtoContext {
-  /** Ritmo fee in bps (session config). */
+  /** Ritma fee in bps (session config). */
   betbeatFeeBps: number;
   /** Venue share of the post-fee remainder, bps (session_settings). */
   venueShareBps: number;

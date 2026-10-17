@@ -106,11 +106,11 @@ test.describe("console · criar evento", () => {
     await form.locator('input[name="bpmMax"]').fill("130");
 
     const split = page.getByTestId("event-split");
-    await expect(split).toContainText("Taxa Ritmo 11%");
+    await expect(split).toContainText("Taxa Ritma 11%");
     await form.locator('input[name="venueSharePct"]').fill("30");
     await form.locator('input[name="promoterSharePct"]').fill("20");
     await expect(page.getByTestId("dj-share")).toHaveText("50%");
-    // 100 €: 11 € Ritmo, then 30% / 20% / 50% of 89 €.
+    // 100 €: 11 € Ritma, then 30% / 20% / 50% of 89 €.
     const example = page.getByTestId("split-example");
     await expect(example).toContainText("11,00");
     await expect(example).toContainText("26,70");
@@ -138,7 +138,7 @@ test.describe("console · criar evento", () => {
     await expect(form.locator('input[name="genres"][value="funk carioca"]')).toBeChecked();
   });
 
-  test("Casas: a taxa Ritmo é fixa", async ({ page }) => {
+  test("Casas: a taxa Ritma é fixa", async ({ page }) => {
     await page.context().clearCookies();
     await loginStaff(page, "admin", "/console/admin/casas");
     await page.goto("/console/admin/casas");

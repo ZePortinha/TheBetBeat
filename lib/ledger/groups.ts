@@ -78,7 +78,7 @@ export function captureGroup(amountCents: number, meta: LedgerMeta): LedgerLine[
 
 /**
  * Revenue recognition when the track plays: escrow is released and split into
- * Ritmo fee, venue payable and DJ payable (per `computeSplit`).
+ * Ritma fee, venue payable and DJ payable (per `computeSplit`).
  *
  *   guest_escrow     +A
  *   betbeat_revenue  −fee

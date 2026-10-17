@@ -1,5 +1,5 @@
 {
-  "appName": "Ritmo",
+  "appName": "Ritma",
   "tagline": "Request your song from the DJ.",
   "actions": {
     "back": "Back",
@@ -48,7 +48,7 @@
   },
   "auth": {
     "title": "Sign in",
-    "subtitle": "Access for DJs, managers and the Ritmo team.",
+    "subtitle": "Access for DJs, managers and the Ritma team.",
     "email": "Email",
     "password": "Password",
     "submit": "Sign in",
@@ -81,7 +81,7 @@
     }
   },
   "devIndex": {
-    "title": "Ritmo · development",
+    "title": "Ritma · development",
     "guest": "Guest app",
     "cockpit": "DJ Cockpit",
     "display": "Venue display",
@@ -146,15 +146,15 @@
       "body": "Full, automatic refund. If you are outbid in an auction, the amount goes back to your balance."
     },
     "footer": {
-      "rights": "© 2026 Ritmo",
+      "rights": "© 2026 Ritma",
       "nav": "Footer links"
     }
   },
   "meta": {
     "description": "Request your song from the party DJ. Pick the track, bid in the open auction and, if it does not play, you get everything back.",
-    "ogAlt": "Ritmo: request your song from the DJ",
+    "ogAlt": "Ritma: request your song from the DJ",
     "venuesTitle": "For DJs and venues",
-    "venuesDescription": "Ritmo for clubs and DJs: guests pay to request songs, the DJ always decides what plays and anything that does not play is refunded automatically.",
+    "venuesDescription": "Ritma for clubs and DJs: guests pay to request songs, the DJ always decides what plays and anything that does not play is refunded automatically.",
     "staffLogin": "Sign in",
     "mfa": "Two-step verification",
     "partyLogin": "Join the party",

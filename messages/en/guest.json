@@ -468,7 +468,7 @@
     "denied": "No camera access. Allow the camera in your browser settings, or pick the event from the list.",
     "unsupported": "This browser cannot open the camera. Pick the event from the list below.",
     "retry": "Try again",
-    "notOurs": "This QR is not a Ritmo event.",
+    "notOurs": "This QR is not a Ritma event.",
     "liveTitle": "Live events",
     "liveEmpty": "No live events right now. Check back later.",
     "auctionLive": "Auction live",

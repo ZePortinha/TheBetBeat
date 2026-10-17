@@ -55,7 +55,7 @@ export function MfaClient({
       }
       const { data: enrollData, error: enrollErr } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: "Ritmo TOTP",
+        friendlyName: "Ritma TOTP",
       });
       if (cancelled) return;
       if (enrollErr || !enrollData) {

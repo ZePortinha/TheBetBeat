@@ -126,7 +126,7 @@ function Podium({ entry, place }: { entry: RankingShareEntry | undefined; place:
   );
 }
 
-export function RankingShareCard({ eyebrow, title, venueName, dateLabel, entries, footnote, wordmark = "Ritmo" }: RankingShareCardProps) {
+export function RankingShareCard({ eyebrow, title, venueName, dateLabel, entries, footnote, wordmark = "Ritma" }: RankingShareCardProps) {
   const rest = entries.slice(3, 8);
   return (
     <div

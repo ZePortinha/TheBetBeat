@@ -45,7 +45,7 @@ async function FriendlyError() {
         style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
         aria-hidden="true"
       >
-        Ritmo
+        Ritma
       </span>
     </main>
   );

@@ -1,7 +1,7 @@
 /**
  * Revenue split math (BRIEF B4.5).
  *
- * Pure, deterministic, integer-cents only. The Ritmo fee is taken off the
+ * Pure, deterministic, integer-cents only. The Ritma fee is taken off the
  * gross amount first; the remainder is divided between venue and DJ. Rounding
  * never creates or destroys cents: the DJ receives the exact remainder, so
  * `betbeatFeeCents + venueCents + djCents === amountCents` always holds.
@@ -10,13 +10,13 @@
 /** Basis points denominator: 10000 bps = 100%. */
 export const BPS_DENOMINATOR = 10_000;
 
-/** Ritmo's flat fee on every event created from 2026-10-11: 11%. */
+/** Ritma's flat fee on every event created from 2026-10-11: 11%. */
 export const PLATFORM_FEE_BPS = 1_100;
 
 export interface Split {
   /** Gross amount captured from the guest (VAT-inclusive), cents. */
   amountCents: number;
-  /** Ritmo platform fee, cents. */
+  /** Ritma platform fee, cents. */
   betbeatFeeCents: number;
   /** Venue share of the remainder, cents. */
   venueCents: number;
@@ -50,7 +50,7 @@ function mulBpsRound(amountCents: number, bps: number): number {
 }
 
 /**
- * Split a gross request amount into Ritmo fee, venue, promoter and DJ shares.
+ * Split a gross request amount into Ritma fee, venue, promoter and DJ shares.
  *
  * fee      = round(amount · betbeatFeeBps / 10000)
  * rest     = amount − fee

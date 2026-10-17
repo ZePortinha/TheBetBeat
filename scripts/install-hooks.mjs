@@ -10,7 +10,7 @@ if (!existsSync(hooksDir)) {
 }
 
 const hook = `#!/bin/sh
-# Ritmo pre-commit: secrets scan, lint, typecheck. See RITMO_BRIEF.md B12.1.
+# Ritma pre-commit: secrets scan, lint, typecheck. See RITMA_BRIEF.md B12.1.
 set -e
 
 if command -v gitleaks >/dev/null 2>&1; then

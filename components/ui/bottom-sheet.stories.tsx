@@ -4,7 +4,7 @@ import { BottomSheet } from "./bottom-sheet";
 import { Button } from "./button";
 
 /**
- * Vaul drawer in Ritmo material. Drag it down to close (momentum +
+ * Vaul drawer in Ritma material. Drag it down to close (momentum +
  * rubber-banding come from Vaul); the scrim dims the page. With snap
  * points, tapping the handle cycles between them.
  */

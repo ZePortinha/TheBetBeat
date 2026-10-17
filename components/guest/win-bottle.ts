@@ -1,6 +1,6 @@
 /**
  * The champagne bottle of the winner's scene (2026-10-10): dark green glass,
- * translucent enough to see the champagne move inside, with a glowing Ritmo
+ * translucent enough to see the champagne move inside, with a glowing Ritma
  * label and a cork that leaves at speed.
  *
  * It is drawn as a surface of revolution, shaded per pixel: a profile of
@@ -517,7 +517,7 @@ function renderLabel(H: number, LW: number, LH: number, LY: number): Placed | nu
   };
   txt("CUVÉE · MILLÉSIME", `700 ${0.0095 * H}px ${font}`, LY + LH * 0.19, 0.9, 0.0008 * H);
   txt("Champagne", `italic 500 ${0.015 * H}px ${font}`, LY + LH * 0.27, 0.8);
-  txt("Ritmo", `italic 800 ${0.029 * H}px ${font}`, LY + LH * 0.385);
+  txt("Ritma", `italic 800 ${0.029 * H}px ${font}`, LY + LH * 0.385);
   txt("Vintage", `italic 500 ${0.016 * H}px ${font}`, LY + LH * 0.49, 0.8);
   ctx.shadowBlur = 0.04 * H;
   starPath(ctx, 0, LY + LH * 0.64, LW * 0.075);

@@ -102,5 +102,5 @@ export async function recordWinVideo(slotId: string, text: WinText, signal?: Abo
 
   const mime = type.split(";")[0] ?? "video/mp4";
   const blob = new Blob(chunks, { type: mime });
-  return new File([blob], `ritmo-vencedor.${mime === "video/mp4" ? "mp4" : "webm"}`, { type: mime });
+  return new File([blob], `ritma-vencedor.${mime === "video/mp4" ? "mp4" : "webm"}`, { type: mime });
 }

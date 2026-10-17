@@ -1,4 +1,4 @@
--- Ritmo dev seed — ENTIRELY FICTIONAL data (BRIEF A2.5).
+-- Ritma dev seed — ENTIRELY FICTIONAL data (BRIEF A2.5).
 -- Staff logins (local dev only): password "betbeat-dev" for every account.
 
 -- ── Auth users (staff) ──────────────────────────────────────────────
@@ -55,7 +55,7 @@ values
   ('cccccccc-0000-4000-8000-000000000003', 'aaaaaaaa-0000-4000-8000-000000000001',
    '33333333-3333-4333-8333-333333333333', 'manager', 'Rita Gestora'),
   ('cccccccc-0000-4000-8000-000000000004', null,
-   '44444444-4444-4444-8444-444444444444', 'admin', 'Ritmo Ops');
+   '44444444-4444-4444-8444-444444444444', 'admin', 'Ritma Ops');
 
 -- ── Active session (live now, for any dev run) ──────────────────────
 insert into public.sessions (

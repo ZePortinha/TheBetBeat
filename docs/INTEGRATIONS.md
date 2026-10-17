@@ -8,7 +8,7 @@ or in the hosting provider's secrets (production). Never commit them.
 
 What the app does with it: every bid that needs money sends a real MB WAY
 request to the guest's phone ("pedido MB WAY"). The guest has 4 minutes to
-approve it in the MB WAY app. Approved money goes to the guest's Ritmo balance
+approve it in the MB WAY app. Approved money goes to the guest's Ritma balance
 and places the bid. Balances and unplayed winners are refunded through
 ifthenpay's refund API.
 
@@ -91,7 +91,7 @@ sent as real SMS.
 1. Create a Twilio account (https://www.twilio.com). The trial only sends to
    verified numbers; upgrade to send to anyone.
 2. Copy the **Account SID** → `TWILIO_ACCOUNT_SID` and the **Auth Token** → `TWILIO_AUTH_TOKEN`.
-3. Sender → `TWILIO_FROM`: either the name `Ritmo` (alphanumeric sender,
+3. Sender → `TWILIO_FROM`: either the name `Ritma` (alphanumeric sender,
    accepted in Portugal) or a Twilio phone number in E.164.
 4. Set `SMS_PROVIDER=twilio`.
 
