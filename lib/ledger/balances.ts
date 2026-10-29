@@ -25,7 +25,7 @@ export interface SessionStatement {
   gmv: number;
   /** Total refunded back to guests. */
   refunds: number;
-  /** Ritma fee recognized. */
+  /** Discontrol fee recognized. */
   betbeatFee: number;
   /** Venue earnings recognized (before payout). */
   venueNet: number;

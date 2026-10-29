@@ -8,6 +8,7 @@ import { signToken } from "@/lib/security/tokens";
 import { BootIntro } from "@/components/ui/boot-intro";
 import { DevStrip } from "@/components/landing/landing";
 import { QrScanner } from "@/components/landing/qr-scanner";
+import { Wordmark } from "@/components/ui/brand-mark";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ interface LiveEvent {
   open_auctions: number;
 }
 
-/** Every event live on Ritma right now, newest first. */
+/** Every event live on Discontrol right now, newest first. */
 async function liveEvents(): Promise<LiveEvent[]> {
   try {
     const res = await query<LiveEvent>(
@@ -88,8 +89,8 @@ async function liveEvents(): Promise<LiveEvent[]> {
 
 /**
  * "/" — the guests' front door (2026-10-06): the camera reads the event's
- * QR first; below it, every event live on Ritma right now. Clubs find
- * Ritma at /casas.
+ * QR first; below it, every event live on Discontrol right now. Clubs find
+ * Discontrol at /casas.
  */
 export default async function Home() {
   const t = await getTranslations("guest.entry");
@@ -106,7 +107,7 @@ export default async function Home() {
       <BootIntro />
       <main className="flex flex-col gap-6 px-4 pb-10 pt-5">
         <header className="flex items-center justify-between">
-          <span className="text-lg font-bold text-accent-400">{tc("appName")}</span>
+          <Wordmark name={tc("appName")} className="text-lg" />
           <Link href="/casas" className="text-sm font-semibold text-text-secondary">
             {t("forVenues")}
           </Link>

@@ -5,20 +5,20 @@ const h = (init: Record<string, string>) => new Headers(init);
 
 describe("isCrossSiteApiWrite", () => {
   it("refuses an API write from another site", () => {
-    expect(isCrossSiteApiWrite("POST", "/api/guest/auction/bid", h({ host: "ritma.app", origin: "https://evil.example" }), false)).toBe(true);
-    expect(isCrossSiteApiWrite("DELETE", "/api/guest/phone", h({ host: "ritma.app", origin: "null" }), false)).toBe(true);
+    expect(isCrossSiteApiWrite("POST", "/api/guest/auction/bid", h({ host: "discontrol.app", origin: "https://evil.example" }), false)).toBe(true);
+    expect(isCrossSiteApiWrite("DELETE", "/api/guest/phone", h({ host: "discontrol.app", origin: "null" }), false)).toBe(true);
   });
 
   it("lets same-site writes, reads, webhooks and Origin-less clients through", () => {
-    expect(isCrossSiteApiWrite("POST", "/api/guest/auction/bid", h({ host: "ritma.app", origin: "https://ritma.app" }), false)).toBe(false);
-    expect(isCrossSiteApiWrite("GET", "/api/guest/profile", h({ host: "ritma.app", origin: "https://evil.example" }), false)).toBe(false);
-    expect(isCrossSiteApiWrite("POST", "/api/webhooks/payments", h({ host: "ritma.app", origin: "https://psp.example" }), false)).toBe(false);
-    expect(isCrossSiteApiWrite("POST", "/api/guest/auction/bid", h({ host: "ritma.app" }), false)).toBe(false);
-    expect(isCrossSiteApiWrite("POST", "/s/abc", h({ host: "ritma.app", origin: "https://evil.example" }), false)).toBe(false);
+    expect(isCrossSiteApiWrite("POST", "/api/guest/auction/bid", h({ host: "discontrol.app", origin: "https://discontrol.app" }), false)).toBe(false);
+    expect(isCrossSiteApiWrite("GET", "/api/guest/profile", h({ host: "discontrol.app", origin: "https://evil.example" }), false)).toBe(false);
+    expect(isCrossSiteApiWrite("POST", "/api/webhooks/payments", h({ host: "discontrol.app", origin: "https://psp.example" }), false)).toBe(false);
+    expect(isCrossSiteApiWrite("POST", "/api/guest/auction/bid", h({ host: "discontrol.app" }), false)).toBe(false);
+    expect(isCrossSiteApiWrite("POST", "/s/abc", h({ host: "discontrol.app", origin: "https://evil.example" }), false)).toBe(false);
   });
 
   it("uses the proxy's forwarded host", () => {
-    const headers = h({ host: "internal:3000", "x-forwarded-host": "ritma.app", origin: "https://ritma.app" });
+    const headers = h({ host: "internal:3000", "x-forwarded-host": "discontrol.app", origin: "https://discontrol.app" });
     expect(isCrossSiteApiWrite("POST", "/api/guest/push", headers, false)).toBe(false);
   });
 

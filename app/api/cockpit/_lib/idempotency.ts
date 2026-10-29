@@ -22,14 +22,14 @@ const TTL_MS = 10 * 60_000;
 const MAX_ENTRIES = 1000;
 
 const globalForMemo = globalThis as unknown as {
-  __ritmaIdemMemo?: Map<string, MemoEntry>;
+  __discontrolIdemMemo?: Map<string, MemoEntry>;
 };
 
 function store(): Map<string, MemoEntry> {
-  if (!globalForMemo.__ritmaIdemMemo) {
-    globalForMemo.__ritmaIdemMemo = new Map();
+  if (!globalForMemo.__discontrolIdemMemo) {
+    globalForMemo.__discontrolIdemMemo = new Map();
   }
-  return globalForMemo.__ritmaIdemMemo;
+  return globalForMemo.__discontrolIdemMemo;
 }
 
 /** Key is scoped by user so one staff's key can never replay another's. */

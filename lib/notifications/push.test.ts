@@ -4,7 +4,7 @@ import { isPushEndpoint, pushesFromBroadcasts, pushText, sendGuestPushes } from 
 const sent: Array<{ endpoint: string; payload: string }> = [];
 const queries: Array<{ sql: string; params: unknown[] }> = [];
 vi.mock("@/lib/security/env", () => ({
-  env: { VAPID_PUBLIC_KEY: "pub", VAPID_PRIVATE_KEY: "priv", VAPID_SUBJECT: "mailto:t@ritma.test" },
+  env: { VAPID_PUBLIC_KEY: "pub", VAPID_PRIVATE_KEY: "priv", VAPID_SUBJECT: "mailto:t@discontrol.test" },
 }));
 vi.mock("@/lib/db", () => ({
   getPool: () => ({

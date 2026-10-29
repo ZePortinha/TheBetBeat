@@ -167,7 +167,7 @@ export async function runWorker(): Promise<void> {
   const boss = new PgBoss({
     connectionString: env.DATABASE_URL,
     schema: "pgboss",
-    application_name: "ritma-worker",
+    application_name: "discontrol-worker",
   });
   boss.on("error", (error) => {
     console.error(`[worker] pg-boss error: ${error.message}`);
@@ -248,7 +248,7 @@ export async function runWorker(): Promise<void> {
     intervalMs: cfg.WORKER_DEADLINE_INTERVAL_MS,
   });
 
-  console.log("[worker] Ritma worker started — registered jobs:\n" + planTable(plan, cfg));
+  console.log("[worker] Discontrol worker started — registered jobs:\n" + planTable(plan, cfg));
 
   /* Graceful shutdown. */
   let shuttingDown = false;

@@ -35,7 +35,7 @@ const serverEnvSchema = z.object({
   IFTHENPAY_ANTI_PHISHING_KEY: z.string().optional(),
   SMS_PROVIDER: z.enum(["mock", "twilio"]).default("mock"),
   // Twilio (real SMS) — required when SMS_PROVIDER=twilio. TWILIO_FROM is a
-  // number in E.164 or an alphanumeric sender such as "Ritma".
+  // number in E.164 or an alphanumeric sender such as "Discontrol".
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_FROM: z.string().optional(),

@@ -11,6 +11,7 @@
  * props; only the brand wordmark has a default.
  */
 
+import { StaticBrandMark } from "./brand-mark-static";
 import * as React from "react";
 
 export type ShareCardFormat = "story" | "square";
@@ -28,6 +29,8 @@ export interface ShareCardProps {
   dateTimeLabel: string;
   /** Brand wordmark. */
   wordmark?: string;
+  /** Brand slogan, next to the wordmark. */
+  slogan?: string;
 }
 
 /** Literal mirrors of styles/tokens.css (rasterizer-safe — no var()). */
@@ -63,7 +66,8 @@ export function ShareCard({
   coverUrl,
   venueName,
   dateTimeLabel,
-  wordmark = "Ritma",
+  wordmark = "Discontrol",
+  slogan = "Control the disco.",
 }: ShareCardProps) {
   const { width, height } = SHARE_CARD_SIZES[format];
   const story = format === "story";
@@ -219,20 +223,20 @@ export function ShareCard({
           <div
             style={{
               display: "flex",
+              alignItems: "center",
+              gap: 16,
               fontFamily: FONT_DISPLAY,
               fontSize: story ? 44 : 38,
               fontWeight: 700,
-              letterSpacing: "-0.01em",
-              color: TOKENS.accent400,
+              letterSpacing: "-0.02em",
+              color: TOKENS.textPrimary,
             }}
           >
+            <StaticBrandMark size={story ? 56 : 48} />
             {wordmark}
           </div>
-          {/* Beat mark — three static bars echoing the Beat Pulse signature. */}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-            <div style={{ display: "flex", width: 10, height: 24, background: TOKENS.accent500, borderRadius: 5 }} />
-            <div style={{ display: "flex", width: 10, height: 44, background: TOKENS.accent500, borderRadius: 5 }} />
-            <div style={{ display: "flex", width: 10, height: 32, background: TOKENS.accent500, borderRadius: 5 }} />
+          <div style={{ display: "flex", fontSize: story ? 28 : 24, fontWeight: 600, color: TOKENS.accent400 }}>
+            {slogan}
           </div>
         </div>
       </div>

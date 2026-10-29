@@ -29,12 +29,12 @@ export { PaymentOutcomeUnknownError } from "./journal";
 // On globalThis: dev hot reload re-evaluates modules per route, and two
 // copies of the mock would not see each other's payments.
 // The promise is stored, so two first calls at once share one instance.
-const holder = globalThis as typeof globalThis & { __ritmaPaymentProvider?: Promise<PaymentProvider> };
+const holder = globalThis as typeof globalThis & { __discontrolPaymentProvider?: Promise<PaymentProvider> };
 
 /** Process-wide singleton so the mock's intent Map survives across routes. */
 export function getPaymentProvider(): Promise<PaymentProvider> {
-  holder.__ritmaPaymentProvider ??= createProvider();
-  return holder.__ritmaPaymentProvider;
+  holder.__discontrolPaymentProvider ??= createProvider();
+  return holder.__discontrolPaymentProvider;
 }
 
 async function createProvider(): Promise<PaymentProvider> {

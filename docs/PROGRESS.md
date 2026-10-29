@@ -39,7 +39,7 @@ docs/INTEGRATIONS.md, steps 5–6). Details in DECISIONS.
 ## Security hardening (cloud session, overnight — 2026-10-06)
 
 Same branch. Column grants (migration 0014) stop guests and managers writing
-protected columns through PostgREST (verified phone, @handle, Ritma fee);
+protected columns through PostgREST (verified phone, @handle, Discontrol fee);
 `db:audit` now checks column privileges. Also: client IP from the right end of
 X-Forwarded-For (`TRUSTED_PROXY_HOPS`), Origin check on API writes, MFA (AAL2)
 on the cockpit API for managers, safe post-login/MFA redirects, preview SSRF
@@ -197,6 +197,14 @@ the flat 11% fee, "Estilo da noite" first in the guest's recommendations.
 See DECISIONS 2026-10-11. Tests: unit, integration
 (`tests/integration/library-split.integration.test.ts`) and E2E
 (`tests/e2e/library-event.spec.ts`).
+
+## Discontrol rebrand and design pass (cloud session, 2026-10-29)
+
+Branch `claude/project-thread-omz4xe`, built on the Ritma rename (PR #14)
+and replacing it. Name, mark (record + knob), header lockup, icons, share
+cards, Open Graph, slogan and the new "Control the disco" boot intro. See
+DECISIONS 2026-10-29. Before/after screenshots in the project files
+(`discontrol-2026-10-29/`).
 
 ## Next step
 

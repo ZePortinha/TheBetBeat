@@ -834,3 +834,41 @@ The logo shape stays as it is.
   guest account). None of these is shown to guests, DJs or venues.
 - `.env.local` is not in git: `TWILIO_FROM=BetBeat` there must be changed
   by hand to `Ritma`.
+
+## 2026-10-29 - The product is now called Discontrol
+
+The owner settled the name: **Discontrol** (disco + control; the guest takes
+control of the music, the DJ keeps the last word). It replaces Ritma, which
+never shipped, with the same scope as the 2026-10-17 rename above: every
+user-facing string, metadata and PWA manifests, the bottle label, share
+cards and file names, SMS/email texts, MB WAY description, TOTP name, code
+comments, docs, and the brief, now `DISCONTROL_BRIEF.md`. The internals kept
+with the old name on 2026-10-17 stay as they are, for the same reasons.
+
+- **Mark:** a record whose red label is a mixer knob with its pointer turned
+  up, so the shape says disco and control at once. One geometry everywhere:
+  `components/ui/brand-mark.tsx` (app), `brand-mark-static.tsx` (Satori share
+  cards), `app/icon.svg`, PWA icons, apple-icon and favicon regenerated from
+  it. Headers use the `Wordmark` lockup (mark + name, white) instead of the
+  red text name; the venue screen carries the lockup bottom right.
+- **Slogan:** "Control the disco." in both locales (it is the brand line,
+  so it stays English in pt-PT, like the name). Landing hero: "Toma o
+  controlo da pista." with the DJ's last word said in the same line, so the
+  slogan never reads as the guest deciding what plays (B1).
+- **Boot intro:** owner's brief. "Control the disco" lands word by word,
+  "the" steps out, Disco passes over Control as they swap, then they slide
+  into each other on the shared "co" (briefly red) and read Discontrol; the
+  mark arrives with its knob turning up and the slogan settles below. ~3.6 s,
+  tap to skip, one haptic click on the merge, reduced motion shows the
+  finished lockup only. Position springs are critically damped (nothing was
+  flicked); only the knob turn has a little bounce. The words are the brand,
+  so they live in the component like the bottle label, not in messages; the
+  splash is decorative (`aria-hidden`). CSS fallback that hides it if JS
+  fails moved from 2.8 s to 4.2 s.
+- **Palette:** kept the Apple dark neutrals + red of 2026-10-05 (the
+  project-chat note about the Stitch magenta/cyan is older than that
+  decision); the red now reads as the knob of the mark.
+- **Reserved @s:** "discontrol" anywhere in the @ (look-alikes included);
+  "ritma" and "betbeat" stay reserved.
+- `.env.local` is not in git: set `TWILIO_FROM=Discontrol` by hand (10
+  characters, within the 11 an alphanumeric SMS sender allows).

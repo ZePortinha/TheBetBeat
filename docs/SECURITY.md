@@ -1,6 +1,6 @@
 # Security
 
-How each point of RITMA_BRIEF.md §B12 is met, where to look, and what is
+How each point of DISCONTROL_BRIEF.md §B12 is met, where to look, and what is
 verified automatically. Summary for every session: `.claude/rules/security.md`.
 
 ## B12.1 Secrets and keys

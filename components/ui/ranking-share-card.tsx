@@ -7,6 +7,7 @@
  * flex, literal colours mirroring styles/tokens.css), every string via props.
  */
 
+import { StaticBrandMark } from "./brand-mark-static";
 import * as React from "react";
 
 export interface RankingShareEntry {
@@ -24,6 +25,7 @@ export interface RankingShareCardProps {
   entries: RankingShareEntry[];
   footnote: string;
   wordmark?: string;
+  slogan?: string;
 }
 
 export const RANKING_CARD_SIZE = { width: 1080, height: 1920 } as const;
@@ -126,7 +128,7 @@ function Podium({ entry, place }: { entry: RankingShareEntry | undefined; place:
   );
 }
 
-export function RankingShareCard({ eyebrow, title, venueName, dateLabel, entries, footnote, wordmark = "Ritma" }: RankingShareCardProps) {
+export function RankingShareCard({ eyebrow, title, venueName, dateLabel, entries, footnote, wordmark = "Discontrol", slogan = "Control the disco." }: RankingShareCardProps) {
   const rest = entries.slice(3, 8);
   return (
     <div
@@ -196,12 +198,11 @@ export function RankingShareCard({ eyebrow, title, venueName, dateLabel, entries
           borderTop: `2px solid ${C.line}`,
         }}
       >
-        <div style={{ display: "flex", fontSize: 48, fontWeight: 800, color: C.accent400 }}>{wordmark}</div>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-          <div style={{ display: "flex", width: 10, height: 24, background: C.accent500, borderRadius: 5 }} />
-          <div style={{ display: "flex", width: 10, height: 44, background: C.accent500, borderRadius: 5 }} />
-          <div style={{ display: "flex", width: 10, height: 32, background: C.accent500, borderRadius: 5 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 48, fontWeight: 800, letterSpacing: "-0.02em", color: C.textPrimary }}>
+          <StaticBrandMark size={60} />
+          {wordmark}
         </div>
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 600, color: C.accent400 }}>{slogan}</div>
       </div>
     </div>
   );

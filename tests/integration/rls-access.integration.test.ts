@@ -204,7 +204,7 @@ describe("RLS access matrix (B12.2)", () => {
       for (const patch of [
         { phone_verified_at: new Date().toISOString() },
         { phone_hash: "f".repeat(64) },
-        { handle: "ritma" },
+        { handle: "discontrol" },
         { ranking_optin: true },
       ]) {
         const { error } = await guest.from("guests").update(patch).eq("id", guestId);

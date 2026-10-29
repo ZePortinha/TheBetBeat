@@ -137,7 +137,7 @@ export function StatsScreen({ sessionId, footer }: { sessionId: string | null; f
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ritma-sessao-${sessionId.slice(0, 8)}.csv`;
+    a.download = `discontrol-sessao-${sessionId.slice(0, 8)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

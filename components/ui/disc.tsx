@@ -1,5 +1,5 @@
 /**
- * Disc — the decorative record (Ritma's signature object). Pure CSS,
+ * Disc — the decorative record (Discontrol's signature object). Pure CSS,
  * safe as a server component. With `bpm` it wears the Beat Pulse ring
  * (period 60/BPM s); `initials` sit on the red label.
  */

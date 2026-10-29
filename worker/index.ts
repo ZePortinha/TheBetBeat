@@ -1,5 +1,5 @@
 /**
- * Ritma worker entry — `pnpm worker` (tsx worker/index.ts).
+ * Discontrol worker entry — `pnpm worker` (tsx worker/index.ts).
  *
  * ./bootstrap MUST evaluate before anything that touches `@/lib/*`: it
  * neutralizes the `server-only` marker and loads .env.local. The runtime

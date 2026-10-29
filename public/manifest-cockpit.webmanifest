@@ -1,7 +1,7 @@
 {
-  "name": "Ritma Cockpit",
+  "name": "Discontrol Cockpit",
   "short_name": "Cockpit",
-  "description": "Cockpit do DJ — Ritma.",
+  "description": "Cockpit do DJ — Discontrol.",
   "start_url": "/cockpit",
   "display": "standalone",
   "orientation": "landscape",

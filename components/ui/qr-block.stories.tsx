@@ -5,7 +5,7 @@ const meta = {
   title: "UI/QRBlock",
   component: QRBlock,
   args: {
-    url: "https://ritma.app/s/demo-qr-token",
+    url: "https://discontrol.app/s/demo-qr-token",
     size: 200,
     alt: "QR para pedir uma música",
   },
@@ -29,7 +29,7 @@ export const WithCaption: Story = {
 
 export const LongUrl: Story = {
   args: {
-    url: "https://ritma.app/s/3f9c2a7d-1b64-4a8e-9f21-7c5d8e0a4b6c?utm_source=display&table=12",
+    url: "https://discontrol.app/s/3f9c2a7d-1b64-4a8e-9f21-7c5d8e0a4b6c?utm_source=display&table=12",
     size: 240,
   },
 };

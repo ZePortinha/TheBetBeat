@@ -20,7 +20,7 @@ import { env } from "@/lib/security/env";
  * Next.js dev/HMR re-evaluates modules; stash the pool on globalThis so
  * hot reloads reuse connections instead of leaking them.
  */
-const globalForDb = globalThis as unknown as { __ritmaPool?: Pool };
+const globalForDb = globalThis as unknown as { __discontrolPool?: Pool };
 
 function createPool(): Pool {
   return new Pool({
@@ -33,10 +33,10 @@ function createPool(): Pool {
 
 /** Process-wide pg Pool singleton. */
 export function getPool(): Pool {
-  if (!globalForDb.__ritmaPool) {
-    globalForDb.__ritmaPool = createPool();
+  if (!globalForDb.__discontrolPool) {
+    globalForDb.__discontrolPool = createPool();
   }
-  return globalForDb.__ritmaPool;
+  return globalForDb.__discontrolPool;
 }
 
 /** One-off parameterized query on the pool (no transaction). */
@@ -75,7 +75,7 @@ export async function withTransaction<T>(
 
 /** Closes the pool (tests / worker shutdown). */
 export async function closePool(): Promise<void> {
-  const pool = globalForDb.__ritmaPool;
-  globalForDb.__ritmaPool = undefined;
+  const pool = globalForDb.__discontrolPool;
+  globalForDb.__discontrolPool = undefined;
   if (pool) await pool.end();
 }

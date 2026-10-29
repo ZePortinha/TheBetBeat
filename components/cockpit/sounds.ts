@@ -15,7 +15,7 @@ import type { Tier } from "@/lib/domain/types";
 const VOLUME_KEY = "bb-cockpit-volume";
 const SILENT_KEY = "bb-cockpit-silent";
 
-export const GOLD_FLASH_EVENT = "ritma:gold-flash";
+export const GOLD_FLASH_EVENT = "discontrol:gold-flash";
 
 /** Triad roots per tier — rising with the promise strength (B10.7). */
 const TIER_TRIADS: Record<Tier, [number, number, number]> = {

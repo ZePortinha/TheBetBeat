@@ -35,7 +35,7 @@ function likeEscape(s: string): string {
 }
 
 /**
- * Admin Ritma — Auditoria (B9 admin): filterable, paginated audit_log.
+ * Admin Discontrol — Auditoria (B9 admin): filterable, paginated audit_log.
  * Parameterized WHERE built from an allowlist of filters; payload shown
  * collapsed (it may carry money/ops details — admins only, B12.2).
  */

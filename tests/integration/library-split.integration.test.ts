@@ -39,7 +39,7 @@ const library = await import("@/lib/catalog/library");
 /**
  * The DJ's library (add / dedupe / browse / remove) and the event's revenue
  * split with a promoter, end to end on the money path: a played auction
- * credits Ritma 11%, club, promoter and DJ, and the end of the night
+ * credits Discontrol 11%, club, promoter and DJ, and the end of the night
  * creates the promoter's payout. (SUPABASE_TEST=1, local test stack.)
  */
 const VENUE_ID = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -55,7 +55,7 @@ async function createGuest(): Promise<string> {
        email_change_token_new, recovery_token)
      values ('00000000-0000-0000-0000-000000000000', $1, 'authenticated', 'authenticated', $2, '', now(),
        '{"provider":"anonymous","providers":["anonymous"]}', '{}', now(), now(), '', '', '', '')`,
-    [id, `library-${RUN}-${id.slice(0, 8)}@ritma.test`],
+    [id, `library-${RUN}-${id.slice(0, 8)}@discontrol.test`],
   );
   await db.query(`insert into public.guests (id, locale) values ($1, 'pt-PT')`, [id]);
   return id;
@@ -147,7 +147,7 @@ describe("the DJ's own library", () => {
 });
 
 describe("revenue split with a promoter", () => {
-  it("a played 100 € winner credits Ritma 11%, club 30%, promoter 20% and the DJ the rest; the night pays the promoter", async () => {
+  it("a played 100 € winner credits Discontrol 11%, club 30%, promoter 20% and the DJ the rest; the night pays the promoter", async () => {
     const now = T0 + 60_000;
     await db.query(`update public.auction_slots set status = 'cancelled' where session_id = $1 and status = 'open'`, [SESSION_ID]);
     const slot = (await auction.openExtraSlot(SESSION_ID, "staff:test-dj", now))!;

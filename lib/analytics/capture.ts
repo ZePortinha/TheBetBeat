@@ -24,7 +24,7 @@ export function capture(
       api_key: key,
       event,
       distinct_id: distinctId,
-      properties: { ...properties, $lib: "ritma-server" },
+      properties: { ...properties, $lib: "discontrol-server" },
       timestamp: new Date().toISOString(),
     }),
     signal: controller.signal,

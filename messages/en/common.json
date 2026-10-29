@@ -1,6 +1,7 @@
 {
-  "appName": "Ritma",
-  "tagline": "Request your song from the DJ.",
+  "appName": "Discontrol",
+  "slogan": "Control the disco.",
+  "tagline": "Take control of the night's music.",
   "actions": {
     "back": "Back",
     "close": "Close",
@@ -48,7 +49,7 @@
   },
   "auth": {
     "title": "Sign in",
-    "subtitle": "Access for DJs, managers and the Ritma team.",
+    "subtitle": "Access for DJs, managers and the Discontrol team.",
     "email": "Email",
     "password": "Password",
     "submit": "Sign in",
@@ -81,7 +82,7 @@
     }
   },
   "devIndex": {
-    "title": "Ritma · development",
+    "title": "Discontrol · development",
     "guest": "Guest app",
     "cockpit": "DJ Cockpit",
     "display": "Venue display",
@@ -98,9 +99,9 @@
       "staff": "Staff area"
     },
     "hero": {
-      "titleA": "Request your song",
-      "titleB": "from the DJ.",
-      "sub": "Pick the track, bid in the open auction and pay in seconds. If it does not play, you get everything back.",
+      "titleA": "Take control",
+      "titleB": "of the floor.",
+      "sub": "Pick the track, bid in the open auction and pay in seconds. The DJ always has the final say and, if it does not play, you get everything back.",
       "cta": "See how it works",
       "ctaSecondary": "For DJs and venues"
     },
@@ -146,15 +147,15 @@
       "body": "Full, automatic refund. If you are outbid in an auction, the amount goes back to your balance."
     },
     "footer": {
-      "rights": "© 2026 Ritma",
+      "rights": "© 2026 Discontrol",
       "nav": "Footer links"
     }
   },
   "meta": {
-    "description": "Request your song from the party DJ. Pick the track, bid in the open auction and, if it does not play, you get everything back.",
-    "ogAlt": "Ritma: request your song from the DJ",
+    "description": "Discontrol: take control of the night's music. Pick the track, bid in the open auction and, if it does not play, you get everything back.",
+    "ogAlt": "Discontrol: control the disco",
     "venuesTitle": "For DJs and venues",
-    "venuesDescription": "Ritma for clubs and DJs: guests pay to request songs, the DJ always decides what plays and anything that does not play is refunded automatically.",
+    "venuesDescription": "Discontrol for clubs and DJs: guests pay to request songs, the DJ always decides what plays and anything that does not play is refunded automatically.",
     "staffLogin": "Sign in",
     "mfa": "Two-step verification",
     "partyLogin": "Join the party",
