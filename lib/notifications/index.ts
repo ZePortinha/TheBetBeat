@@ -71,17 +71,17 @@ export function buildRefundMessage(
   notice: Pick<GuestRefundNotice, "amountCents" | "trackTitle" | "reason">,
 ): string {
   return (
-    `BetBeat: devolvemos ${formatEuros(notice.amountCents)} ` +
+    `Discontrol: devolvemos ${formatEuros(notice.amountCents)} ` +
     `do teu pedido «${notice.trackTitle}». ` +
     `Motivo: ${REASON_COPY_PT[notice.reason]}.`
   );
 }
 
-const REFUND_EMAIL_SUBJECT_PT = "BetBeat — reembolso do teu pedido";
+const REFUND_EMAIL_SUBJECT_PT = "Discontrol — reembolso do teu pedido";
 
 /** SMS body for the guest phone sign-in code. */
 export function buildLoginCodeMessage(code: string): string {
-  return `BetBeat: o teu código é ${code}. Expira em 5 minutos. Não o partilhes.`;
+  return `Discontrol: o teu código é ${code}. Expira em 5 minutos. Não o partilhes.`;
 }
 
 // ---------------------------------------------------------------------------

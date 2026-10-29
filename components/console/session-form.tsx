@@ -3,7 +3,7 @@
 /**
  * Event create/edit form (B9.1, reworked 2026-10-11): the event, its music
  * (styles + BPM range that steer the guests' first recommendations, and the
- * catalog mode), and the revenue split (BetBeat's flat fee, then club,
+ * catalog mode), and the revenue split (Discontrol's flat fee, then club,
  * promoter and DJ, with a live 100 € example). The legacy request-tier
  * prices stay under "Preços dos pedidos diretos". Inline validation while
  * typing (B10.8); the server re-validates and is the authority.
@@ -47,7 +47,7 @@ export interface SessionFormProps {
   venueId: string;
   djs: Array<{ id: string; name: string }>;
   genreOptions: string[];
-  /** BetBeat's fee on this event (flat 11% for new ones), bps. */
+  /** Discontrol's fee on this event (flat 11% for new ones), bps. */
   betbeatFeeBps: number;
   initial: SessionFormValues;
 }
@@ -365,7 +365,7 @@ export function SessionForm({
             <dl className="mt-2 grid grid-cols-4 gap-3">
               {(
                 [
-                  ["exampleBetbeat", example.betbeatFeeCents],
+                  ["examplePlatform", example.betbeatFeeCents],
                   ["exampleVenue", example.venueCents],
                   ["examplePromoter", example.promoterCents],
                   ["exampleDj", example.djCents],

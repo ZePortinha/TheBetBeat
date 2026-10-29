@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────
-   BetBeat design tokens: single source of truth. Apple dark system
-   neutrals (2026-10-05) with the one BetBeat red; states use the iOS
+   Discontrol design tokens: single source of truth. Apple dark system
+   neutrals (2026-10-05) with the one Discontrol red; states use the iOS
    dark system colors. Exposed to Tailwind via @theme inline in
    app/globals.css. Dark-only interface: these are the only colors.
    ────────────────────────────────────────────────────────────────── */
@@ -21,7 +21,7 @@
   --color-text-on-accent: #ffffff;
 
   /* ── Brand & states ── */
-  --color-accent-500: #e8112d; /* BetBeat red: fills, primary action (white text 4.6:1) */
+  --color-accent-500: #e8112d; /* Discontrol red: fills, primary action (white text 4.6:1) */
   --color-accent-400: #ff453a; /* iOS systemRed (dark): accent as text/icon */
   --color-accent-300: #ff6961; /* iOS accessible red: highlight, hover */
   --color-accent-700: #b50e24; /* pressed */

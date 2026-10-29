@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { verifyToken } from "@/lib/security/tokens";
 import { getDisplayState } from "@/app/api/display/_lib/state";
 import { DisplayScreen } from "@/components/display/display-screen";
+import { Wordmark } from "@/components/ui/brand-mark";
 
 /**
  * /display/[token] — the venue screen (BRIEF B8).
@@ -40,12 +41,8 @@ async function FriendlyError() {
       >
         {t("error.subtitle")}
       </p>
-      <span
-        className="mt-[4vmin] text-text-tertiary"
-        style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
-        aria-hidden="true"
-      >
-        BetBeat
+      <span className="mt-[4vmin] text-[clamp(1rem,2.2vmin,1.75rem)] opacity-80" aria-hidden="true">
+        <Wordmark name="Discontrol" />
       </span>
     </main>
   );

@@ -11,12 +11,12 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     alternates: { canonical: "/casas" },
     // Segment metadata replaces (not merges) the root's openGraph/twitter.
-    openGraph: { type: "website", siteName: "BetBeat", title, description, url: "/casas", images: "/opengraph-image" },
+    openGraph: { type: "website", siteName: "Discontrol", title, description, url: "/casas", images: "/opengraph-image" },
     twitter: { card: "summary_large_image", title, description, images: "/opengraph-image" },
   };
 }
 
-/** /casas — BetBeat for clubs (the marketing landing; "/" is the guests' front door). */
+/** /casas — Discontrol for clubs (the marketing landing; "/" is the guests' front door). */
 export default async function ForVenues() {
   const t = await getTranslations("common.landing");
   return (

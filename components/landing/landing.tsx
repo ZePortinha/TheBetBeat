@@ -1,5 +1,5 @@
 /**
- * Landing — the public face of BetBeat (server components).
+ * Landing — the public face of Discontrol (server components).
  *
  * Design read: an Apple product page, dark. Centred hero with the record
  * as the product shot, highlight tiles with inline bold lead-ins, a bento
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Disc } from "@/components/ui/disc";
 import { Reveal } from "./reveal";
+import { Wordmark } from "@/components/ui/brand-mark";
 
 const wrap = "mx-auto w-full max-w-[1024px] px-5 md:px-8";
 const headline =
@@ -49,9 +50,9 @@ export async function LandingHeader() {
       <div className={`${wrap} flex h-13 items-center justify-between`}>
         <Link
           href="/"
-          className="text-xl font-semibold tracking-[var(--tracking-heading)]"
+          className="inline-flex min-h-11 items-center text-lg"
         >
-          {tc("appName")}
+          <Wordmark name={tc("appName")} />
         </Link>
         <nav className="flex items-center gap-7" aria-label={tc("appName")}>
           <a className={link} href="#como">
@@ -91,7 +92,7 @@ export async function Hero() {
       <div className={wrap}>
         <div className="rise-in">
           <p className="text-xl font-semibold tracking-[var(--tracking-heading)] text-accent-400 md:text-2xl">
-            {tc("appName")}
+            {tc("slogan")}
           </p>
         </div>
         <div className="rise-in" style={{ animationDelay: "40ms" }}>
@@ -277,7 +278,7 @@ export async function Footer() {
     <footer className="border-t border-line-subtle pb-10 pt-8 text-[0.8125rem] text-text-tertiary">
       <div className={`${wrap} flex flex-col gap-4 md:flex-row md:items-center md:justify-between`}>
         <div>
-          <p className="text-base font-semibold text-text-primary">{tc("appName")}</p>
+          <Wordmark name={tc("appName")} className="text-base" />
           <p className="mt-1">{tc("tagline")}</p>
         </div>
         <nav className="flex flex-wrap gap-x-6" aria-label={t("footer.nav")}>

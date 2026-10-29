@@ -1,4 +1,4 @@
-# BetBeat
+# Discontrol
 
 Guests at a nightclub pay to request songs from the DJ, choosing how long they are
 willing to wait (dynamic pricing). The DJ always decides what plays; if a song does
@@ -6,7 +6,7 @@ not play, the guest is automatically refunded. One Next.js app serves four surfa
 guest PWA, DJ cockpit (iPad), venue display (TV) and venue/admin console.
 
 At the start of each session, read `docs/PROGRESS.md` and resume from the next step.
-The source of truth is the brief: `BETBEAT_BRIEF.md` (never summarize it away).
+The source of truth is the brief: `DISCONTROL_BRIEF.md` (never summarize it away).
 
 ## Stack & commands
 

@@ -3,7 +3,7 @@
 /**
  * The guest's front door: point the camera at the event's QR. Native
  * BarcodeDetector where the browser has it (Android Chrome), jsQR on
- * canvas frames everywhere else (iPhone Safari). Only a BetBeat guest path
+ * canvas frames everywhere else (iPhone Safari). Only a Discontrol guest path
  * (/s/<token>) is ever followed, and always on this site: a QR pointing
  * elsewhere is refused, never opened.
  */

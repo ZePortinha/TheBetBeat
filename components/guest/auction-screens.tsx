@@ -685,7 +685,7 @@ export function WalletPill({ token }: { token: string }) {
         <div className="flex flex-col gap-5 pt-1">
           <div>
             <p className="label text-text-tertiary">{t("walletAvailable")}</p>
-            <p className="tnum mt-1 text-5xl font-bold tracking-tight text-text-primary">{formatEurosDisplay(cents)}</p>
+            <p className="tnum mt-1 text-5xl font-bold tracking-[var(--tracking-display)] text-text-primary">{formatEurosDisplay(cents)}</p>
             <p className="mt-1.5 text-sm text-text-secondary">
               {date ? t("walletDeadline", { date }) : t("walletEmpty")}
             </p>

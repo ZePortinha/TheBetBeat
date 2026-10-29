@@ -1,4 +1,4 @@
--- BetBeat RLS (BRIEF B12.2): RLS on EVERY table, default deny, scoped policies.
+-- Discontrol RLS (BRIEF B12.2): RLS on EVERY table, default deny, scoped policies.
 -- Money & audit tables get NO client policies — server (service role) only.
 
 -- ── Helpers (security definer avoids recursive RLS on staff) ────────

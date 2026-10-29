@@ -90,12 +90,12 @@ async function buildContext(staff: StaffContext, nextPath: string): Promise<Cons
 }
 
 /**
- * Gate for Admin BetBeat pages: PLATFORM admins only (role admin with a
+ * Gate for Admin Discontrol pages: PLATFORM admins only (role admin with a
  * null venue membership — a venue-scoped admin is not platform staff).
  */
 export async function requireAdminConsole(nextPath: string): Promise<ConsoleContext> {
   // requireStaff(['admin']) first (role + AAL2), then the platform check:
-  // a venue-scoped admin membership is not BetBeat staff.
+  // a venue-scoped admin membership is not Discontrol staff.
   const staff = await requireStaff(["admin"], { nextPath });
   if (!isPlatformAdmin(staff)) {
     redirect("/console");

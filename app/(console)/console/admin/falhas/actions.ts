@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Admin BetBeat — Falhas (B9 admin): "Repetir" a failed refund.
+ * Admin Discontrol — Falhas (B9 admin): "Repetir" a failed refund.
  *
  * The console never talks to the PSP. It resets the refund row to
  * `pending` with a fresh attempt budget; the worker's refund sweep

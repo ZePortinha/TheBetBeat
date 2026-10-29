@@ -77,7 +77,7 @@ test.describe("console · painel da casa", () => {
     await expect(page.getByRole("navigation", { name: "Navegação da consola" })).toBeVisible();
     await expect(page.locator("#console-venue")).toHaveValue(SEED.venueId);
     await expect(page.getByText(SEED.staff.manager.name)).toBeVisible();
-    // Managers never see the Admin BetBeat group.
+    // Managers never see the Admin Discontrol group.
     await expect(page.getByRole("link", { name: "Casas e contratos" })).toHaveCount(0);
 
     const live = sessionRow(page, SEED.sessionId);
@@ -247,7 +247,7 @@ test.describe("console · painel da casa", () => {
       "statement-gmv-value",
       "statement-venue-net-value",
       "statement-dj-net-value",
-      "statement-betbeat-fee-value",
+      "statement-platform-fee-value",
       "statement-refunds-value",
     ]) {
       await expect(page.getByTestId(id)).toContainText("€");
@@ -333,7 +333,7 @@ test.describe("console · admin gates", () => {
     test.skip(test.info().project.name !== "desktop", DESKTOP_ONLY);
   });
 
-  test("a manager is sent away from Admin BetBeat pages", async ({ page }) => {
+  test("a manager is sent away from Admin Discontrol pages", async ({ page }) => {
     await loginStaff(page, "manager", "/console");
     for (const path of [
       "/console/admin/casas",
@@ -354,7 +354,7 @@ test.describe("console · admin gates", () => {
     await expect(page).toHaveURL(/\/console\/admin\/casas$/);
     await expect(page.getByTestId("console-page-title")).toHaveText("Casas e contratos");
     await expect(page.getByRole("navigation", { name: "Navegação da consola" })).toContainText(
-      "Admin BetBeat",
+      "Admin Discontrol",
     );
     // The venue switcher also lists the venue name, hence the table scope.
     const venues = page.locator("table");

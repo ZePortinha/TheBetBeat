@@ -234,7 +234,7 @@
     "topTracks": "Top faixas",
     "closedRequests": "{count} pedidos reembolsados ao terminar",
     "backToSettings": "Voltar às definições",
-    "betbeatFee": "Taxa BetBeat",
+    "platformFee": "Taxa Discontrol",
     "ended": "O set terminou. Os pedidos por tocar foram reembolsados."
   },
   "session": {

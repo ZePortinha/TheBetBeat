@@ -86,7 +86,7 @@ export function LibraryScreen({ venueId, venueName }: { venueId: string | null; 
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6" data-testid="library-screen">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+          <h1 className="text-3xl font-bold tracking-[var(--tracking-display)] text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
             {t("title")}
             {venueName ? <span className="ml-2 text-lg font-semibold text-text-tertiary">{venueName}</span> : null}
           </h1>

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Button — the BetBeat action primitive (BRIEF B10.5), built on Pressable.
+ * Button — the Discontrol action primitive (BRIEF B10.5), built on Pressable.
  *
  * Variants: primary (accent red), secondary (surface), ghost, destructive
  * (ember fill) and destructiveGhost (ember text, no fill).

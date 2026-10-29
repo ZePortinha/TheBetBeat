@@ -64,7 +64,7 @@ let globalToast: ToastContextValue["toast"] | null = null;
 export function toast(options: ToastOptions): number {
   if (globalToast) return globalToast(options);
   if (process.env.NODE_ENV !== "production") {
-    console.warn("[betbeat/ui] toast() called without a mounted <ToastProvider>.");
+    console.warn("[discontrol/ui] toast() called without a mounted <ToastProvider>.");
   }
   return -1;
 }
