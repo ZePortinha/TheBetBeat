@@ -34,6 +34,7 @@ import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { durations } from "@/lib/motion";
 import { apiFetch } from "./api";
 import { BidForm, ShoutoutNote, type BidTargetInput } from "./bid-form";
+import { winDetails } from "./win-details";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
 import { WinCelebration } from "./win-celebration";
@@ -610,8 +611,7 @@ export function AuctionOverlays({ venueName }: { venueName: string }) {
       if (state?.me?.bids.some((b) => b.slotId === id)) navigator.vibrate?.([120, 80, 120]);
     }
   }, [flashingKey, state]);
-  const won = celebrate ? state?.me?.bids.find((b) => b.slotId === celebrate) : undefined;
-  const wonCover = [state?.upNext, ...(state?.recentWinners ?? [])].find((w) => w?.slotId === celebrate)?.coverUrl ?? null;
+  const won = celebrate ? winDetails(celebrate, state?.me, [state?.upNext, ...(state?.recentWinners ?? [])]) : null;
   return (
     <>
       {secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} page /> : null}
@@ -621,7 +621,7 @@ export function AuctionOverlays({ venueName }: { venueName: string }) {
           trackTitle={won.trackTitle}
           trackArtist={won.trackArtist}
           totalCents={won.totalCents}
-          coverUrl={wonCover}
+          coverUrl={won.coverUrl}
           venueName={venueName}
           onClose={dismissCelebration}
         />
