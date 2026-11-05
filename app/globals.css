@@ -237,17 +237,14 @@ body:has(.guest-type) {
   backdrop-filter: var(--material-blur);
 }
 
-/* Floating tab bar: a solid sheet below the bar, so Safari’s moving toolbar
-   never shows a gap or the content scrolling underneath it. */
-.dock-extend::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 100lvh;
-  background: var(--color-bg-raised);
-  pointer-events: none;
+/* Guest tab bar. iOS Safari moves fixed elements a beat after its toolbar
+   grows or shrinks, which left a strip of page visible under the bar while
+   scrolling. The bar reaches past the bottom of the screen (same material,
+   same blur), so whatever Safari does, the bar stays attached. */
+.dock-extend {
+  --dock-overhang: 160px;
+  bottom: calc(-1 * var(--dock-overhang));
+  padding-bottom: var(--dock-overhang);
 }
 
 /* ── Atmosphere (landing, login, house screen) ──────────────────── */
@@ -505,9 +502,6 @@ body:has(.guest-type) {
 /* The black cuts out whole (no fade): a fade would show the page under it. */
 .boot-intro {
   animation: boot-intro-out 0s linear 4.2s forwards;
-}
-html[data-intro="seen"] .boot-intro {
-  display: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .boot-intro {
