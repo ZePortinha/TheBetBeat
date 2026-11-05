@@ -70,9 +70,13 @@ function footerDate(locale: string, at: Date): string {
 type VideoState = "recording" | "ready" | "none";
 
 
-/** Loads the album cover through our proxy so the canvas stays same-origin. */
-function useCoverBitmap(slotId: string, coverUrl?: string | null): ImageBitmap | null {
-  const [bmp, setBmp] = React.useState<ImageBitmap | null>(null);
+/**
+ * Loads the album cover through our proxy so the canvas stays same-origin.
+ * `settled` turns true when the attempt ends, with or without an image, so
+ * the record never waits for art that will not come.
+ */
+function useCoverBitmap(slotId: string, coverUrl?: string | null): { bmp: ImageBitmap | null; settled: boolean } {
+  const [state, setState] = React.useState<{ bmp: ImageBitmap | null; settled: boolean }>({ bmp: null, settled: !coverUrl });
   React.useEffect(() => {
     if (!coverUrl) return;
     let cancelled = false;
@@ -82,16 +86,18 @@ function useCoverBitmap(slotId: string, coverUrl?: string | null): ImageBitmap |
       .then((b) => createImageBitmap(b))
       .then((img) => {
         loaded = img;
-        if (!cancelled) setBmp(img);
+        if (!cancelled) setState({ bmp: img, settled: true });
         else img.close();
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setState({ bmp: null, settled: true });
+      });
     return () => {
       cancelled = true;
       loaded?.close();
     };
   }, [slotId, coverUrl]);
-  return bmp;
+  return state;
 }
 
 export function WinCelebration({
@@ -118,7 +124,7 @@ export function WinCelebration({
   const stage = React.useRef<HTMLCanvasElement>(null);
   const amount = useCountUp(totalCents, 900, !reduced);
   const title = t("winTitle");
-  const coverBmp = useCoverBitmap(slotId, coverUrl);
+  const { bmp: coverBmp, settled: coverSettled } = useCoverBitmap(slotId, coverUrl);
   const coverRef = React.useRef<ImageBitmap | null>(null);
   coverRef.current = coverBmp;
 
@@ -126,9 +132,13 @@ export function WinCelebration({
   // spinning vinyl the moment it arrives, without restarting the scene.
   // Reduced motion draws one still frame, so it redraws with the cover.
   const stillCover = reduced ? coverBmp : null;
+  // With album art on the way, the record waits dark and starts turning only
+  // when the art is pressed in. Read every frame, so the scene never restarts.
+  const coverPending = React.useRef(false);
+  coverPending.current = !coverSettled;
   React.useEffect(() => {
     if (!stage.current) return;
-    return startWinScene(stage.current, { coverRef, still: reduced });
+    return startWinScene(stage.current, { coverRef, coverPending, still: reduced });
   }, [reduced, stillCover]);
 
   // The Instagram video records in the background, once the opening burst

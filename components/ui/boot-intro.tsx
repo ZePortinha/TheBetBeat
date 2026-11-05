@@ -235,7 +235,10 @@ export function BootIntro() {
           data-testid="boot-intro"
           className="boot-intro fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-bg-base"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: reduced ? 0.25 : 0.45, delay: reduced ? 0 : 0.06 } }}
+          // The black stays opaque while the lockup leaves inside it, and is
+          // removed whole: fading the overlay itself let the page behind show
+          // through (its buttons ghosted under the splash).
+          exit={{ opacity: 1, transition: { duration: reduced ? 0.25 : 0.45, delay: reduced ? 0 : 0.06 } }}
           onPointerDown={() => {
             buzz();
             setShow(false);

@@ -237,6 +237,19 @@ body:has(.guest-type) {
   backdrop-filter: var(--material-blur);
 }
 
+/* Floating tab bar: a solid sheet below the bar, so Safari’s moving toolbar
+   never shows a gap or the content scrolling underneath it. */
+.dock-extend::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 100lvh;
+  background: var(--color-bg-raised);
+  pointer-events: none;
+}
+
 /* ── Atmosphere (landing, login, house screen) ──────────────────── */
 /* Light pools: red from above, a breath of red below. */
 .ambient {
@@ -486,19 +499,18 @@ body:has(.guest-type) {
    the splash can never block the app. JS removes it earlier (or on tap). */
 @keyframes boot-intro-out {
   to {
-    opacity: 0;
     visibility: hidden;
   }
 }
+/* The black cuts out whole (no fade): a fade would show the page under it. */
 .boot-intro {
-  animation: boot-intro-out 0.35s ease-out 4.2s forwards;
+  animation: boot-intro-out 0s linear 4.2s forwards;
 }
 html[data-intro="seen"] .boot-intro {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .boot-intro {
-    animation-duration: 0.2s;
     animation-delay: 1s;
   }
 }
