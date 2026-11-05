@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { djSlotAction } from "@/lib/auction/service";
+import { capture } from "@/lib/analytics/capture";
+import { EVENTS } from "@/lib/analytics/events";
 import { apiError, hasVenueAccess, requireStaffApi } from "../../_lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +33,9 @@ export async function POST(request: NextRequest, props: { params: Promise<{ slot
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) return apiError(400, "invalid_body");
 
-  const outcome = await djSlotAction(slotId, parsed.data.action, auth.ctx.actor, Date.now());
+  const now = Date.now();
+  const outcome = await djSlotAction(slotId, parsed.data.action, auth.ctx.actor, now);
   if (!outcome.ok) return apiError(409, outcome.error);
+  capture(EVENTS.auctionSlotDecision, `slot:${slotId}`, { venueId, action: parsed.data.action }, now);
   return NextResponse.json(outcome);
 }

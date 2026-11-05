@@ -7,12 +7,17 @@
  */
 import "./bootstrap";
 
+let sentry: { flush: () => Promise<void> } | null = null;
+
 void (async () => {
+  const { startWorkerSentry } = await import("./sentry");
+  sentry = await startWorkerSentry();
   const { runWorker } = await import("./runtime");
   await runWorker();
-})().catch((error: unknown) => {
+})().catch(async (error: unknown) => {
   console.error(
     `[worker] fatal: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
   );
+  await sentry?.flush();
   process.exitCode = 1;
 });

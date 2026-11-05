@@ -20,6 +20,11 @@ export const testEnv: Record<string, string> = {
   CATALOG_PROVIDER: "mock",
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
   TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
+  // Monitoring and analytics stay off in every test run.
+  SENTRY_DSN: "",
+  NEXT_PUBLIC_SENTRY_DSN: "",
+  POSTHOG_KEY: "",
+  NEXT_PUBLIC_POSTHOG_KEY: "",
   // Its own build folder: the dev server keeps .next.
   NEXT_DIST_DIR: ".next-e2e",
 };
