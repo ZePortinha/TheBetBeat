@@ -217,8 +217,10 @@ Branch `claude/project-thread-e7me1l`. See DECISIONS 2026-11-05.
 - Turnstile gaps were already closed in code; production prints what is not
   launch-ready at boot.
 - Load test rewritten for the auction flow and run on a production build:
-  `docs/LOAD-TEST.md`. Public auction state micro-cached, public board route
-  for realtime hints, calmer polling with realtime up.
+  `docs/LOAD-TEST.md`. Public auction state micro-cached, the board pushed on
+  a server-only realtime channel, a cacheable board route as fallback,
+  calmer polling with realtime up. 1 000 guests + 50 bids/min fit one
+  process (reads p95 < 60 ms).
 - Not run in the container (needs the Supabase stack or a download that was
   refused): gitleaks, `pnpm db:audit`, integration and E2E suites.
 
@@ -226,9 +228,8 @@ Branch `claude/project-thread-e7me1l`. See DECISIONS 2026-11-05.
 
 1. Locally: `gitleaks detect`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
    `pnpm test:e2e` on this branch (zod 4 touches every validated input).
-2. Carry the public auction board inside the realtime message (server-only
-   channel) so a bid no longer makes every phone refetch; then re-run the
-   load test with hints (`docs/LOAD-TEST.md`).
+2. Check on a real Supabase stack that guests receive `auction.board`
+   (migration 0021) and that the screen updates without a refetch.
 3. Verify guest JWTs locally (Supabase signing keys) instead of one
    `auth.getUser()` round trip per guest request.
 4. Sentry source maps (`withSentryConfig` + auth token in CI).

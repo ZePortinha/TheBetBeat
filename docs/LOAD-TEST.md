@@ -47,24 +47,38 @@ the session polls of a full room.
 1 000 guests are served by one process with p95 under 150 ms on every read;
 bids p95 156 ms (writes take a row lock on the auction).
 
-**After, with a realtime hint after every bid (50 bids/min), one process,
-no CDN:** still saturated (p50 ~3 s). Every bid makes 1 000 phones read the
-board within half a second, about 650 extra requests per second at that bid
-rate. One Node process serves ~300 req/s here, mostly framework overhead per
-request (CPU profile: no single hot spot), so the database is not the limit.
+**With the board pushed on realtime (the shipped design), 1 000 guests,
+50 bids/min, one process:**
+
+| Endpoint | Requests | req/s | p50 ms | p95 ms | p99 ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| GET party page (arrival, 50 at once) | 1 000 | | 1 018 | 1 489 | 1 769 |
+| GET auction state | 15 000 | 117 | 17 | 58 | 90 |
+| POST bid (incl. building the board) | 101 | 0.8 | 44 | 193 | 285 |
+| GET session state | 7 457 | 58 | 9 | 28 | 46 |
+| GET search | 929 | 7 | 18 | 58 | 101 |
+
+Every read stays under 150 ms at p95. A bid is a write that locks the
+auction row and then builds the board for the realtime message, p95 193 ms.
+(23 bids hit `above_maximum`: the script raises by the minimum on every bid,
+so 100 bids in one auction compound past the cap. Not a server fault.)
+
+**Fallback, board channel down (`--hints refetch`): saturates.** Every bid
+makes 1 000 phones read `/api/guest/auction/board` within half a second
+(~650 extra requests per second at 50 bids/min). One Node process serves
+~300 req/s here, mostly framework overhead per request (CPU profile: no
+single hot spot). That route is cacheable for 1 s by a CDN, which is what
+keeps this path safe in production if realtime degrades.
 
 ## What this means for launch
 
-- Polling load for 1 000 guests fits one instance.
-- The hint fan-out does not, unless one of these is in place:
-  1. a CDN in front of the app: `/api/guest/auction/board` answers with
-     `s-maxage=1`, so the origin sees about one board read per second per
-     edge location instead of one per phone; or
-  2. the board travels inside the realtime message (server-only broadcast
-     on an RLS-guarded channel), so phones never refetch on a hint. This is
-     the recommended next step: it removes the fan-out regardless of host.
+- 1 000 guests with live bidding fit one app instance when realtime is up.
+  Run two anyway for redundancy; the in-process caches are per instance and
+  at most 500 ms behind each other.
+- Put a CDN in front (`/api/guest/auction/board` sends `s-maxage=1`) so the
+  realtime-down fallback cannot overload the origin.
 - Arrival: the party page costs ~25 ms of CPU per render, so one process
-  admits ~40 new guests per second (1 000 guests in ~21 s).
+  admits ~40 new guests per second (1 000 guests in ~20 s).
 - Not measured here: real Supabase Auth latency (each guest API call checks
   the token with `auth.getUser()`, one network round trip to Supabase;
   verifying the JWT locally with the project's signing keys would remove

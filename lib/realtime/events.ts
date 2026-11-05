@@ -2,7 +2,8 @@
  * Realtime contract (BRIEF B11 "Tempo real"). The SERVER publishes
  * pre-filtered broadcasts; clients never subscribe to table changes.
  * Channels: session:<id>:staff (private) · guest:<uuid> (private) ·
- * session:<id>:public (public data only).
+ * session:<id>:public (public hints only: anyone can broadcast there) ·
+ * session:<id>:board (private, server-written: the public auction board).
  */
 import type { RealtimeEvent, RequestStatus, Tier } from "@/lib/domain/types";
 
@@ -14,6 +15,16 @@ export function guestChannel(guestId: string): string {
 }
 export function publicChannel(sessionId: string): string {
   return `session:${sessionId}:public`;
+}
+/**
+ * The auction board itself (amounts, closing times, winners, ranking), sent
+ * by the server after every auction change. Private so that only the server
+ * can write it (no insert policy on realtime.messages); any signed-in guest
+ * may read it, because the board is public data. Phones apply it directly
+ * instead of refetching (load test 2026-11-05, docs/LOAD-TEST.md).
+ */
+export function boardChannel(sessionId: string): string {
+  return `session:${sessionId}:board`;
 }
 
 /** Staff payload: everything the cockpit card needs (no guest PII). */

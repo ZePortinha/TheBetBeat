@@ -913,3 +913,13 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   a CDN), guests poll every 8 s while realtime is up (3 s otherwise), hint
   refetches capped at one per 1.5 s and spread over 0.5 s, session-state
   per-IP limit 1 200 → 15 000/min. Numbers in `docs/LOAD-TEST.md`.
+- **The board rides on realtime.** After any auction change the server
+  publishes the fresh public board on `session:<id>:board` (private
+  channel, select policy for `authenticated`, no insert policy, so only the
+  service role can write; migration 0021). Phones apply it and make no
+  request; the public hint + `/board` refetch remains the fallback while the
+  board channel is down. Built centrally in `publishBroadcasts`, so every
+  path that announces `auction.updated` (bids, worker closes, webhooks, DJ)
+  sends it. Rejected: data on the public channel (any client can broadcast
+  there, so phones could be fed a fake board); CDN only (depends on hosting,
+  and still one request per phone per bid at the edge).

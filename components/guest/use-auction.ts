@@ -17,7 +17,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import type { MyAuctionState, PublicAuctionState } from "@/lib/auction/service";
 import type { PaymentMethod } from "@/lib/domain/types";
-import { guestChannel, publicChannel } from "@/lib/realtime/events";
+import { boardChannel, guestChannel, publicChannel } from "@/lib/realtime/events";
 import { useRealtimeChannel } from "@/lib/realtime/client";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "./api";
@@ -80,6 +80,7 @@ function useAuctionSource(token: string, sessionId: string) {
     const res = await apiFetch<AuctionState>(`/api/guest/auction?token=${encodeURIComponent(token)}`);
     if (!res.ok) return;
     setOffsetMs(Date.parse(res.data.serverNow) - Date.now());
+    boardAt.current = Math.max(boardAt.current, Date.parse(res.data.serverNow) || 0);
     setState(res.data);
     const bids = res.data.me?.bids ?? [];
     // Only the guest who spent the most on the song wins it (owner, 2026-10-11).
@@ -91,20 +92,38 @@ function useAuctionSource(token: string, sessionId: string) {
     if (won || (shown?.slotId && shown.at < askedAt && leading.current.has(shown.slotId))) clearOutbid();
   }, [token, clearOutbid]);
 
-  // Someone bid: only the public board changed (amounts, closing time,
-  // ranking). Read that shared, cacheable half; my own bids and wallet come
-  // with my private events and the poll. The clock offset stays from the
-  // full read (a CDN may serve the board up to a second old).
+  // The public half (amounts, closing times, winners, ranking) is the same
+  // for every phone. Board versions are ordered by the server time they
+  // were built at, so an older one never overwrites a newer read.
+  const boardAt = React.useRef(0);
+  const applyBoard = React.useCallback((board: PublicAuctionState) => {
+    const at = Date.parse(board.serverNow);
+    if (!Number.isFinite(at) || at < boardAt.current) return;
+    boardAt.current = at;
+    // The clock offset stays from the full read (a CDN may serve the board
+    // up to a second old); my bids and wallet come with my own events.
+    setState((prev) => (prev ? { ...prev, ...board, serverNow: prev.serverNow } : prev));
+  }, []);
   const refetchBoard = React.useCallback(async () => {
     const res = await apiFetch<PublicAuctionState>(`/api/guest/auction/board?token=${encodeURIComponent(token)}`);
-    if (!res.ok) return;
-    setState((prev) => (prev ? { ...prev, ...res.data, serverNow: prev.serverNow } : prev));
-  }, [token]);
+    if (res.ok) applyBoard(res.data);
+  }, [token, applyBoard]);
 
+  // Fast path: the server sends the fresh board itself after every change
+  // (server-only channel), so a bid costs no request from the phones.
+  const boardLink = useRealtimeChannel(ready && guestId ? boardChannel(sessionId) : null, { private: true }, (envelope) => {
+    if (envelope.event === "auction.board" && envelope.payload && typeof envelope.payload === "object") {
+      applyBoard(envelope.payload as PublicAuctionState);
+    }
+  });
+  const boardLive = boardLink === "connected";
+
+  // Fallback: the public hint, only while the board channel is down.
   const publicLink = useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: HINT_MIN_MS }, () => {
+    if (boardLive) return;
     setTimeout(() => void (state ? refetchBoard() : refetch()), Math.random() * HINT_SPREAD_MS);
   });
-  const pollMs = publicLink === "connected" ? POLL_LIVE_MS : POLL_MS;
+  const pollMs = boardLive || publicLink === "connected" ? POLL_LIVE_MS : POLL_MS;
 
   React.useEffect(() => {
     if (!ready) return;

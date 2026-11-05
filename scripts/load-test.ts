@@ -16,12 +16,13 @@
  *   pnpm exec tsx --conditions=react-server --env-file=.env.local scripts/load-test.ts \
  *     [--base http://localhost:3000[,http://localhost:3001]] [--guests 1000] [--minutes 2] [--bids 50]
  *     [--concurrency 50] [--token <guest QR token>] [--fund]
- *     [--poll-ms 8000] [--no-hints]
+ *     [--poll-ms 8000] [--hints board|refetch|off]
  *
  * The night replays components/guest/use-auction.ts: a poll every 8 s
- * while realtime is up (--poll-ms 3000 = realtime down), and after every
- * bid the public hint, which makes each phone read the public board within
- * 0.5 s (at most once per 1.5 s).
+ * while realtime is up (--poll-ms 3000 = realtime down). After a bid the
+ * server pushes the board on realtime (no phone request); with
+ * --hints refetch every phone reads /board within 0.5 s instead (at most
+ * once per 1.5 s), which is the path when the board channel is down.
  *
  * --fund (local stacks only) credits every guest's wallet in the database,
  * so bids run the price + wallet path without an MB WAY top-up (whose
@@ -46,8 +47,13 @@ interface Args {
   fund: boolean;
   /** Auction poll per guest: 8 s with realtime up (the app), 3 s without. */
   pollMs: number;
-  /** Replay the realtime hint after each bid (every phone refetches). */
-  hints: boolean;
+  /**
+   * What a bid costs the phones: "board" (default, the app with realtime
+   * up: the board arrives inside the message, no request), "refetch" (the
+   * board channel down: every phone reads /board on the public hint) or
+   * "off".
+   */
+  hints: "board" | "refetch" | "off";
 }
 
 function parseArgs(): Args {
@@ -66,7 +72,7 @@ function parseArgs(): Args {
     token: a.includes("--token") ? get("token", "") : null,
     fund: a.includes("--fund"),
     pollMs: Number(get("poll-ms", "8000")),
-    hints: !a.includes("--no-hints"),
+    hints: (["board", "refetch", "off"] as const).find((h) => h === get("hints", "board")) ?? "board",
   };
 }
 
@@ -319,7 +325,7 @@ async function main() {
             }),
           }),
         );
-        if (res?.ok && args.hints) fanOutHint();
+        if (res?.ok && args.hints === "refetch") fanOutHint();
         if (res && !res.ok) {
           const body = (await res.json().catch(() => ({}))) as { minCents?: number; error?: { code?: string } };
           if (body.minCents) floorCents = body.minCents;
