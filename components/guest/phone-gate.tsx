@@ -23,6 +23,7 @@ import { apiFetch, errorMessage } from "./api";
 import { useGuest } from "./guest-providers";
 import { LocaleToggle } from "./locale-toggle";
 import { Intro } from "./phone-login-screen";
+import { Wordmark } from "@/components/ui/brand-mark";
 
 type Step = "loading" | "phone" | "code" | "handle";
 /** What the server said about the @ being typed (2026-10-11). */
@@ -178,7 +179,7 @@ export function PhoneGate({ venueName, onEntered }: { venueName: string; onEnter
     <main className="flex min-h-dvh flex-col gap-8 px-5 pb-10 pt-5">
       <header className="flex min-h-11 items-center justify-between gap-3">
         <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
-          <span className="text-accent-400">{tc("appName")}</span>
+          <Wordmark name={tc("appName")} />
           <span aria-hidden className="text-text-tertiary">
             ×
           </span>

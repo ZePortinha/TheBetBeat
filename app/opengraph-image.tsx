@@ -31,7 +31,10 @@ export default async function OpengraphImage() {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <div style={{ fontSize: 40, fontWeight: 700, color: "#ff453a" }}>{common.appName}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 18 }}>
+            <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.02em" }}>{common.appName}</div>
+            <div style={{ fontSize: 28, fontWeight: 500, color: "#ff453a" }}>{common.slogan}</div>
+          </div>
           <div
             style={{
               marginTop: 20,
@@ -53,10 +56,12 @@ export default async function OpengraphImage() {
           </div>
         </div>
         <svg width="360" height="360" viewBox="0 0 512 512">
-          <circle cx="256" cy="256" r="150" fill="none" stroke={RED} strokeWidth="22" opacity="0.35" />
-          <circle cx="256" cy="256" r="104" fill="none" stroke={RED} strokeWidth="24" opacity="0.7" />
-          <circle cx="256" cy="256" r="58" fill={RED} />
-          <circle cx="256" cy="256" r="20" fill="#000000" />
+          <circle cx="256" cy="256" r="232" fill="#1c1c1e" />
+          {[204, 178, 152].map((r) => (
+            <circle key={r} cx="256" cy="256" r={r} fill="none" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="5" />
+          ))}
+          <circle cx="256" cy="256" r="112" fill={RED} />
+          <line x1="256" y1="226" x2="256" y2="164" stroke="#ffffff" strokeWidth="26" strokeLinecap="round" transform="rotate(40 256 256)" />
         </svg>
       </div>
     ),

@@ -57,7 +57,7 @@ async function shareFile(file: File, title: string): Promise<"shared" | "saved">
 async function storyImage(slotId: string): Promise<File> {
   const res = await fetch(`/api/guest/auction/${slotId}/card?format=story`);
   if (!res.ok) throw new Error("card");
-  return new File([await res.blob()], "betbeat-vencedor.png", { type: "image/png" });
+  return new File([await res.blob()], "discontrol-vencedor.png", { type: "image/png" });
 }
 
 /** "sáb · 21 set · 01:24" in Lisbon. */
@@ -210,7 +210,7 @@ export function WinCelebration({
             <Crown size={16} aria-hidden />
             {t("winEyebrow")}
           </p>
-          <h1 className="mt-1 flex text-5xl font-bold tracking-tight text-text-primary" aria-label={title}>
+          <h1 className="mt-1 flex text-5xl font-bold tracking-[var(--tracking-display)] text-text-primary" aria-label={title}>
             {[...title].map((ch, i) => (
               <motion.span
                 key={i}

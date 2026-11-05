@@ -262,7 +262,7 @@ function SetSummary({
   const rows = [
     ["gmv", summary.statement.gmv],
     ["refunds", summary.statement.refunds],
-    ["betbeatFee", summary.statement.betbeatFee],
+    ["platformFee", summary.statement.betbeatFee],
     ["venueNet", summary.statement.venueNet],
     ["djNet", summary.statement.djNet],
   ] as const;

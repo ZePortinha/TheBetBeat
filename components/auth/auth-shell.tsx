@@ -6,7 +6,8 @@
 
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Disc } from "@/components/ui/disc";
+
+import { BrandMark, Wordmark } from "@/components/ui/brand-mark";
 
 export async function AuthShell({
   title,
@@ -25,15 +26,15 @@ export async function AuthShell({
       <header className="mx-auto flex h-13 w-full max-w-[1024px] items-center px-5 md:px-8">
         <Link
           href="/"
-          className="text-xl font-semibold tracking-[var(--tracking-heading)]"
+          className="inline-flex min-h-11 items-center text-lg"
         >
-          {tc("appName")}
+          <Wordmark name={tc("appName")} />
         </Link>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-5 pb-16 pt-8">
         <div className="w-full max-w-sm">
-          <Disc className="mx-auto w-16" />
+          <BrandMark className="mx-auto size-16" />
           <h1 className="mt-6 text-center font-display text-[2rem] font-semibold leading-[1.1] tracking-[var(--tracking-display)] text-text-primary">
             {title}
           </h1>

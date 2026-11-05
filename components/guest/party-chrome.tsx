@@ -17,6 +17,7 @@ import { cx } from "@/components/ui/pressable";
 import { AuctionOverlays, WalletPill } from "./auction-screens";
 import { PhoneGate } from "./phone-gate";
 import { AuctionProvider, useAuction } from "./use-auction";
+import { Wordmark } from "@/components/ui/brand-mark";
 
 interface PartyValue {
   token: string;
@@ -120,7 +121,7 @@ export function PartyChrome({
   );
 }
 
-/** "BETBEAT × VENUE" on the left (home); balance (if any) + account on the right. */
+/** "DISCONTROL × VENUE" on the left (home); balance (if any) + account on the right. */
 export function PartyTopBar() {
   const { token, venueName } = useParty();
   const tc = useTranslations("common");
@@ -132,7 +133,7 @@ export function PartyTopBar() {
         href={`/s/${token}`}
         className="flex min-h-11 min-w-0 items-center gap-1.5 text-sm font-semibold"
       >
-        <span className="text-accent-400">{tc("appName")}</span>
+        <Wordmark name={tc("appName")} />
         <span aria-hidden className="text-text-tertiary">
           ×
         </span>

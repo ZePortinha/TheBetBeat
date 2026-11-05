@@ -189,7 +189,7 @@ Product bugs it exposed, all fixed at the root:
 - **Context:** the product owner asked for the colour palette and typeface of
   the Helvetica specimen (red, black, off-white; one grotesque) as inspiration.
   This supersedes the warm black + gold + Unbounded + Instrument Serif of B10.
-  `BETBEAT_BRIEF.md` is untouched and now outdated on those two points; it
+  `RITMA_BRIEF.md` is untouched and now outdated on those two points; it
   needs aligning with the team.
 - **Decision:** tokens in `styles/tokens.css`: neutral black `#0b0b0c` with
   four surfaces, off-white text `#f2f2f0`, one accent red `#e8112d`
@@ -236,7 +236,7 @@ Product bugs it exposed, all fixed at the root:
   the guarantee as a red tile, small-print footer). Login/MFA is a centred
   Apple ID-style column. The guest session links are an iOS inset grouped
   list with red icon tiles; the back control is an accent chevron.
-- `BETBEAT_BRIEF.md` B10 stays outdated on palette, type and radii; align
+- `RITMA_BRIEF.md` B10 stays outdated on palette, type and radii; align
   with the team.
 
 ## 2026-10-05 - Optional guest sign-in with phone number + SMS code
@@ -298,7 +298,7 @@ Product bugs it exposed, all fixed at the root:
   previous palette and type, so that theme was removed again. The guest
   app keeps the Apple palette + red and SF Pro / Inter like the rest.
 - **Chrome:** `app/(guest)/s/[qrToken]/layout.tsx` mounts `PartyChrome`
-  once per party: "BETBEAT × venue" top bar (home, top, account), and a
+  once per party: "RITMA × venue" top bar (home, top, account), and a
   material tab bar (Pedir faixa → search, Fila ao vivo, Rankings) that
   persists across tabs; hidden on one-request and account screens. Main
   CTAs float above it (`DockCta`, a fade, never a second translucent bar).
@@ -512,8 +512,8 @@ Product owner brief. Replaces the "Pedir faixa / Fila ao vivo / Rankings" tab ba
 
 ## 2026-10-06 - Guests' front door: QR camera + live events; per-event QR
 
-- "/" is now the guests' entry. First comes the camera reading the event's QR: native BarcodeDetector where available, jsQR elsewhere (iPhone). Below it is the list of events live on BetBeat right now. The venue landing moved to /casas.
-- The scanner only follows a BetBeat guest path (/s/<token>) and always stays on this site: a QR pointing elsewhere is refused. `Permissions-Policy` now allows the camera for this origin.
+- "/" is now the guests' entry. First comes the camera reading the event's QR: native BarcodeDetector where available, jsQR elsewhere (iPhone). Below it is the list of events live on Ritma right now. The venue landing moved to /casas.
+- The scanner only follows a Ritma guest path (/s/<token>) and always stays on this site: a QR pointing elsewhere is refused. `Permissions-Policy` now allows the camera for this origin.
 - New signed token kind `session`: an event QR opens that event only (through the venue's first zone), never another night at the same venue. The zone QR still opens whatever is live there.
 - "Gerar QR code" for the event: on the console event page (manager/admin) and in the cockpit "Sessão" (DJ). Download PNG 1200 px with the quiet zone, share, copy link.
 - Listing live events publicly means anyone can join from the list, not only people at the venue. Product owner's call; an opt-in per event can come later if a club wants to stay unlisted.
@@ -571,7 +571,7 @@ Measured in a cloud session without Docker: Postgres 16 with stubbed `auth`/`rea
 Product owner asked for better animation quality on the logo, the auction ending and the win. Reviewed frame by frame on `/dev/motion` (dev-only stage; `?scene=intro|final|win`).
 
 - Countdowns (guest card, teaser, strip, venue display, "next opens") roll digit by digit like a mechanical clock (`TickingCountdown`, springDefault); only changed digits move. The leader's amount rolls the same way. The looping `animate-pulse` on the last minute is gone (B10.6: no loops except live indicators).
-- Last 30 s: the edge glow beats once per second, on the second the digits roll, driven per tick with Web Animations on opacity (`FinalStretchFrame`). The old 1 s box-shadow keyframes repainted the whole viewport every frame and drifted out of step with the clock. Last 10 s: each beat is the BetBeat lub-dub. The digits tick (scale 1.08 → 1) on the beat; cards just run hot (static red border + glow) instead of flashing. Last 5 s of an auction I am in: a 12 ms haptic tick per second. Never more than two pulses a second (under the 3 Hz flash limit). Reduced motion: steady red edge, digits cross-fade.
+- Last 30 s: the edge glow beats once per second, on the second the digits roll, driven per tick with Web Animations on opacity (`FinalStretchFrame`). The old 1 s box-shadow keyframes repainted the whole viewport every frame and drifted out of step with the clock. Last 10 s: each beat is the Ritma lub-dub. The digits tick (scale 1.08 → 1) on the beat; cards just run hot (static red border + glow) instead of flashing. Last 5 s of an auction I am in: a 12 ms haptic tick per second. Never more than two pulses a second (under the 3 Hz flash limit). Reduced motion: steady red edge, digits cross-fade.
 - Closing: the gavel strikes (springMomentum: a blow may overshoot) with a ring from the point of impact and one 40 ms buzz for guests in the auction, timed to the impact.
 - Logo intro: on leaving, the mark comes towards the viewer (scale 1.9) and dissolves as the black lifts, instead of a flat fade. The CSS safety fallback moved to 2.8 s so it no longer cuts the exit.
 - Winner: a bottom scrim keeps the amount, track and hint readable over the confetti and rays.
@@ -756,7 +756,7 @@ their own by artist, album and style; the admin's event creation with the
 split between DJ and promoter and/or club on top of the fixed 11% fee, and
 event criteria (music style) that decide the first recommendations.
 
-- **Fee:** BetBeat's fee is a flat 11% (`PLATFORM_FEE_BPS`), no longer a
+- **Fee:** Ritma's fee is a flat 11% (`PLATFORM_FEE_BPS`), no longer a
   per-venue contract. New events take it; an edited event keeps the fee it
   was created with; migration 18 moves every venue to 1100 and Admin ›
   Casas shows it read-only. Existing events' snapshots are untouched.
@@ -801,5 +801,74 @@ conflicted (both sides kept).
 - **Migrations:** 18 (#12) and 20 (#11), no collision; 19 is unused.
 - **Admin:** #11 dropped "Máximo de anúncios por hora" from Leilões
   (the shoutout from the Leilões threshold, 150 € by default, is always
-  given); #12 made the BetBeat fee a fixed 11% in Casas. Different pages
+  given); #12 made the Ritma fee a fixed 11% in Casas. Different pages
   and fields; both stand.
+
+## 2026-10-17 - The product is now called Ritma
+
+The owner renamed the app from BetBeat to Ritma ("bet" read as gambling, and
+the product is meant for beach clubs and restaurants too, not only clubs).
+The logo shape stays as it is.
+
+- **Renamed:** every user-facing string (messages, metadata, PWA manifests,
+  the bottle label in the winner celebration, share cards and their file
+  names, SMS/email texts, the MB WAY payment description, the TOTP name),
+  code comments, README, CLAUDE.md, docs, and the brief, now
+  `RITMA_BRIEF.md` (content otherwise untouched). Internals that hold no
+  stored data were renamed too: message keys (`platformFee`,
+  `examplePlatform`), test ids, data attributes, globals, DOM-event,
+  localStorage and advisory-lock keys, package name, analytics `$lib`,
+  worker `application_name`, test domains.
+- **Reserved @s:** "ritma" anywhere in the @, plus "ritmo" and its
+  brand-like spellings (an @ that merely contains the ordinary word "ritmo",
+  e.g. "ritmoquente", stays allowed). The old "betbeat" rules stay.
+- **Kept on purpose, because renaming would break data that already exists:**
+  DB columns `betbeat_fee_bps` and the ledger account `betbeat_revenue`
+  (stored on ledger rows), the session-config JSON field `betbeatFeeBps`
+  (stored inside every session's config) and the TS names mapped to them
+  (`betbeatFee*`, `betbeatRevenue`); the Supabase project ids `betbeat` and
+  `betbeat-test` (they name the local Docker volumes, so renaming starts an
+  empty database); the dev staff logins `*@betbeat.local` / `betbeat-dev`
+  (seeded once into existing local databases); and the guests' internal
+  sign-in address `…@guests.betbeat.invalid` (stored on every existing
+  guest account). None of these is shown to guests, DJs or venues.
+- `.env.local` is not in git: `TWILIO_FROM=BetBeat` there must be changed
+  by hand to `Ritma`.
+
+## 2026-10-29 - The product is now called Discontrol
+
+The owner settled the name: **Discontrol** (disco + control; the guest takes
+control of the music, the DJ keeps the last word). It replaces Ritma, which
+never shipped, with the same scope as the 2026-10-17 rename above: every
+user-facing string, metadata and PWA manifests, the bottle label, share
+cards and file names, SMS/email texts, MB WAY description, TOTP name, code
+comments, docs, and the brief, now `DISCONTROL_BRIEF.md`. The internals kept
+with the old name on 2026-10-17 stay as they are, for the same reasons.
+
+- **Mark:** a record whose red label is a mixer knob with its pointer turned
+  up, so the shape says disco and control at once. One geometry everywhere:
+  `components/ui/brand-mark.tsx` (app), `brand-mark-static.tsx` (Satori share
+  cards), `app/icon.svg`, PWA icons, apple-icon and favicon regenerated from
+  it. Headers use the `Wordmark` lockup (mark + name, white) instead of the
+  red text name; the venue screen carries the lockup bottom right.
+- **Slogan:** "Control the disco." in both locales (it is the brand line,
+  so it stays English in pt-PT, like the name). Landing hero: "Toma o
+  controlo da pista." with the DJ's last word said in the same line, so the
+  slogan never reads as the guest deciding what plays (B1).
+- **Boot intro:** owner's brief. "Control the disco" lands word by word,
+  "the" steps out, Disco passes over Control as they swap, then they slide
+  into each other on the shared "co" (briefly red) and read Discontrol; the
+  mark arrives with its knob turning up and the slogan settles below. ~3.6 s,
+  tap to skip, one haptic click on the merge, reduced motion shows the
+  finished lockup only. Position springs are critically damped (nothing was
+  flicked); only the knob turn has a little bounce. The words are the brand,
+  so they live in the component like the bottle label, not in messages; the
+  splash is decorative (`aria-hidden`). CSS fallback that hides it if JS
+  fails moved from 2.8 s to 4.2 s.
+- **Palette:** kept the Apple dark neutrals + red of 2026-10-05 (the
+  project-chat note about the Stitch magenta/cyan is older than that
+  decision); the red now reads as the knob of the mark.
+- **Reserved @s:** "discontrol" anywhere in the @ (look-alikes included);
+  "ritma" and "betbeat" stay reserved.
+- `.env.local` is not in git: set `TWILIO_FROM=Discontrol` by hand (10
+  characters, within the 11 an alphanumeric SMS sender allows).

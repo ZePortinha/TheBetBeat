@@ -1,6 +1,7 @@
 {
-  "appName": "BetBeat",
-  "tagline": "Pede a tua música ao DJ.",
+  "appName": "Discontrol",
+  "slogan": "Control the disco.",
+  "tagline": "Toma o controlo da música da noite.",
   "actions": {
     "back": "Voltar",
     "close": "Fechar",
@@ -48,7 +49,7 @@
   },
   "auth": {
     "title": "Entrar",
-    "subtitle": "Acesso para DJs, gestores e equipa BetBeat.",
+    "subtitle": "Acesso para DJs, gestores e equipa Discontrol.",
     "email": "Email",
     "password": "Palavra-passe",
     "submit": "Entrar",
@@ -81,7 +82,7 @@
     }
   },
   "devIndex": {
-    "title": "BetBeat · desenvolvimento",
+    "title": "Discontrol · desenvolvimento",
     "guest": "App do Convidado",
     "cockpit": "Cockpit do DJ",
     "display": "Ecrã da Casa",
@@ -98,9 +99,9 @@
       "staff": "Área da equipa"
     },
     "hero": {
-      "titleA": "Pede a tua música",
-      "titleB": "ao DJ.",
-      "sub": "Escolhe a faixa, licita no leilão aberto e paga em segundos. Se não tocar, devolvemos tudo.",
+      "titleA": "Toma o controlo",
+      "titleB": "da pista.",
+      "sub": "Escolhe a faixa, licita no leilão aberto e paga em segundos. O DJ tem sempre a última palavra e, se não tocar, devolvemos tudo.",
       "cta": "Ver como funciona",
       "ctaSecondary": "Para DJs e casas"
     },
@@ -146,15 +147,15 @@
       "body": "Reembolso total e automático. Se fores ultrapassado num leilão, o valor volta ao teu saldo."
     },
     "footer": {
-      "rights": "© 2026 BetBeat",
+      "rights": "© 2026 Discontrol",
       "nav": "Ligações do rodapé"
     }
   },
   "meta": {
-    "description": "Pede a tua música ao DJ da festa. Escolhe a faixa, licita no leilão aberto e, se não tocar, devolvemos tudo.",
-    "ogAlt": "BetBeat: pede a tua música ao DJ",
+    "description": "Discontrol: toma o controlo da música da noite. Escolhe a faixa, licita no leilão aberto e, se não tocar, devolvemos tudo.",
+    "ogAlt": "Discontrol: control the disco",
     "venuesTitle": "Para DJs e casas",
-    "venuesDescription": "BetBeat para casas noturnas e DJs: os convidados pedem músicas a pagar, o DJ decide sempre o que toca e o que não toca é devolvido automaticamente.",
+    "venuesDescription": "Discontrol para casas noturnas e DJs: os convidados pedem músicas a pagar, o DJ decide sempre o que toca e o que não toca é devolvido automaticamente.",
     "staffLogin": "Entrar",
     "mfa": "Verificação em dois passos",
     "partyLogin": "Entrar na festa",

@@ -100,9 +100,9 @@ export default async function SessionStatementPage({
         ) : null}
         <Stat label={t("djNet")} value={formatEuros(statement.djNet)} testId="statement-dj-net" />
         <Stat
-          label={t("betbeatFee")}
+          label={t("platformFee")}
           value={formatEuros(statement.betbeatFee)}
-          testId="statement-betbeat-fee"
+          testId="statement-platform-fee"
         />
         <Stat label={t("refunds")} value={formatEuros(statement.refunds)} testId="statement-refunds" />
       </div>

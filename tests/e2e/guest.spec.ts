@@ -60,6 +60,7 @@ test.describe("guest app · leilões", () => {
     // 2. A track.
     await tap(page.getByRole("button").filter({ hasText: /^.*licitar$|bid$/i }).first());
     await expect(page).toHaveURL(/\/track\//);
+    const myTrackId = decodeURIComponent(new URL(page.url()).pathname.split("/").pop()!);
     // "Público · @" is preselected with the @ picked at the front door: nothing to type.
     await expect(page.getByRole("button", { name: /público · @|public · @/i })).toBeVisible();
     await expect(page.getByRole("textbox", { name: /o meu @|my @/i })).toHaveCount(0);
@@ -72,10 +73,11 @@ test.describe("guest app · leilões", () => {
     await page.getByRole("button", { name: /^feito$|^done$/i }).click();
     await expect(page.getByText(/^vais à frente$|^you are in the lead$/i)).toBeVisible({ timeout: 15_000 });
 
-    // Someone else outbids: the money goes back to the balance.
+    // Someone else outbids with another song (a bid on the same song would
+    // count towards it, 2026-10-11): the money goes back to the balance.
     const before = await auctionState(request);
     const top = before.open.find((s) => s.id === slotId)!;
-    await bidViaApi(request, { slotId, totalCents: top.minNextCents });
+    await bidViaApi(request, { slotId, totalCents: top.minNextCents, excludeTrackId: myTrackId });
     await expect(page.getByText(/foste ultrapassado|you were outbid/i).first()).toBeVisible({ timeout: 15_000 });
     // The balance shows up, small, top right.
     await expect(page.getByRole("button", { name: /^saldo|^balance/i })).toBeVisible();

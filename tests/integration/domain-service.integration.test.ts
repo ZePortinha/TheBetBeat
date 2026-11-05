@@ -106,7 +106,7 @@ async function createGuest(): Promise<string> {
        $2, '', now(), '{"provider":"anonymous","providers":["anonymous"]}', '{}',
        now(), now(), '', '', '', ''
      )`,
-    [id, `it-${RUN}-${id.slice(0, 8)}@betbeat.test`],
+    [id, `it-${RUN}-${id.slice(0, 8)}@discontrol.test`],
   );
   await db.query(`insert into public.guests (id, locale) values ($1, 'pt-PT')`, [id]);
   return id;

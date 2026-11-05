@@ -41,7 +41,7 @@ export const SEED = {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "admin@betbeat.local",
       password: "betbeat-dev",
-      name: "BetBeat Ops",
+      name: "Discontrol Ops",
       mfa: true,
     },
   },
@@ -235,9 +235,12 @@ export async function pickBiddableTrack(
   request: APIRequestContext,
   guest: AnonymousGuest,
   token: string,
+  excludeTrackId?: string,
 ): Promise<string> {
   for (const q of ["", "a", "e", "o"]) {
-    const found = (await searchTracks(request, guest, token, q)).find((t) => t.available && t.source === "library");
+    const found = (await searchTracks(request, guest, token, q)).find(
+      (t) => t.available && t.source === "library" && t.id !== excludeTrackId,
+    );
     if (found) return found.id;
   }
   throw new Error("No library song can take a bid right now — is the DB seeded?");
@@ -278,6 +281,8 @@ export async function bidViaApi(
     totalCents: number;
     guest?: AnonymousGuest;
     trackId?: string;
+    /** A song this bid must not go to (e.g. the one being outbid). */
+    excludeTrackId?: string;
     backBidId?: string;
     handle?: string;
     token?: string;
@@ -286,7 +291,7 @@ export async function bidViaApi(
   const token = opts.token ?? tokenFromGuestPath(await getGuestPath(request));
   const guest = opts.guest ?? (await signInGuest(request));
   const trackId =
-    opts.trackId ?? (await pickBiddableTrack(request, guest, token));
+    opts.trackId ?? (await pickBiddableTrack(request, guest, token, opts.excludeTrackId));
   const bid = (totalCents: number) =>
     request.post("/api/guest/auction/bid", {
       headers: { authorization: `Bearer ${guest.accessToken}` },

@@ -144,7 +144,7 @@ export class IfthenpayProvider implements PaymentProvider {
           amount: euros(input.amountCents),
           mobileNumber,
           ...(input.email ? { email: input.email } : {}),
-          description: "BetBeat",
+          description: "Discontrol",
         }),
       }),
     );

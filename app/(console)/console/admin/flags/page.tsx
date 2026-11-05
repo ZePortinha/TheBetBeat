@@ -14,7 +14,7 @@ const selectCls =
   "text-text-primary focus:border-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-500/25";
 
 /**
- * Admin BetBeat — Feature flags (B9 admin): per-venue editor over the
+ * Admin Discontrol — Feature flags (B9 admin): per-venue editor over the
  * allowlisted keys of venues.settings. Other keys are shown read-only.
  */
 export default async function AdminFlagsPage({

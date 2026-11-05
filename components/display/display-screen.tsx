@@ -31,6 +31,7 @@ import { GavelStrike } from "@/components/ui/gavel-strike";
 import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { Crossfade } from "./crossfade";
+import { Wordmark } from "@/components/ui/brand-mark";
 
 const POLL_MS = 10_000;
 const SAFETY_REFRESH_MS = 60_000;
@@ -371,11 +372,11 @@ export function DisplayScreen({ sessionId, token, initial }: DisplayScreenProps)
 
       {/* Subtle wordmark */}
       <span
-        className="pointer-events-none absolute bottom-[2vmin] right-[2.5vmin] text-text-tertiary"
-        style={{ ...displayFont, fontSize: "clamp(0.75rem, 1.6vmin, 1rem)", fontWeight: 600 }}
+        className="pointer-events-none absolute bottom-[2.5vmin] right-[3vmin] opacity-80"
+        style={{ ...displayFont, fontSize: "clamp(0.875rem, 2vmin, 1.5rem)" }}
         aria-hidden="true"
       >
-        BetBeat
+        <Wordmark name="Discontrol" />
       </span>
     </main>
   );

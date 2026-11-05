@@ -491,7 +491,7 @@ body:has(.guest-type) {
   }
 }
 .boot-intro {
-  animation: boot-intro-out 0.35s ease-out 2.8s forwards;
+  animation: boot-intro-out 0.35s ease-out 4.2s forwards;
 }
 html[data-intro="seen"] .boot-intro {
   display: none;
