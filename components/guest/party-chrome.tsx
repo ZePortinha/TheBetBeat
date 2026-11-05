@@ -9,6 +9,7 @@
  */
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -48,6 +49,12 @@ function TabBar({ token }: { token: string }) {
   const base = `/s/${token}`;
   const active = activeTab(pathname);
   const live = (state?.open.length ?? 0) > 0;
+  // Rendered straight into <body>: the page shell carries
+  // data-vaul-drawer-wrapper, and a sheet pushing the page back puts a
+  // transform on it. A fixed bar inside a transformed parent stops being
+  // fixed to the screen and scrolls with the page (it ended up mid-screen).
+  const [host, setHost] = React.useState<HTMLElement | null>(null);
+  React.useEffect(() => setHost(document.body), []);
 
   const side = (key: "home" | "top", href: string, Icon: typeof Trophy) => (
     <Link
@@ -63,7 +70,8 @@ function TabBar({ token }: { token: string }) {
     </Link>
   );
 
-  return (
+  if (!host) return null;
+  return createPortal(
     <nav aria-label={t("label")} data-guest-dock="" className="material dock-extend fixed inset-x-0 z-40">
       <div className="mx-auto grid h-[4.25rem] w-full max-w-md grid-cols-3 box-content pb-[env(safe-area-inset-bottom)]">
         {side("home", base, AudioLines)}
@@ -90,7 +98,8 @@ function TabBar({ token }: { token: string }) {
         </Link>
         {side("top", `${base}/top`, Trophy)}
       </div>
-    </nav>
+    </nav>,
+    host,
   );
 }
 

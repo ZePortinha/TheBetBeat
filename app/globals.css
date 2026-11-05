@@ -238,11 +238,11 @@ body:has(.guest-type) {
 }
 
 /* Guest tab bar. iOS Safari moves fixed elements a beat after its toolbar
-   grows or shrinks, which left a strip of page visible under the bar while
-   scrolling. The bar reaches past the bottom of the screen (same material,
-   same blur), so whatever Safari does, the bar stays attached. */
+   grows or shrinks, which can leave a strip of page under the bar while
+   scrolling. The bar reaches a little past the bottom of the screen (same
+   material) so that strip stays covered. */
 .dock-extend {
-  --dock-overhang: 160px;
+  --dock-overhang: 72px;
   bottom: calc(-1 * var(--dock-overhang));
   padding-bottom: var(--dock-overhang);
 }
