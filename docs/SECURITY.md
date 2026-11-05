@@ -54,7 +54,7 @@ stored phones/emails/payout data) and rewrite history.
 | Anti-bot | Cloudflare Turnstile verified server-side (`lib/security/turnstile.ts`) on payment start and tier upgrade (token required by the zod schema). Anonymous session creation and staff sign-in pass the Turnstile token to Supabase Auth when `NEXT_PUBLIC_SUPABASE_CAPTCHA=1`: turn on CAPTCHA (provider Turnstile, the same secret) in the production Supabase project in the same deploy; the guest app then waits for a token before creating the anonymous session. Off by default so local runs and E2E work offline. With it on, the per-IP anonymous sign-in limit can be raised for venue Wi-Fi. The staff login form renders the widget and `loginAction` refuses a sign-in without a valid token in production (dev accepts a missing one so local runs work offline). Dev uses the always-pass test keys. |
 | Uploads | Library import (`app/api/cockpit/library/import`): real type sniffed from content, 10 MB cap, XML parsed without external entities (`lib/catalog/import.ts`). Venue images: 2 MB cap (Phase 8 adapter). |
 | Minimal responses | Explicit DTOs in `lib/domain/dto.ts` and per-route shapes; never `select *` to the client. Staff card payloads carry no guest PII; guests only ever see their own requests. |
-| No leaks | Errors to clients are `{ error: { code, id } }` with a short correlation id that is also logged; no stack traces or keys in responses. Phones are masked in logs (`maskPhone`) and stored hashed with a salt (`hashPhone`) for anti-abuse checks. Sentry is not wired yet (Phase 8): when it is, `beforeSend` must scrub phones, emails and tokens before this row can be ticked. |
+| No leaks | Errors to clients are `{ error: { code, id } }` with a short correlation id that is also logged; no stack traces or keys in responses. Phones are masked in logs (`maskPhone`) and stored hashed with a salt (`hashPhone`) for anti-abuse checks. Sentry (Phase 8, off without a DSN): `lib/observability/scrub.ts` runs as `beforeSend`, `beforeSendTransaction` and `beforeBreadcrumb` on the server, edge, worker and browser. It masks phones, emails, IBANs, JWTs, Supabase keys and bearer tokens in every string, filters sensitive keys at any depth, drops request bodies, cookies and all headers but a short allowlist, removes QR/display tokens from URLs and sensitive query values, and keeps only the user id. `sendDefaultPii: false`, no replay. Tested in `lib/observability/scrub.test.ts` (including a property test for Portuguese numbers). PostHog runs server-side only with allowlisted primitive properties, no person profiles and no IP (`lib/analytics/capture.ts`). |
 
 ## B12.5 Sensitive data
 
@@ -72,6 +72,13 @@ stored phones/emails/payout data) and rewrite history.
 - `pnpm-lock.yaml` is committed; `pnpm.onlyBuiltDependencies` blocks install
   scripts except the approved native builds.
 - `pnpm audit` runs in CI; no high vulnerabilities allowed in runtime code.
+- 2026-11-05: next 15.5.29 (critical Image Optimization RCE, high Server
+  Actions DoS), zod 4.6.7 (high memory exhaustion, no 3.x fix), storybook
+  9.1.21 (critical/high dev-server code injection), vitest 4.1.12, vite
+  forced to ^7.3.7. `pnpm audit --audit-level high`: clean. Four moderate
+  advisories remain, all dev-only tooling (minimatch under eslint-config-next,
+  glob and an older @vitest/mocker under Storybook). New runtime packages:
+  `@sentry/nextjs` and `@sentry/node`, pinned to 11.8.0.
 - 2026-10-06: postcss forced to ^8.5.29 (`overrides` in `pnpm-workspace.yaml`;
   next pins 8.4.31, which has the sourceMappingURL file-read advisories) and
   vitest 4.1.11 (tinypool RCE advisories). Two advisories remain, both in
@@ -86,6 +93,20 @@ stored phones/emails/payout data) and rewrite history.
 **Last recorded result (2026-10-02, local Supabase after `pnpm db:reset`):**
 `✓ db:audit passed — 19 tables with RLS, 19 policies, no generic-true, privileges within matrix.`
 Re-run at the end of Phase 8 and before delivery.
+
+## B12 review (Phase 8, 2026-11-05)
+
+Read against every point of B12 for this phase's changes and the open items:
+
+| Point | Status |
+| --- | --- |
+| B12.1 secrets | New variables (Sentry DSNs, PostHog key) are optional and validated in `lib/security/env.ts` (https only). The browser DSN is public by design; the PostHog key moved to server-only names. Secret scan of the whole git history for Supabase/JWT/Twilio/AWS/GitHub/Turnstile/PostHog/Sentry patterns and key files: nothing found. gitleaks itself could not be installed in the cloud container; run `gitleaks detect` locally (the pre-commit hook already runs it when installed). |
+| B12.2 database | No schema change. `pnpm db:audit` needs the Supabase stack (not runnable in the container); run it locally before merge. |
+| B12.3 auth | Unchanged. |
+| B12.4 traffic | New public route `/api/guest/auction/board`: zod-validated token, per-IP limit, public DTO only (the same object every guest already got), cacheable. CSP `connect-src` adds the Sentry ingest origin only when a DSN is set. Session-state per-IP limit raised to 15 000/min after the load test (reads are micro-cached). Turnstile gaps closed in code; the production Supabase CAPTCHA switch is reported at boot by `lib/security/launch-readiness.ts`. |
+| B12.4 no leaks | Sentry scrubbing and PostHog allowlist, see above. Search events carry the query length, never the text. |
+| B12.6 dependencies | `pnpm audit` clean of high and critical. |
+| Open before launch | Supabase CAPTCHA on in production, real Turnstile keys, Sentry source maps upload, gitleaks and `db:audit` on a local run. |
 
 ## Verification map
 

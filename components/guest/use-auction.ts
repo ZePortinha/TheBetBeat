@@ -18,14 +18,25 @@ import { useTranslations } from "next-intl";
 import type { MyAuctionState, PublicAuctionState } from "@/lib/auction/service";
 import type { PaymentMethod } from "@/lib/domain/types";
 import { guestChannel, publicChannel } from "@/lib/realtime/events";
-import { PUBLIC_HINT_MS, useRealtimeChannel } from "@/lib/realtime/client";
+import { useRealtimeChannel } from "@/lib/realtime/client";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "./api";
 import { useGuest } from "./guest-providers";
 
 export type AuctionState = PublicAuctionState & { me: MyAuctionState | null; paymentMethods: PaymentMethod[] };
 
+/**
+ * Polling is the floor, realtime hints are the fast path (B6). With the
+ * public channel up, a slow poll is enough; without it, poll every 3 s.
+ * Load test 2026-11-05: 1 000 phones at a flat 3 s plus a refetch per hint
+ * saturated one server process.
+ */
 const POLL_MS = 3000;
+const POLL_LIVE_MS = 8000;
+/** Public hints: at most one refetch per 1.5 s, spread over half a second
+ * so a whole room does not hit the server in the same instant. */
+const HINT_MIN_MS = 1500;
+const HINT_SPREAD_MS = 500;
 /** How long after 0:00 the app keeps asking quickly for the result. */
 const CLOSE_BURST_MS = 10_000;
 /** The final stretch of an auction: the screen flashes red ↔ white. */
@@ -80,12 +91,27 @@ function useAuctionSource(token: string, sessionId: string) {
     if (won || (shown?.slotId && shown.at < askedAt && leading.current.has(shown.slotId))) clearOutbid();
   }, [token, clearOutbid]);
 
+  // Someone bid: only the public board changed (amounts, closing time,
+  // ranking). Read that shared, cacheable half; my own bids and wallet come
+  // with my private events and the poll. The clock offset stays from the
+  // full read (a CDN may serve the board up to a second old).
+  const refetchBoard = React.useCallback(async () => {
+    const res = await apiFetch<PublicAuctionState>(`/api/guest/auction/board?token=${encodeURIComponent(token)}`);
+    if (!res.ok) return;
+    setState((prev) => (prev ? { ...prev, ...res.data, serverNow: prev.serverNow } : prev));
+  }, [token]);
+
+  const publicLink = useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: HINT_MIN_MS }, () => {
+    setTimeout(() => void (state ? refetchBoard() : refetch()), Math.random() * HINT_SPREAD_MS);
+  });
+  const pollMs = publicLink === "connected" ? POLL_LIVE_MS : POLL_MS;
+
   React.useEffect(() => {
     if (!ready) return;
     void refetch();
-    const id = setInterval(() => void refetch(), POLL_MS);
+    const id = setInterval(() => void refetch(), pollMs);
     return () => clearInterval(id);
-  }, [ready, refetch]);
+  }, [ready, refetch, pollMs]);
 
   // One tick per second drives every countdown (server time).
   React.useEffect(() => {
@@ -111,7 +137,6 @@ function useAuctionSource(token: string, sessionId: string) {
     void refetch();
   }, [closing, now, refetch]);
 
-  useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: PUBLIC_HINT_MS }, () => void refetch());
   useRealtimeChannel(ready && guestId ? guestChannel(guestId) : null, { private: true }, (envelope) => {
     if (envelope.event === "auction.outbid") {
       navigator.vibrate?.([80, 60, 80]);

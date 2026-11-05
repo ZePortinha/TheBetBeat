@@ -206,13 +206,33 @@ cards, Open Graph, slogan and the new "Control the disco" boot intro. See
 DECISIONS 2026-10-29. Before/after screenshots in the project files
 (`discontrol-2026-10-29/`).
 
+## Phase 8: observability, dependency fixes, load (cloud session, 2026-11-05)
+
+Branch `claude/project-thread-e7me1l`. See DECISIONS 2026-11-05.
+- `pnpm audit`: critical/high fixed (next 15.5.29, zod 4, storybook 9.1.21,
+  vitest 4.1.12, vite override).
+- Sentry behind `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`, with scrubbing
+  (`lib/observability`); worker included.
+- PostHog funnel server-side behind `POSTHOG_KEY` (`lib/analytics`).
+- Turnstile gaps were already closed in code; production prints what is not
+  launch-ready at boot.
+- Load test rewritten for the auction flow and run on a production build:
+  `docs/LOAD-TEST.md`. Public auction state micro-cached, public board route
+  for realtime hints, calmer polling with realtime up.
+- Not run in the container (needs the Supabase stack or a download that was
+  refused): gitleaks, `pnpm db:audit`, integration and E2E suites.
+
 ## Next step
 
-Phase 8: wire Sentry (with `beforeSend` scrubbing) and PostHog behind env,
-close the two Turnstile gaps named in `docs/SECURITY.md` (anonymous sign-in
-captcha, staff login widget), run `scripts/load-test.ts` against a production
-build and document the numbers, `pnpm audit`, gitleaks, B12 review; real PSP,
-SMS, invoicing and catalog adapters when credentials arrive.
+1. Locally: `gitleaks detect`, `pnpm db:audit`, `SUPABASE_TEST=1 pnpm test`,
+   `pnpm test:e2e` on this branch (zod 4 touches every validated input).
+2. Carry the public auction board inside the realtime message (server-only
+   channel) so a bid no longer makes every phone refetch; then re-run the
+   load test with hints (`docs/LOAD-TEST.md`).
+3. Verify guest JWTs locally (Supabase signing keys) instead of one
+   `auth.getUser()` round trip per guest request.
+4. Sentry source maps (`withSentryConfig` + auth token in CI).
+5. Real PSP, SMS, invoicing and catalog adapters when credentials arrive.
 
 ## Known issues
 
@@ -220,7 +240,8 @@ SMS, invoicing and catalog adapters when credentials arrive.
 - Real PSP/SMS/invoicing/catalog credentials not available; Phase 8 ships
   sandbox-ready adapters + docs instead of live validation.
 - Turnstile on anonymous session creation needs Supabase CAPTCHA on in production plus
-  `NEXT_PUBLIC_SUPABASE_CAPTCHA=1` (off locally). See `docs/SECURITY.md` B12.4.
+  `NEXT_PUBLIC_SUPABASE_CAPTCHA=1` (off locally). See `docs/SECURITY.md` B12.4;
+  a production server lists it at boot until it is on.
 - `price.changed` broadcasts not yet emitted (screens refetch quotes on
   `queue.changed`); wire a quote-service hook if live tickers are wanted.
 - TierQuote.reason lacks an `order_conflict` code: a tier made unavailable by

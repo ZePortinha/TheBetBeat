@@ -10,9 +10,15 @@ interface Entry<T> {
   value: Promise<T>;
 }
 
-export function createMicroCache<T>(ttlMs: number, maxKeys = 500) {
+export interface MicroCache<T> {
+  (key: string, load: () => Promise<T>, now?: number): Promise<T>;
+  /** Drops a key after a write in this process, so its next read is fresh. */
+  invalidate(key: string): void;
+}
+
+export function createMicroCache<T>(ttlMs: number, maxKeys = 500): MicroCache<T> {
   const entries = new Map<string, Entry<T>>();
-  return function cached(key: string, load: () => Promise<T>, now = Date.now()): Promise<T> {
+  const cached = function cached(key: string, load: () => Promise<T>, now = Date.now()): Promise<T> {
     const hit = entries.get(key);
     if (hit && now - hit.at < ttlMs) return hit.value;
     if (entries.size >= maxKeys) {
@@ -26,5 +32,9 @@ export function createMicroCache<T>(ttlMs: number, maxKeys = 500) {
       if (entries.get(key)?.value === value) entries.delete(key);
     });
     return value;
+  } as MicroCache<T>;
+  cached.invalidate = (key: string) => {
+    entries.delete(key);
   };
+  return cached;
 }

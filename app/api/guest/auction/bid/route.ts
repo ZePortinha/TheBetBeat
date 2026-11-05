@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { claimHandle, linkPhoneHandle } from "@/lib/guests/phone-handle";
 import { placeBid, startTopUpBid, type BidRequest } from "@/lib/auction/service";
+import { invalidatePublicAuctionState } from "@/lib/auction/public-cache";
 import { ensureTrackBpm } from "@/lib/catalog/service";
 import type { DisplayChoice } from "@/lib/auction/recognition";
 import { checkBackingMessage } from "@/lib/auction/backing";
@@ -123,6 +124,7 @@ export async function POST(request: Request) {
   const now = Date.now();
   const placed = await placeBid(req, now);
   if (placed.ok) {
+    invalidatePublicAuctionState(resolved.ctx.sessionId);
     capture(EVENTS.auctionBidPlaced, identity.guestId, {
       sessionId: resolved.ctx.sessionId,
       target: body.target.kind,
@@ -163,6 +165,7 @@ export async function POST(request: Request) {
     },
     now,
   );
+  invalidatePublicAuctionState(resolved.ctx.sessionId);
   capture(
     started.state === "failed" ? EVENTS.paymentFailed : EVENTS.auctionTopUpStarted,
     identity.guestId,

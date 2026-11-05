@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { djSlotAction } from "@/lib/auction/service";
+import { invalidatePublicAuctionState } from "@/lib/auction/public-cache";
 import { capture } from "@/lib/analytics/capture";
 import { EVENTS } from "@/lib/analytics/events";
 import { apiError, hasVenueAccess, requireStaffApi } from "../../_lib/auth";
@@ -20,7 +21,10 @@ export async function POST(request: NextRequest, props: { params: Promise<{ slot
   if (!auth.ok) return auth.response;
   const { slotId } = await props.params;
   if (!/^[0-9a-f-]{36}$/i.test(slotId)) return apiError(403, "forbidden");
-  const res = await getPool().query<{ venue_id: string }>(`select venue_id from public.auction_slots where id = $1`, [slotId]);
+  const res = await getPool().query<{ venue_id: string; session_id: string }>(
+    `select venue_id, session_id from public.auction_slots where id = $1`,
+    [slotId],
+  );
   const venueId = res.rows[0]?.venue_id;
   if (!venueId || !hasVenueAccess(auth.ctx, venueId)) return apiError(403, "forbidden");
 
@@ -36,6 +40,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ slot
   const now = Date.now();
   const outcome = await djSlotAction(slotId, parsed.data.action, auth.ctx.actor, now);
   if (!outcome.ok) return apiError(409, outcome.error);
+  invalidatePublicAuctionState(res.rows[0]!.session_id);
   capture(EVENTS.auctionSlotDecision, `slot:${slotId}`, { venueId, action: parsed.data.action }, now);
   return NextResponse.json(outcome);
 }

@@ -872,3 +872,44 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   "ritma" and "betbeat" stay reserved.
 - `.env.local` is not in git: set `TWILIO_FROM=Discontrol` by hand (10
   characters, within the 11 an alphanumeric SMS sender allows).
+
+## 2026-11-05 - Phase 8: monitoring, analytics, dependency fixes, load
+
+- **zod 3 → 4.6.7.** `pnpm audit` flagged a high memory-exhaustion
+  advisory on zod with no 3.x fix. The 57 importing files compile unchanged;
+  unit tests pass. Behaviour to keep in mind: `.uuid()` is RFC-strict (the
+  seed ids are valid v4), and an object key whose schema is
+  `z.unknown().transform()` is required. Rejected: staying on zod 3 behind
+  the 256 KB body limit (it only bounds the attack, it does not remove it).
+- **next 15.5.29** (Image Optimization RCE, Server Actions DoS),
+  **storybook 9.1.21**, **vitest 4.1.12**, `vite` forced to ^7.3.7. What is
+  left is moderate and dev-only (eslint's minimatch, Storybook's glob and
+  vitest mocker copy).
+- **Sentry: official SDK, pinned 11.8.0** (`@sentry/nextjs`, `@sentry/node`
+  for the worker; publisher getsentry, sentry-bot; chosen three weeks old,
+  not the newest). Off without a DSN; browser SDK is a lazy chunk loaded
+  only when `NEXT_PUBLIC_SENTRY_DSN` is set (guest bundle unchanged
+  otherwise, measured on the production build). No replay, no tracing by
+  default, `sendDefaultPii: false`, `lib/observability/scrub.ts` on every
+  event and breadcrumb. `captureConsoleIntegration` (errors only) forwards
+  the handled 500s that are logged with a correlation id. No source-map
+  upload yet (needs `withSentryConfig` + an auth token in CI). Rejected: a
+  hand-written envelope client (less code to trust, but loses request error
+  capture, linked errors and the worker integration).
+- **PostHog: server-side only, no SDK.** Funnel events from the server
+  (request transitions after commit, payment start, search, bids, top-ups,
+  slot decisions), allowlisted primitive properties, no person profiles, no
+  IP. Env renamed to `POSTHOG_KEY`/`POSTHOG_HOST` (old `NEXT_PUBLIC_*`
+  names still read) so the key no longer ships in the browser. Rejected:
+  `posthog-js` in the guest app (a tracker and a cookie on every guest
+  phone, a consent banner under RGPD, and more JavaScript).
+- **Turnstile gaps:** both were already closed in code (anonymous sign-in
+  waits for a token when `NEXT_PUBLIC_SUPABASE_CAPTCHA=1`; staff login
+  renders the widget and requires it in production). What remains is the
+  production Supabase dashboard switch, so the server now prints a
+  "not launch-ready" list at boot (`lib/security/launch-readiness.ts`).
+- **Load:** public auction state shared through a 500 ms micro-cache, a
+  public `/api/guest/auction/board` for realtime hints (cacheable for 1 s by
+  a CDN), guests poll every 8 s while realtime is up (3 s otherwise), hint
+  refetches capped at one per 1.5 s and spread over 0.5 s, session-state
+  per-IP limit 1 200 → 15 000/min. Numbers in `docs/LOAD-TEST.md`.
