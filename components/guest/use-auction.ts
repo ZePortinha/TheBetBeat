@@ -119,7 +119,14 @@ function useAuctionSource(token: string, sessionId: string) {
   const boardLive = boardLink === "connected";
 
   // Fallback: the public hint, only while the board channel is down.
-  const publicLink = useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: HINT_MIN_MS }, () => {
+  // session.paused (the DJ pauses or reopens requests) is not part of the
+  // board, so it always takes a full read: otherwise a phone with the board
+  // channel up would keep the old state after the DJ reopened bids.
+  const publicLink = useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: HINT_MIN_MS }, (envelope) => {
+    if (envelope.event === "session.paused") {
+      setTimeout(() => void refetch(), Math.random() * HINT_SPREAD_MS);
+      return;
+    }
     if (boardLive) return;
     setTimeout(() => void (state ? refetchBoard() : refetch()), Math.random() * HINT_SPREAD_MS);
   });
