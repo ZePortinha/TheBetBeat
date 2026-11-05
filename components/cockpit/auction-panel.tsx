@@ -355,7 +355,7 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
         ) : null}
       </div>
 
-      <div className="flex w-[42%] min-w-0 flex-col gap-3 overflow-y-auto pb-2">
+      <div className="flex w-64 shrink-0 flex-col gap-3 overflow-y-auto pb-2 xl:w-80">
         <h2 className="text-base font-bold text-text-secondary">{t("schedule")}</h2>
         {upcoming.length === 0 ? (
           <p className="text-sm text-text-tertiary">{t("scheduleEmpty")}</p>
