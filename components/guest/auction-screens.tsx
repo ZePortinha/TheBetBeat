@@ -317,6 +317,15 @@ export function AuctionScreen({ token }: { token: string }) {
   const selected = pickSlot(state, chosenSlotId, serverNow);
   // With nothing open the next one is the big countdown; the list shows the rest.
   const later = selected ? state.upcoming : state.upcoming.slice(1);
+  // What the guest already has in this auction, from the live state: opened
+  // in the instant between being outbid and the refetch, the sheet would
+  // otherwise keep treating them as the leader and charge too little.
+  const liveSheetSlot = sheet ? state.open.find((s) => s.id === sheet.slot.id) : undefined;
+  const liveSheetCurrent = (() => {
+    if (!sheet || sheet.target.kind !== "own") return sheet?.current ?? 0;
+    const mine = state.me?.bids.find((b) => b.slotId === sheet.slot.id && b.owner);
+    return mine?.status === "leading" ? (liveSheetSlot?.top?.totalCents ?? sheet.current) : 0;
+  })();
 
   return (
     <>
@@ -374,10 +383,10 @@ export function AuctionScreen({ token }: { token: string }) {
           <BidForm
             token={token}
             // Live slot (new minimum) while the sheet is open.
-            slot={state.open.find((s) => s.id === sheet.slot.id) ?? sheet.slot}
+            slot={liveSheetSlot ?? sheet.slot}
             rules={state.rules}
             target={sheet.target}
-            currentBidTotal={sheet.current}
+            currentBidTotal={liveSheetCurrent}
             walletCents={state.me?.walletCents ?? 0}
             methods={state.paymentMethods}
             onDone={() => {
