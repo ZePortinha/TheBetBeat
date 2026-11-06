@@ -283,6 +283,14 @@ body:has(.guest-type) {
   --dock-overhang: 72px;
   bottom: calc(-1 * var(--dock-overhang));
   padding-bottom: var(--dock-overhang);
+  /* The overhang is solid: through the translucent material, the red light
+     at the foot of the page (ambient) showed as a red band under the bar
+     while Safari's toolbar shrank (2026-11-06). */
+  background: linear-gradient(
+    to bottom,
+    var(--material-bg) calc(100% - var(--dock-overhang)),
+    rgb(22, 22, 23) calc(100% - var(--dock-overhang))
+  );
 }
 
 /* ── Atmosphere (landing, login, house screen) ──────────────────── */
