@@ -195,8 +195,7 @@ function AuctionCard({
       </p>
 
       {twoMinutesLeft ? (
-        <div className="mt-3 rounded-card bg-amber-500/20 border border-amber-500/50 px-4 py-3 flex items-center gap-2">
-          <span className="inline-block size-2 rounded-full bg-amber-500 motion-safe:animate-pulse" aria-hidden />
+        <div className="mt-3 rounded-card border border-amber-500/50 bg-amber-500/20 px-4 py-3">
           <p className="font-semibold text-amber-500">{t("finalTwoMinutes")}</p>
         </div>
       ) : null}

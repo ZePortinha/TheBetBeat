@@ -132,12 +132,13 @@ export function QrScanner() {
         aria-hidden
         className={phase === "scanning" ? "absolute inset-0 size-full object-cover" : "hidden"}
       />
-      {/* Viewfinder: four corners and a sweeping line (motion-safe). */}
+      {/* Viewfinder: four white corners like the iOS code scanner, and a
+          sweeping line (motion-safe); the red stays on the button. */}
       <div aria-hidden className="pointer-events-none absolute inset-[14%]">
         {["left-0 top-0 border-l-4 border-t-4 rounded-tl-card", "right-0 top-0 border-r-4 border-t-4 rounded-tr-card", "bottom-0 left-0 border-b-4 border-l-4 rounded-bl-card", "bottom-0 right-0 border-b-4 border-r-4 rounded-br-card"].map((c) => (
-          <span key={c} className={`absolute size-10 border-accent-500 ${c}`} />
+          <span key={c} className={`absolute size-10 border-text-primary/85 ${c}`} />
         ))}
-        {phase === "scanning" ? <span className="scan-line absolute inset-x-2 top-0 h-0.5 rounded-full bg-accent-400 shadow-[0_0_14px_var(--color-accent-400)]" /> : null}
+        {phase === "scanning" ? <span className="scan-line absolute inset-x-2 top-0 h-0.5 rounded-full bg-text-primary/70" /> : null}
       </div>
 
       {phase !== "scanning" ? (

@@ -52,7 +52,7 @@ export default async function OpengraphImage() {
             {common.landing.hero.titleB}
           </div>
           <div style={{ marginTop: 36, fontSize: 32, fontWeight: 500, color: "#aeaeb2", lineHeight: 1.35 }}>
-            {`${common.landing.guarantee.title} ${common.landing.guarantee.titleAccent}`}
+            {common.landing.guarantee.title}
           </div>
         </div>
         <svg width="360" height="360" viewBox="0 0 512 512">

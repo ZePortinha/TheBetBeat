@@ -294,19 +294,14 @@ body:has(.guest-type) {
 }
 
 /* ── Atmosphere (landing, login, house screen) ──────────────────── */
-/* Light pools: red from above, a breath of red below. */
+/* One pool of red light from above (B10.4: one glow per screen; the
+   second pool at the foot of the page was dropped on 2026-11-06). */
 .ambient {
-  background:
-    radial-gradient(
-      60% 50% at 78% 14%,
-      color-mix(in srgb, var(--color-accent-500) 15%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      50% 45% at 8% 92%,
-      color-mix(in srgb, var(--color-ember-500) 8%, transparent),
-      transparent 70%
-    );
+  background: radial-gradient(
+    60% 50% at 78% 14%,
+    color-mix(in srgb, var(--color-accent-500) 15%, transparent),
+    transparent 70%
+  );
 }
 .ambient-center {
   background: radial-gradient(
@@ -319,13 +314,14 @@ body:has(.guest-type) {
 /* ── Record: the product's signature object (decorative, CSS only) ─ */
 .disc {
   --disc-label: var(--color-accent-500);
+  --disc-hole: var(--color-bg-base);
   display: grid;
   place-items: center;
   aspect-ratio: 1;
   container-type: inline-size;
   border-radius: 9999px;
   background:
-    radial-gradient(circle at 50% 50%, var(--color-bg-base) 0 3.2%, transparent 3.6%),
+    radial-gradient(circle at 50% 50%, var(--disc-hole) 0 3.2%, transparent 3.6%),
     radial-gradient(circle at 50% 50%, var(--disc-label) 0 17%, transparent 17.4%),
     repeating-radial-gradient(
       circle at 50% 50%,
@@ -347,26 +343,30 @@ body:has(.guest-type) {
     0 0 0 1px var(--color-line-subtle),
     0 40px 90px -30px rgba(0, 0, 0, 0.9);
 }
-.disc-initials {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 11cqw;
-  letter-spacing: var(--tracking-display);
-  color: var(--color-text-on-accent);
+/* The mark's knob (brand-mark.tsx): a white pointer at 40deg on the red
+   label, no spindle hole. Sizes follow the mark's 512 grid (knob r 112,
+   pointer 26 wide, from 17 to 105 out from the centre). */
+.disc-has-knob {
+  --disc-hole: transparent;
 }
-/* Heat arc = wait-time progress (the one place the gradient is allowed). */
-.disc-ring {
+/* A grid item of the record (place-items: center), so the record keeps
+   whatever position its own classes give it. */
+.disc-knob {
+  position: relative;
+  width: 24%;
+  aspect-ratio: 1;
+  rotate: 40deg;
+}
+.disc-knob::after {
+  content: "";
   position: absolute;
+  left: 50%;
+  top: 3.1%;
+  width: 11.6%;
+  height: 39.3%;
+  translate: -50% 0;
   border-radius: 9999px;
-  background: conic-gradient(
-    from -90deg,
-    var(--color-accent-500),
-    var(--color-amber-500) 34%,
-    var(--color-ember-500) 58%,
-    transparent 58.2%
-  );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  background: var(--color-text-on-accent);
 }
 
 /* ── Skeleton shimmer (1.4s) ────────────────────────────────────── */

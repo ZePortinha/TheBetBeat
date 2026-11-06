@@ -21,7 +21,7 @@
     }
   },
   "offline": {
-    "banner": "Sem ligação — ações guardadas",
+    "banner": "Sem ligação: ações guardadas",
     "replayed": "Ligação recuperada. Ações sincronizadas."
   },
   "now": {
@@ -102,12 +102,12 @@
       "allGenres": "Todos os géneros",
       "bpm": "BPM",
       "bpmAny": "Qualquer BPM",
-      "bpmRange": "{min}–{max} BPM"
+      "bpmRange": "{min}-{max} BPM"
     },
     "timeline": {
       "title": "Prazos das promessas",
       "nowMark": "agora",
-      "noDeadlines": "Sem prazos ativos — os pedidos Na Fila tocam até ao fim do set."
+      "noDeadlines": "Sem prazos ativos. Os pedidos Na Fila tocam até ao fim do set."
     }
   },
   "stats": {

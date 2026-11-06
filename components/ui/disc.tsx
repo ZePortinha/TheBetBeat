@@ -1,13 +1,15 @@
 /**
  * Disc — the decorative record (Discontrol's signature object). Pure CSS,
  * safe as a server component. With `bpm` it wears the Beat Pulse ring
- * (period 60/BPM s); `initials` sit on the red label.
+ * (period 60/BPM s); with `knob` its red label is the mark's mixer knob
+ * (pointer turned up, no spindle hole), so the record reads as the logo.
  */
 
 import type { CSSProperties } from "react";
 
 export interface DiscProps {
-  initials?: string;
+  /** Draw the brand mark's knob pointer on the label. */
+  knob?: boolean;
   /** Any string (e.g. a title): gives each record its own stable tilt. */
   seed?: string;
   /** Set BPM — enables the Beat Pulse ring. Omit for a still record. */
@@ -22,7 +24,7 @@ function tilt(seed: string): number {
   return h;
 }
 
-export function Disc({ initials, seed, bpm, className, style }: DiscProps) {
+export function Disc({ knob, seed, bpm, className, style }: DiscProps) {
   const pulse =
     bpm && bpm > 0
       ? ({ "--beat-period": `${(60 / bpm).toFixed(3)}s` } as CSSProperties)
@@ -31,12 +33,12 @@ export function Disc({ initials, seed, bpm, className, style }: DiscProps) {
   return (
     <span
       aria-hidden="true"
-      className={["disc", pulse ? "beat-pulse" : "", className ?? ""]
+      className={["disc", knob ? "disc-has-knob" : "", pulse ? "beat-pulse" : "", className ?? ""]
         .filter(Boolean)
         .join(" ")}
       style={{ ...(seed ? { rotate: `${tilt(seed)}deg` } : {}), ...pulse, ...style }}
     >
-      {initials ? <span className="disc-initials">{initials}</span> : null}
+      {knob ? <span className="disc-knob" /> : null}
     </span>
   );
 }

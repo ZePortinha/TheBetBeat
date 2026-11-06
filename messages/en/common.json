@@ -101,49 +101,43 @@
     "hero": {
       "titleA": "Take control",
       "titleB": "of the floor.",
-      "sub": "Pick the track, bid in the open auction and pay in seconds. The DJ always has the final say and, if it does not play, you get everything back.",
+      "sub": "Pick the track, bid and pay in seconds. The DJ always has the final say.",
       "cta": "See how it works",
       "ctaSecondary": "For DJs and venues"
     },
     "how": {
-      "title": "From QR to request",
-      "titleAccent": "in under 30 seconds.",
+      "title": "How a request works.",
       "scan": {
         "title": "Scan the QR on the floor.",
-        "body": "Open it on your phone. Nothing to install, no sign-up and no password."
+        "body": "The party opens right on your phone."
       },
       "choose": {
         "title": "Pick the track and bid.",
-        "body": "Auctions open throughout the night. You see the amount before you pay and, if you are outbid, the money goes back to your balance."
+        "body": "Auctions open throughout the night and you see the amount before you pay."
       },
       "decide": {
         "title": "The DJ decides.",
-        "body": "Nothing plays unless it is accepted. If it does not play, the money comes back to you on its own."
+        "body": "Nothing plays unless it is accepted, and you follow it all live."
       }
     },
     "sides": {
-      "title": "One booth,",
-      "titleAccent": "three sides.",
+      "title": "One booth, three sides.",
       "guest": {
-        "label": "Guests",
         "figure": "30 s",
         "title": "or less to shape the sound of the night.",
-        "body": "Nothing to install, no sign-up and a guaranteed refund."
+        "body": "Nothing to install, no sign-up and no password."
       },
       "dj": {
-        "label": "DJs",
-        "title": "You have the last word.",
-        "body": "Extra revenue, live demand and total artistic control."
+        "title": "The DJ reads the floor in real time.",
+        "body": "Every request reaches the booth with its value, and only what fits the set plays."
       },
       "venue": {
-        "label": "Venues",
-        "title": "No new hardware.",
-        "body": "More revenue per guest, more engagement and data from the night."
+        "title": "The venue needs no new hardware.",
+        "body": "A QR code on the floor is enough. Auctions bring new revenue to the venue and the DJ."
       }
     },
     "guarantee": {
-      "title": "If it does not play,",
-      "titleAccent": "you get it all back.",
+      "title": "If it does not play, you get it all back.",
       "body": "Full, automatic refund. If you are outbid in an auction, the amount goes back to your balance."
     },
     "footer": {

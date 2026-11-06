@@ -989,3 +989,46 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   back to its guest's balance, as when the night ends with an auction open
   (balance, not the payment method, per the 2026-10-10 rule). Both need a
   second tap within 4 s in the cockpit. Audit-logged like every DJ action.
+
+## 2026-11-06 - Landing and front door: fewer "made by AI" tells
+
+Owner's ask: the site "still looks a bit AI". A small pass with the
+`design-taste-frontend` skill (its AI-tell list and pre-flight), inside the
+Apple decision of 2026-10-05 (palette, type, capsules unchanged) and B10.1/B10.4
+("no neon or gratuitous gradients", one glow per screen).
+
+- **One heading formula, once.** Every section heading was white-then-grey
+  ("Toma o controlo / da pista.", "Uma cabine, / três lados.", ...). The
+  two-tone stays only in the hero; the rest are one tone, left-aligned.
+- **No three equal cards.** "Como funciona" was three identical boxes with a
+  red icon each. Now the heading sits beside a plain list with hairlines and
+  bold lead-ins (stacked on the phone). Its title changed to "Assim se pede
+  uma música." so the "30 s" figure lives only in the bento.
+- **Labels and icons off the tiles.** The red "Convidados / DJs / Casas"
+  labels and the stock icons above every tile (and the shield on the
+  guarantee) are gone; each tile title names its side ("O DJ lê a pista em
+  tempo real.", "A casa não precisa de hardware novo.").
+- **The record is the logo.** The hero and bento records wear the mark's
+  knob (white pointer at 40 degrees, no spindle hole): `Disc knob`. The
+  leftover "BB" (BetBeat) initials and the `initials` prop are gone. The
+  hero lost its decorative heat arc (red to amber) and hairline rings;
+  `.disc-ring` was only used there and is removed.
+- **Copy says each thing once.** The refund promise appeared four times;
+  now the guarantee tile carries it (plus the outbid rule), the hero keeps
+  the DJ's last word (2026-10-29 rule), and the vague triads ("receita
+  extra, procura em tempo real e controlo artístico total") became concrete
+  sentences. Hero subtext is 14 words (the skill caps it at 20).
+- **Front door.** "Eventos em direto" is a neutral section header without
+  the pulsing red dot; the QR viewfinder corners are white like the iOS
+  code scanner, and the scan line lost its red glow. The red stays on the
+  button and the "Leilão aberto" pill.
+- **One glow per screen.** `.ambient` keeps only the red pool from above;
+  the second pool at the foot of the page is gone (guest app, login, 404,
+  venue screen).
+- **Small things.** The amber "Últimos 2 minutos!" box lost its pulsing dot
+  (the box and text carry the warning); the three dashes left in UI copy
+  (cockpit) are now a colon, a hyphen and a full stop.
+- **Kept on purpose.** Inter/SF Pro (the Apple decision overrides the
+  skill's "avoid Inter"), the pure black base, the red guarantee tile, the
+  English slogan, the gold "you lead" state, and the centred hero (an
+  Apple product page whose message is the design).
