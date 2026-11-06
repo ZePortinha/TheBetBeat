@@ -1301,6 +1301,7 @@ export type SlotAction =
   | "pause"
   | "resume"
   | "cancel"
+  | "close_now"
   | "announced";
 
 export type SlotActionResult = { ok: true; reopenedSlotId?: string } | { ok: false; error: "not_found" | "invalid_action" };
@@ -1359,10 +1360,31 @@ export async function djSlotAction(slotId: string, action: SlotAction, actor: st
         await client.query(`update public.auction_slots set status = $2 where id = $1`, [slot.id, next]);
         break;
       }
-      case "cancel":
-        if (!["scheduled", "open", "paused"].includes(slot.status) || hasBids) return invalid;
+      case "cancel": {
+        // With bids too (owner, 2026-11-06): everyone's money goes back to
+        // their balance, exactly as when the night ends with it open.
+        if (!["scheduled", "open", "paused"].includes(slot.status)) return invalid;
+        const leader = await leaderOf(client, slot.id);
+        if (leader) {
+          const returnedTo = await returnContributionsInTx(client, leader, now);
+          await client.query(`update public.auction_bids set status = 'lost', total_cents = 0, updated_at = now() where id = $1`, [
+            leader.id,
+          ]);
+          publishes.push(...toGuests(returnedTo, "wallet.changed", {}));
+        }
         await client.query(`update public.auction_slots set status = 'cancelled' where id = $1`, [slot.id]);
         break;
+      }
+      case "close_now": {
+        // The DJ ends it now (owner, 2026-11-06): whoever leads wins, as at
+        // the normal close (runner-up rolls on, the winner is told).
+        if (slot.status !== "open") return invalid;
+        await client.query(`update public.auction_slots set closes_at = to_timestamp($2 / 1000.0) where id = $1`, [slot.id, now]);
+        const closed = await closeSlotInTx(client, slot.id, now);
+        if (!closed.value) return invalid;
+        publishes = closed.publishes;
+        break;
+      }
       case "announced":
         if (!slot.announce || slot.announced_at) return invalid;
         await client.query(`update public.auction_slots set announced_at = $2 where id = $1`, [slot.id, at]);

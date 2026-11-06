@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 const bodySchema = z
   .object({
-    action: z.enum(["accept", "reject", "playing", "played", "pause", "resume", "cancel", "announced"]),
+    action: z.enum(["accept", "reject", "playing", "played", "pause", "resume", "cancel", "close_now", "announced"]),
   })
   .strict();
 

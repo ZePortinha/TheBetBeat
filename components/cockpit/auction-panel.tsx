@@ -6,7 +6,9 @@
  *    Aceitar / Recusar e reabrir / Pôr a tocar / Tocou, the mic alert
  *    (≥ 150 €, name + track, "Anunciado") and the special moment (≥ 300 €).
  *  - AuctionBoard (right): open auctions live, tonight's schedule with
- *    pause / resume / cancel, and "Abrir leilão agora".
+ *    pause / resume / cancel, and "Abrir leilão agora". An auction with bids
+ *    can be ended now (the leader wins) or cancelled with everyone's money
+ *    back to their balance (owner, 2026-11-06); both ask for a second tap.
  * Staff channel realtime + 2 s polling; countdowns on the server clock.
  */
 
@@ -25,7 +27,7 @@ import { countdown } from "@/components/guest/use-auction";
 import { formatEurosDisplay } from "./format";
 import { playTierAlert } from "./sounds";
 
-type SlotAction = "accept" | "reject" | "playing" | "played" | "pause" | "resume" | "cancel" | "announced";
+type SlotAction = "accept" | "reject" | "playing" | "played" | "pause" | "resume" | "cancel" | "close_now" | "announced";
 
 export interface CockpitSlot {
   id: string;
@@ -141,6 +143,47 @@ export function useCockpitAuction(sessionId: string | null) {
 }
 
 type CockpitAuction = ReturnType<typeof useCockpitAuction>;
+
+/**
+ * A decision that cannot be undone, in a dark booth with one busy hand:
+ * the first tap arms it (the label says what will happen), the second
+ * within 4 s does it. Left alone, it disarms.
+ */
+function ConfirmButton({
+  label,
+  confirmLabel,
+  variant,
+  loading,
+  onConfirm,
+}: {
+  label: string;
+  confirmLabel: string;
+  variant: "secondary" | "destructiveGhost";
+  loading: boolean;
+  onConfirm: () => void;
+}) {
+  const [armed, setArmed] = React.useState(false);
+  React.useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), 4000);
+    return () => clearTimeout(id);
+  }, [armed]);
+  return (
+    <Button
+      size="lg"
+      className="flex-1"
+      variant={armed ? "primary" : variant}
+      loading={loading}
+      onPress={() => {
+        if (!armed) return setArmed(true);
+        setArmed(false);
+        onConfirm();
+      }}
+    >
+      {armed ? confirmLabel : label}
+    </Button>
+  );
+}
 
 function clock(iso: string): string {
   return new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" }).format(
@@ -329,7 +372,24 @@ export function AuctionBoard({ a }: { a: CockpitAuction }) {
                       {t("cancel")}
                     </Button>
                   </div>
-                ) : null}
+                ) : (
+                  <div className="mt-3 flex gap-2">
+                    <ConfirmButton
+                      variant="secondary"
+                      label={t("closeNow")}
+                      confirmLabel={t("closeNowConfirm", { amount: formatEurosDisplay(s.top.totalCents) })}
+                      loading={a.busy === `${s.id}:close_now`}
+                      onConfirm={() => void a.act(s.id, "close_now")}
+                    />
+                    <ConfirmButton
+                      variant="destructiveGhost"
+                      label={t("cancelRefund")}
+                      confirmLabel={t("cancelRefundConfirm")}
+                      loading={a.busy === `${s.id}:cancel`}
+                      onConfirm={() => void a.act(s.id, "cancel")}
+                    />
+                  </div>
+                )}
               </article>
             );
           })

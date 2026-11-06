@@ -982,3 +982,10 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   a picture. Going straight to Stories (Spotify, Strava) uses Meta's
   Sharing to Stories, native iOS/Android only (pasteboard + app id). Kept
   the web share; a native wrapper is a later decision.
+- **DJ: end an auction now, or cancel it with bids.** Owner's ask
+  (2026-11-06). "Fechar agora" ends an open auction at once through the
+  normal close (the leader wins, runner-up rolls on, the winner is told).
+  "Cancelar e devolver" now also works with bids: every contribution goes
+  back to its guest's balance, as when the night ends with an auction open
+  (balance, not the payment method, per the 2026-10-10 rule). Both need a
+  second tap within 4 s in the cockpit. Audit-logged like every DJ action.

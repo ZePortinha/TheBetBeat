@@ -451,6 +451,40 @@ describe("after the close", () => {
     expect(rejected.ok && rejected.reopenedSlotId).toBeTruthy();
   }, 60_000);
 
+  it("the DJ can end an auction now: whoever leads wins, as at the normal close (2026-11-06)", async () => {
+    const now = T0 + 62_000;
+    const slot = await newSlot(now);
+    const a = await createGuest();
+    const b = await createGuest();
+    await bid(a, slot, 2000, now + 1000, { kind: "own", libraryTrackId: takeTrack() });
+    await bid(b, slot, 3000, now + 2000, { kind: "own", libraryTrackId: takeTrack() });
+    expect(await auction.djSlotAction(slot, "close_now", "staff:test-dj", now + 60_000)).toMatchObject({ ok: true });
+    expect(await slotRow(slot)).toMatchObject({ status: "closed", outcome: "won", play_status: "locked" });
+    // Closed already: a second "close now" is refused.
+    expect(await auction.djSlotAction(slot, "close_now", "staff:test-dj", now + 61_000)).toMatchObject({ ok: false });
+  }, 60_000);
+
+  it("the DJ can cancel an auction with bids: everyone's money back to the balance (2026-11-06)", async () => {
+    const now = T0 + 64_000;
+    const slot = await newSlot(now);
+    const a = await createGuest();
+    const b = await createGuest();
+    const trackA = takeTrack();
+    await bid(a, slot, 2000, now + 1000, { kind: "own", libraryTrackId: trackA });
+    const leading = await db.query<{ id: string }>(`select id from public.auction_bids where slot_id = $1 and status = 'leading'`, [slot]);
+    await bid(b, slot, 1000, now + 2000, { kind: "back", bidId: leading.rows[0]!.id });
+    expect(await auction.djSlotAction(slot, "cancel", "staff:test-dj", now + 30_000)).toMatchObject({ ok: true });
+    expect(await slotRow(slot)).toMatchObject({ status: "cancelled" });
+    expect(await balance(a)).toBe(2000);
+    expect(await balance(b)).toBe(1000);
+    // Nothing is left behind in the auction.
+    const held = await db.query<{ n: string }>(
+      `select coalesce(sum(amount_cents), 0) as n from public.auction_contributions where slot_id = $1 and returned_at is null`,
+      [slot],
+    );
+    expect(Number(held.rows[0]!.n)).toBe(0);
+  }, 60_000);
+
   it("a winner not played within 15 minutes is refunded to the wallets", async () => {
     const now = T0 + 70_000;
     const slot = await newSlot(now);
