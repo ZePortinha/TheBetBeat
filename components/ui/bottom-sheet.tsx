@@ -6,6 +6,10 @@
  * - Rounded-sheet top, translucent `.material` surface, grab handle.
  * - Scrim dims and (via `shouldScaleBackground`) pushes the page back —
  *   the app shell must carry `data-vaul-drawer-wrapper` for the push.
+ *   The guest app turns the push off (SheetPushDefault, 2026-11-06): it is
+ *   a transform on the whole page shell, and anything `position: fixed`
+ *   inside a transformed shell (the tab bar, the winner screen) stops
+ *   being fixed to the screen.
  * - Vaul provides the 1:1 drag, momentum release and rubber-banding.
  * - Snap points pass straight through.
  * - Reduced motion: the slide is collapsed to a 120ms near-cut (scoped CSS),
@@ -25,6 +29,14 @@ const REDUCED_MOTION_CSS = `
 }
 `;
 
+/** Whether sheets push the page back unless they say otherwise. */
+const SheetPushContext = React.createContext(true);
+
+/** Sets the default push for every sheet below it (the guest app: off). */
+export function SheetPushDefault({ push, children }: { push: boolean; children: React.ReactNode }) {
+  return <SheetPushContext.Provider value={push}>{children}</SheetPushContext.Provider>;
+}
+
 export interface BottomSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,7 +50,8 @@ export interface BottomSheetProps {
   snapPoints?: (number | string)[];
   activeSnapPoint?: number | string | null;
   onActiveSnapPointChange?: (snapPoint: number | string | null) => void;
-  /** Dim + push the page back. Needs data-vaul-drawer-wrapper on the shell. */
+  /** Dim + push the page back. Needs data-vaul-drawer-wrapper on the shell.
+   *  Defaults to the nearest SheetPushDefault (on, outside the guest app). */
   scaleBackground?: boolean;
   /** Extra classes for the sheet panel. */
   className?: string;
@@ -55,10 +68,11 @@ export function BottomSheet({
   snapPoints,
   activeSnapPoint,
   onActiveSnapPointChange,
-  scaleBackground = true,
+  scaleBackground,
   className,
   children,
 }: BottomSheetProps) {
+  const pushDefault = React.useContext(SheetPushContext);
   return (
     <Drawer.Root
       open={open}
@@ -67,7 +81,7 @@ export function BottomSheet({
       snapPoints={snapPoints}
       activeSnapPoint={activeSnapPoint}
       setActiveSnapPoint={onActiveSnapPointChange}
-      shouldScaleBackground={scaleBackground}
+      shouldScaleBackground={scaleBackground ?? pushDefault}
       // Keep our own bg-base behind the pushed page, not Vaul's black.
       setBackgroundColorOnScale={false}
     >

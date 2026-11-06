@@ -113,9 +113,19 @@ function vinylDisc(R: number, px: number, cover: CanvasImageSource | null): Canv
   return c;
 }
 
-/** `cover` is read every frame: art that lands after the start is pressed in then. */
-export function createVinyl(cover: () => CanvasImageSource | null, halo: Canvas2D | null): Vinyl {
+/**
+ * `cover` is read every frame: art that lands after the start is pressed in then.
+ * `pending` says the art is still on its way. Until it lands the record stays
+ * dark and still (no disc, no spin), and it starts turning on the frame the
+ * art is pressed in, so the cover never shows up after the spin has begun.
+ */
+export function createVinyl(
+  cover: () => CanvasImageSource | null,
+  halo: Canvas2D | null,
+  pending: () => boolean = () => false,
+): Vinyl {
   let pressed: CanvasImageSource | null = null;
+  let spinFrom: number | null = null;
   const plates = new Map<number, Canvas2D | null>();
   const discs = new Map<number, Canvas2D | null>();
   const at = <T,>(map: Map<number, T>, key: number, make: () => T): T => {
@@ -129,7 +139,6 @@ export function createVinyl(cover: () => CanvasImageSource | null, halo: Canvas2
   return {
     draw(ctx, cx, cy, R, t, open) {
       if (R <= 0 || open <= 0) return;
-      const spin = t * 1.55;
       const px = Math.min(1024, Math.ceil(2 * R));
       const key = Math.round(R);
       const art = cover();
@@ -137,6 +146,9 @@ export function createVinyl(cover: () => CanvasImageSource | null, halo: Canvas2
         pressed = art;
         discs.clear();
       }
+      const waiting = !art && pending();
+      if (art && spinFrom === null) spinFrom = t;
+      const spin = spinFrom === null ? 0 : (t - spinFrom) * 1.55;
       const plate = at(plates, key, () => vinylPlate(R, px));
       const disc = at(discs, key, () => vinylDisc(R, px, art));
       ctx.save();
@@ -145,7 +157,7 @@ export function createVinyl(cover: () => CanvasImageSource | null, halo: Canvas2
       sprite(ctx, halo, 0, 0, R * 2.5, 0.17 * open);
       ctx.globalCompositeOperation = "source-over";
       ctx.scale(1, Math.max(0.02, open));
-      if (disc) {
+      if (disc && !waiting) {
         ctx.save();
         ctx.rotate(spin);
         ctx.drawImage(disc, -R, -R, R * 2, R * 2);

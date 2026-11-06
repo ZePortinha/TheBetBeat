@@ -101,7 +101,8 @@ export function TrackProgress({
           className="h-full w-full origin-left will-change-transform"
           suppressHydrationWarning
           style={{
-            background: "var(--gradient-heat)",
+            // Solid, like a player's scrubber: the heat gradient is for demand.
+            background: "var(--color-text-primary)",
             transform: `scaleX(${fraction})`,
           }}
         />

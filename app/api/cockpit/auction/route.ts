@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { invalidatePublicAuctionState } from "@/lib/auction/public-cache";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { openExtraSlot, publicAuctionState } from "@/lib/auction/service";
@@ -169,5 +170,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!scope) return apiError(403, "forbidden");
   const slotId = await openExtraSlot(scope.sessionId, auth.ctx.actor, Date.now());
   if (!slotId) return apiError(409, "session_not_live");
+  invalidatePublicAuctionState(scope.sessionId);
   return NextResponse.json({ ok: true, slotId });
 }

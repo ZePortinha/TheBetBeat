@@ -34,9 +34,11 @@ import { TickingCountdown } from "@/components/ui/ticking-countdown";
 import { durations } from "@/lib/motion";
 import { apiFetch } from "./api";
 import { BidForm, ShoutoutNote, type BidTargetInput } from "./bid-form";
+import { winDetails } from "./win-details";
+import { winPath } from "./party-paths";
+import { warmCover } from "./win-cover";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
-import { WinCelebration } from "./win-celebration";
 import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, pickSlot, useAuction, type AuctionState } from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
 
@@ -167,14 +169,13 @@ function AuctionCard({
     <article
       ref={card}
       className={cx(
-        "rounded-sheet border border-accent-500/40 bg-surface-1 p-5 shadow-glow-accent",
+        "rounded-sheet border border-accent-500/40 bg-surface-1 p-5",
         finalStretch && "auction-flash-card",
       )}
       aria-label={t("openTitle")}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="label flex items-center gap-1.5 text-accent-400">
-          <Gavel size={14} aria-hidden />
+        <p className="label text-accent-400">
           {t("openTitle")}
         </p>
         {slot.kind !== "regular" ? <SpecialChip /> : null}
@@ -193,8 +194,7 @@ function AuctionCard({
       </p>
 
       {twoMinutesLeft ? (
-        <div className="mt-3 rounded-card bg-amber-500/20 border border-amber-500/50 px-4 py-3 flex items-center gap-2">
-          <span className="inline-block size-2 rounded-full bg-amber-500 motion-safe:animate-pulse" aria-hidden />
+        <div className="mt-3 rounded-card border border-amber-500/50 bg-amber-500/20 px-4 py-3">
           <p className="font-semibold text-amber-500">{t("finalTwoMinutes")}</p>
         </div>
       ) : null}
@@ -486,10 +486,7 @@ export function AuctionTeaser({ token }: { token: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="label flex items-center gap-1.5 text-accent-400">
-            <Gavel size={14} aria-hidden />
-            {t("liveTeaser")}
-          </p>
+          <p className="label text-accent-400">{t("liveTeaser")}</p>
           <p className="mt-1 truncate text-sm text-text-secondary">
             {slot.top
               ? t("leadsWith", { name: slot.top.by ?? t("anonymousBidder"), amount: formatEurosDisplay(slot.top.totalCents) })
@@ -589,8 +586,23 @@ export function NightWinners() {
 /* Every tab                                                           */
 /* ------------------------------------------------------------------ */
 
-/** Last 30 s flash (and one buzz if I am in it), the winner celebration. */
-export function AuctionOverlays({ venueName }: { venueName: string }) {
+/**
+ * Last 30 s flash (and one buzz if I am in it), and the way into the winner's
+ * screen: once the server confirms the guest won, the app moves to its own
+ * page (2026-11-06), so no tab bar, scroll or other overlay can reach it.
+ * `quiet` on that page: nothing else is drawn over it.
+ */
+export function AuctionOverlays({
+  token,
+  quiet = false,
+  onWin,
+}: {
+  token: string;
+  quiet?: boolean;
+  /** A win just landed: the layout shows the winner's screen right away. */
+  onWin?: (slotId: string) => void;
+}) {
+  const router = useRouter();
   const { state, serverNow, celebrate, dismissCelebration } = useAuction();
   const buzzed = React.useRef(new Set<string>());
   const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
@@ -610,24 +622,38 @@ export function AuctionOverlays({ venueName }: { venueName: string }) {
       if (state?.me?.bids.some((b) => b.slotId === id)) navigator.vibrate?.([120, 80, 120]);
     }
   }, [flashingKey, state]);
-  const won = celebrate ? state?.me?.bids.find((b) => b.slotId === celebrate) : undefined;
-  const wonCover = [state?.upNext, ...(state?.recentWinners ?? [])].find((w) => w?.slotId === celebrate)?.coverUrl ?? null;
-  return (
-    <>
-      {secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} page /> : null}
-      {celebrate && won ? (
-        <WinCelebration
-          slotId={won.slotId}
-          trackTitle={won.trackTitle}
-          trackArtist={won.trackArtist}
-          totalCents={won.totalCents}
-          coverUrl={wonCover}
-          venueName={venueName}
-          onClose={dismissCelebration}
-        />
-      ) : null}
-    </>
-  );
+  const won = celebrate ? winDetails(celebrate, state?.me, [state?.upNext, ...(state?.recentWinners ?? [])]) : null;
+  // One trip per win, even when effects run twice (dev) or state ticks again.
+  const opened = React.useRef<string | null>(null);
+  const wonSlot = won?.slotId ?? null;
+  React.useEffect(() => {
+    if (!wonSlot) return;
+    dismissCelebration();
+    if (opened.current === wonSlot) return;
+    opened.current = wonSlot;
+    // The winner's screen opens at once, drawn by the party layout; the
+    // address follows (2026-11-06: waiting for the page cost seconds).
+    onWin?.(wonSlot);
+    router.push(winPath(token, wonSlot));
+  }, [wonSlot, token, router, dismissCelebration, onWin]);
+
+  // Leading an auction: get the winner's screen ready (its code, and the
+  // album art of my leading song), so a win opens with nothing to download.
+  const leadingKey = (state?.open ?? [])
+    .filter((s) => s.top && state?.me?.bids.some((b) => b.slotId === s.id && b.status === "leading"))
+    .map((s) => `${s.id}|${s.top?.bidId}|${s.top?.coverUrl ?? ""}`)
+    .join(",");
+  React.useEffect(() => {
+    if (!leadingKey) return;
+    void import("./win-screen");
+    for (const entry of leadingKey.split(",")) {
+      const [slotId, bidId, coverUrl] = entry.split("|");
+      if (slotId && bidId && coverUrl) warmCover(slotId, coverUrl, bidId);
+    }
+  }, [leadingKey]);
+
+  if (quiet) return null;
+  return secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} page /> : null;
 }
 
 /**

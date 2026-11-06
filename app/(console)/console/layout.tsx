@@ -55,7 +55,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[1440px]">
-      <aside className="sticky top-0 flex h-dvh w-64 shrink-0 flex-col gap-6 overflow-y-auto border-r border-line-subtle bg-bg-raised px-4 py-6 print:hidden">
+      <aside className="sticky top-[env(safe-area-inset-top)] flex h-[calc(100dvh-env(safe-area-inset-top))] w-64 shrink-0 flex-col gap-6 overflow-y-auto border-r border-line-subtle bg-bg-raised px-4 py-6 print:hidden">
         <p className="flex items-center gap-2 px-3 text-lg">
           <Wordmark name="Discontrol" />
           <span className="text-sm font-semibold text-text-tertiary">

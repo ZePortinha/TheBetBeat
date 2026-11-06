@@ -220,7 +220,11 @@ export function BidForm({
         }),
       },
     );
-    if (toPay > 0) consumeToken();
+    // The Turnstile token is single-use, but the server only checks it on the
+    // payment path. Burn it only when the request got that far (2xx, a
+    // payment answer, or a refused check); a refusal such as requests_closed
+    // leaves the token valid, so the guest can retry at once.
+    if (toPay > 0 && (res.ok || res.status === 402 || res.status === 403)) consumeToken();
     setBusy(false);
     if (!res.ok) {
       // 402 = the wallet changed: the form already shows how to pay.

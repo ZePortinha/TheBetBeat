@@ -6,6 +6,13 @@ import { z } from "zod";
  * The app refuses to start if any required variable is missing or malformed.
  * Secret keys live ONLY here; client code imports lib/security/public-env.ts.
  */
+const httpsUrlOrEmpty = z
+  .string()
+  .url()
+  .refine((v) => v.startsWith("https://"), "must be an https URL")
+  .optional()
+  .or(z.literal(""));
+
 const serverEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
@@ -48,9 +55,19 @@ const serverEnvSchema = z.object({
   INVOICING_PROVIDER: z.enum(["mock"]).default("mock"),
   // "deezer" = the real full catalog (public API, no key).
   CATALOG_PROVIDER: z.enum(["mock", "deezer"]).default("mock"),
-  SENTRY_DSN: z.string().optional().or(z.literal("")),
+  // Error monitoring (B12.4). Off while unset. The browser DSN is public by
+  // design (it can only submit events); the server one may differ.
+  SENTRY_DSN: httpsUrlOrEmpty,
+  NEXT_PUBLIC_SENTRY_DSN: httpsUrlOrEmpty,
+  SENTRY_ENVIRONMENT: z.string().max(64).optional(),
+  SENTRY_RELEASE: z.string().max(128).optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
+  // Product analytics, captured server-side only (lib/analytics). Off while
+  // unset. NEXT_PUBLIC_POSTHOG_* are the old names, still accepted.
+  POSTHOG_KEY: z.string().max(200).optional(),
+  POSTHOG_HOST: httpsUrlOrEmpty,
   NEXT_PUBLIC_POSTHOG_KEY: z.string().optional().or(z.literal("")),
-  NEXT_PUBLIC_POSTHOG_HOST: z.string().optional().or(z.literal("")),
+  NEXT_PUBLIC_POSTHOG_HOST: httpsUrlOrEmpty,
   // Development only: 6-digit test code accepted on /login/mfa (default
   // 000000, "off" disables). Ignored whenever NODE_ENV=production.
   DEV_MFA_CODE: z.string().optional(),

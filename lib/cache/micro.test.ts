@@ -18,4 +18,13 @@ describe("createMicroCache", () => {
     await expect(cached("k", async () => Promise.reject(new Error("db")), 0)).rejects.toThrow("db");
     await expect(cached("k", async () => 1, 1)).resolves.toBe(1);
   });
+
+  it("reloads a key right after it is invalidated", async () => {
+    const cached = createMicroCache<number>(1000);
+    const load = vi.fn(async () => 1);
+    await cached("k", load, 0);
+    cached.invalidate("k");
+    await cached("k", load, 10);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
 });

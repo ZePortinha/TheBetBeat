@@ -2,23 +2,16 @@
  * Landing — the public face of Discontrol (server components).
  *
  * Design read: an Apple product page, dark. Centred hero with the record
- * as the product shot, highlight tiles with inline bold lead-ins, a bento
- * of the three sides and the guarantee as a brand-red tile. One family
- * (SF Pro / Inter), semibold headlines, size-specific tracking.
+ * (the mark's knob on its label) as the product shot; the steps as a plain
+ * list beside their heading; a bento of the three sides; the guarantee as
+ * a brand-red tile. One family (SF Pro / Inter), semibold headlines,
+ * size-specific tracking, two-tone only in the hero, one glow per screen.
  * Skills: apple-design + design-taste-frontend. B10 wins on brand.
  */
 
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import {
-  ChevronRight,
-  Headphones,
-  QrCode,
-  ShieldCheck,
-  SlidersHorizontal,
-  Store,
-  Timer,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Disc } from "@/components/ui/disc";
 import { Reveal } from "./reveal";
 import { Wordmark } from "@/components/ui/brand-mark";
@@ -46,7 +39,7 @@ export async function LandingHeader() {
     "hover:text-text-primary md:inline";
 
   return (
-    <header className="material-top sticky top-0 z-40">
+    <header className="material-top sticky top-[env(safe-area-inset-top)] z-40">
       <div className={`${wrap} flex h-13 items-center justify-between`}>
         <Link
           href="/"
@@ -86,7 +79,7 @@ export async function Hero() {
   const tc = await getTranslations("common");
 
   return (
-    <section className="relative isolate -mt-13 overflow-hidden pt-32 text-center md:pt-40">
+    <section className="relative isolate -mt-13 overflow-hidden pt-28 text-center md:pt-36">
       <div aria-hidden className="ambient-center absolute inset-x-0 bottom-0 -z-10 h-3/4" />
 
       <div className={wrap}>
@@ -101,7 +94,7 @@ export async function Hero() {
           </h1>
         </div>
         <div className="rise-in" style={{ animationDelay: "80ms" }}>
-          <p className="mx-auto mt-6 max-w-[38ch] text-lg leading-[1.45] text-text-secondary md:text-[1.3125rem]">
+          <p className="mx-auto mt-6 max-w-[38ch] text-pretty text-lg leading-[1.45] text-text-secondary md:text-[1.3125rem]">
             {t("sub")}
           </p>
         </div>
@@ -121,18 +114,7 @@ export async function Hero() {
       {/* Product shot: cropped by the section edge, fading into black. */}
       <div className="rise-in relative mx-auto mt-16 w-[min(86vw,38rem)] md:mt-20" style={{ animationDelay: "160ms" }}>
         <div aria-hidden className="relative aspect-square translate-y-[22%]">
-          <svg
-            viewBox="0 0 100 100"
-            className="absolute -inset-[14%] size-[128%] text-accent-400"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="0.16"
-          >
-            <circle cx="50" cy="50" r="49" opacity="0.08" />
-            <circle cx="50" cy="50" r="44" opacity="0.16" />
-          </svg>
-          <span className="disc-ring inset-[3%] -rotate-12" />
-          <Disc className="absolute inset-[6%] -rotate-12" />
+          <Disc knob className="absolute inset-[6%]" />
         </div>
       </div>
       <div
@@ -143,34 +125,30 @@ export async function Hero() {
   );
 }
 
-/* ── How it works: three highlight tiles, bold lead-in sentences ── */
+/* ── How it works: heading beside a plain list, bold lead-ins ──── */
 
 export async function How() {
   const t = await getTranslations("common.landing.how");
   const steps = [
-    { Icon: QrCode, title: t("scan.title"), body: t("scan.body") },
-    { Icon: Timer, title: t("choose.title"), body: t("choose.body") },
-    { Icon: Headphones, title: t("decide.title"), body: t("decide.body") },
+    { title: t("scan.title"), body: t("scan.body") },
+    { title: t("choose.title"), body: t("choose.body") },
+    { title: t("decide.title"), body: t("decide.body") },
   ];
 
   return (
     <section id="como" className="scroll-mt-13 py-24 md:py-36">
-      <div className={wrap}>
+      <div className={`${wrap} grid gap-10 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-16`}>
         <Reveal>
-          <h2 className={`${headline} mx-auto max-w-[18ch] text-center text-[clamp(2.25rem,5.2vw,3.75rem)]`}>
-            {t("title")} <span className={subhead}>{t("titleAccent")}</span>
+          <h2 className={`${headline} max-w-[14ch] text-[clamp(2.25rem,4.4vw,3.25rem)]`}>
+            {t("title")}
           </h2>
         </Reveal>
 
-        <ol className="mt-14 grid gap-4 md:mt-20 lg:grid-cols-3">
+        <ol className="divide-y divide-line-subtle border-t border-line-subtle md:mt-3">
           {steps.map((s, i) => (
             <li key={s.title}>
-              <Reveal
-                delay={i * 0.06}
-                className="h-full rounded-sheet bg-surface-1 p-8 md:p-9"
-              >
-                <s.Icon aria-hidden size={34} strokeWidth={1.5} className="text-accent-400" />
-                <p className="mt-8 text-[1.1875rem] leading-[1.42] text-text-secondary">
+              <Reveal delay={i * 0.06} className="py-6 md:py-8">
+                <p className="text-[1.3125rem] leading-[1.4] tracking-[var(--tracking-heading)] text-text-secondary md:text-[1.5rem] md:leading-[1.35]">
                   <strong className="font-semibold text-text-primary">{s.title}</strong>{" "}
                   {s.body}
                 </p>
@@ -187,52 +165,43 @@ export async function How() {
 
 export async function Sides() {
   const t = await getTranslations("common.landing.sides");
-  const eyebrow = "text-lg font-semibold text-accent-400";
   const tileTitle =
-    "font-display text-2xl font-semibold leading-[1.15] tracking-[var(--tracking-heading)] md:text-[1.75rem]";
+    "font-display text-balance text-2xl font-semibold leading-[1.15] tracking-[var(--tracking-heading)] md:text-[1.75rem]";
 
   return (
     <section id="para-quem" className="scroll-mt-13 pb-24 md:pb-36">
       <div className={wrap}>
         <Reveal>
-          <h2 className={`${headline} text-center text-[clamp(2.25rem,5.2vw,3.75rem)]`}>
-            {t("title")} <span className={subhead}>{t("titleAccent")}</span>
-          </h2>
+          <h2 className={`${headline} text-[clamp(2.25rem,5.2vw,3.75rem)]`}>{t("title")}</h2>
         </Reveal>
 
         <div className="mt-14 grid gap-4 md:mt-20 md:grid-cols-2">
           {/* Guests: the wide tile, the record rising from its bottom edge. */}
           <Reveal className="relative isolate overflow-hidden rounded-sheet bg-surface-1 px-8 pt-12 text-center md:col-span-2 md:pt-16">
             <div aria-hidden className="ambient-center absolute inset-0 -z-10" />
-            <p className={eyebrow}>{t("guest.label")}</p>
-            <p className={`${headline} mt-3 text-[clamp(5rem,15vw,9.5rem)] leading-none`}>
+            <p className={`${headline} text-[clamp(5rem,15vw,9.5rem)] leading-none`}>
               {t("guest.figure")}
             </p>
             <p className={`${tileTitle} mx-auto mt-4 max-w-[22ch]`}>{t("guest.title")}</p>
-            <p className="mx-auto mt-4 max-w-[36ch] text-base leading-relaxed text-text-secondary md:text-lg">
+            <p className="mx-auto mt-4 max-w-[36ch] text-balance text-base leading-relaxed text-text-secondary md:text-lg">
               {t("guest.body")}
             </p>
             <div
               aria-hidden
               className="relative mx-auto mt-12 aspect-[10/7] w-[min(76%,24rem)] overflow-hidden"
             >
-              <Disc initials="BB" className="absolute inset-x-0 top-0 w-full rotate-[18deg]" />
+              <Disc knob className="absolute inset-x-0 top-0 w-full" />
             </div>
           </Reveal>
 
-          {[
-            { key: "dj", Icon: SlidersHorizontal },
-            { key: "venue", Icon: Store },
-          ].map(({ key, Icon }, i) => (
+          {(["dj", "venue"] as const).map((key, i) => (
             <Reveal
               key={key}
               delay={0.06 * (i + 1)}
               className="rounded-sheet bg-surface-1 p-8 md:p-10"
             >
-              <Icon aria-hidden size={30} strokeWidth={1.5} className="text-accent-400" />
-              <p className={`${eyebrow} mt-8`}>{t(`${key}.label`)}</p>
-              <p className={`${tileTitle} mt-2`}>{t(`${key}.title`)}</p>
-              <p className="mt-4 max-w-[34ch] text-base leading-relaxed text-text-secondary">
+              <p className={`${tileTitle} max-w-[18ch]`}>{t(`${key}.title`)}</p>
+              <p className="mt-4 max-w-[34ch] text-pretty text-base leading-relaxed text-text-secondary">
                 {t(`${key}.body`)}
               </p>
             </Reveal>
@@ -252,10 +221,8 @@ export async function Guarantee() {
     <section id="garantia" className="scroll-mt-13 pb-24 md:pb-36">
       <div className={wrap}>
         <Reveal className="rounded-sheet bg-accent-500 px-8 py-20 text-center text-text-on-accent md:py-28">
-          <ShieldCheck aria-hidden size={44} strokeWidth={1.5} className="mx-auto" />
-          <h2 className={`${headline} mx-auto mt-8 max-w-[16ch] text-[clamp(2.25rem,5.6vw,4rem)]`}>
-            {t("title")}{" "}
-            <span className="text-text-on-accent/80">{t("titleAccent")}</span>
+          <h2 className={`${headline} mx-auto max-w-[16ch] text-[clamp(2rem,5.6vw,4rem)]`}>
+            {t("title")}
           </h2>
           <p className="mx-auto mt-6 max-w-[42ch] text-lg font-medium leading-relaxed">
             {t("body")}

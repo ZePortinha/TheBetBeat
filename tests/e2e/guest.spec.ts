@@ -92,19 +92,31 @@ test.describe("guest app · leilões", () => {
     await sheet.getByRole("button", { name: /^feito$|^done$/i }).click();
     await expect(page.getByText(/^vais à frente$|^you are in the lead$/i)).toBeVisible({ timeout: 15_000 });
 
-    // The auction closes: "Vencedor".
+    // The auction closes: "Vencedor", on a page of its own (2026-11-06):
+    // no tab bar, no auction frame, nothing behind it scrolls.
     await closeAuction(request, slotId);
     await expect(page.getByRole("dialog", { name: /vencedor|winner/i })).toBeVisible({ timeout: 20_000 });
+    await expect(page).toHaveURL(new RegExp(`/win/${slotId}$`));
+    await expect(page.getByRole("navigation")).toHaveCount(0);
     // "Partilhar no Instagram": the story image is theirs to share.
     await expect(page.getByRole("button", { name: /partilhar no instagram|share on instagram/i })).toBeVisible();
     const card = await page.request.get(`/api/guest/auction/${slotId}/card?format=story`);
     expect(card.ok()).toBeTruthy();
     expect(card.headers()["content-type"]).toContain("image/png");
-    // The outbid toast sits over "Fechar" and pauses while the pointer rests
+    await page.screenshot({ path: "test-results/screens/guest-win-page.png" });
+    // The outbid toast sits over "Voltar" and pauses while the pointer rests
     // on it (it appeared under the last tap): move away and let it go first.
     await page.mouse.move(8, 8);
     await expect(page.getByText(/foste ultrapassado|you were outbid/i)).toHaveCount(0, { timeout: 15_000 });
-    await page.getByRole("button", { name: /^fechar$|^close$/i }).click();
+    // "Voltar": the ranking, at the guest's own place (counted once the song plays).
+    await page.getByRole("button", { name: /^voltar$|^back$/i }).click();
+    await expect(page).toHaveURL(/\/top(\?|$)/);
+    const mine = page.locator("[data-mine]");
+    await expect(mine.first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/^tu$|^you$/i).first()).toBeVisible({ timeout: 5_000 });
+    await page.screenshot({ path: "test-results/screens/guest-ranking-me.png" });
+    // Back from the ranking does not land on the celebration again.
+    await expect(page).not.toHaveURL(/\/win\//);
 
     // The DJ plays it; "As minhas licitações" says it played.
     const dj = await browser.newContext();

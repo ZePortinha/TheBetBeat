@@ -79,6 +79,7 @@ export const REALTIME_EVENTS = [
   "request.refunded",
   "request.sla_missed",
   "auction.updated",
+  "auction.board",
   "auction.outbid",
   "auction.won",
   "auction.backed",

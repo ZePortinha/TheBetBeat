@@ -23,6 +23,7 @@ import "server-only";
 import { env } from "@/lib/security/env";
 import type { RealtimeEvent } from "@/lib/domain/types";
 import {
+  boardChannel,
   guestChannel,
   publicChannel,
   staffChannel,
@@ -54,10 +55,11 @@ function envelope(event: RealtimeEvent, payload: unknown, nowMs: number): EventE
  * contents — B12.4 "Sem fugas") and swallowed.
  */
 export async function publishBroadcasts(
-  messages: OutgoingBroadcast[],
+  input: OutgoingBroadcast[],
   nowMs: number,
 ): Promise<boolean> {
-  if (messages.length === 0) return true;
+  if (input.length === 0) return true;
+  const messages = [...input, ...(await boardMessages(input, nowMs))];
   try {
     const response = await fetch(endpoint(), {
       method: "POST",
@@ -87,6 +89,41 @@ export async function publishBroadcasts(
       `[realtime] broadcast failed: ${error instanceof Error ? error.message : "unknown error"}`,
     );
     return false;
+  }
+}
+
+/** Sessions whose auction board changed in this batch. */
+export function boardSessions(messages: OutgoingBroadcast[]): string[] {
+  const sessions = new Set<string>();
+  for (const m of messages) {
+    const match = /^session:([0-9a-f-]{36}):public$/i.exec(m.topic);
+    if (match && m.event === "auction.updated") sessions.add(match[1]!);
+  }
+  return [...sessions];
+}
+
+/**
+ * After an auction change, the fresh public board for each touched night,
+ * on its server-only channel. Best effort like every publish: a failure
+ * leaves the phones on the hint + poll path.
+ */
+async function boardMessages(messages: OutgoingBroadcast[], nowMs: number): Promise<OutgoingBroadcast[]> {
+  const sessions = boardSessions(messages);
+  if (sessions.length === 0) return [];
+  try {
+    // Imported lazily: lib/auction/service imports this module.
+    const { publicAuctionState } = await import("@/lib/auction/service");
+    const { invalidatePublicAuctionState } = await import("@/lib/auction/public-cache");
+    const out: OutgoingBroadcast[] = [];
+    for (const sessionId of sessions) {
+      invalidatePublicAuctionState(sessionId);
+      const board = await publicAuctionState(sessionId, nowMs);
+      if (board) out.push({ topic: boardChannel(sessionId), event: "auction.board", payload: board, private: true });
+    }
+    return out;
+  } catch (error) {
+    console.error(`[realtime] board build failed: ${error instanceof Error ? error.message : "unknown error"}`);
+    return [];
   }
 }
 

@@ -19,7 +19,8 @@
  * allow vibration after the person has touched the page, so it fires then
  * or on the first tap. iOS has no vibration API.
  * Reduced motion: the finished lockup fades in, holds, fades out.
- * Plays once per tab: later loads skip it before first paint.
+ * Plays on every full page load (refresh included, owner's ask 2026-11-05),
+ * but not again when the app moves between pages without reloading.
  */
 
 import * as React from "react";
@@ -32,6 +33,9 @@ type Stage = "phrase" | "split" | "merge" | "lockup";
 /** When each stage starts, ms from mount. */
 const AT = { split: 1250, merge: 2000, lockup: 2550, done: 3600 } as const;
 const HAPTIC = [14, 50, 22];
+
+/** Set once the intro has played in this page load (a refresh resets it). */
+let played = false;
 
 const move: Transition = { type: "spring", bounce: 0, duration: 0.6 };
 const turn: Transition = { type: "spring", bounce: 0.25, duration: 0.7 };
@@ -185,10 +189,12 @@ function Lockup({ stage }: { stage: Stage }) {
   );
 }
 
-export function BootIntro() {
+export function BootIntro({ replay = false }: { replay?: boolean }) {
   const tc = useTranslations("common");
   const reduced = useReducedMotion() ?? false;
-  const [show, setShow] = React.useState(true);
+  // A client-side move from "/" to a party page mounts it again: no replay.
+  const [play] = React.useState(() => replay || !played);
+  const [show, setShow] = React.useState(play);
   const [stage, setStage] = React.useState<Stage>("phrase");
   const buzzed = React.useRef(false);
 
@@ -199,16 +205,8 @@ export function BootIntro() {
   }, []);
 
   React.useEffect(() => {
-    // Already played in this tab (flag read before paint in app/layout.tsx).
-    if (document.documentElement.dataset.intro === "seen") {
-      setShow(false);
-      return;
-    }
-    try {
-      sessionStorage.setItem("bb-intro", "1");
-    } catch {
-      // Storage blocked (private mode): the intro simply plays again.
-    }
+    if (!play) return;
+    played = true;
     if (reduced) {
       const done = setTimeout(() => setShow(false), 1100);
       return () => clearTimeout(done);
@@ -224,7 +222,7 @@ export function BootIntro() {
       setTimeout(() => setShow(false), AT.done),
     ];
     return () => timers.forEach(clearTimeout);
-  }, [reduced, buzz]);
+  }, [play, reduced, buzz]);
 
   return (
     <AnimatePresence>
@@ -233,9 +231,12 @@ export function BootIntro() {
           key="boot-intro"
           aria-hidden
           data-testid="boot-intro"
-          className="boot-intro fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-bg-base"
+          className="boot-intro cover-chrome fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-bg-base"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: reduced ? 0.25 : 0.45, delay: reduced ? 0 : 0.06 } }}
+          // The black stays opaque while the lockup leaves inside it, and is
+          // removed whole: fading the overlay itself let the page behind show
+          // through (its buttons ghosted under the splash).
+          exit={{ opacity: 1, transition: { duration: reduced ? 0.25 : 0.45, delay: reduced ? 0 : 0.06 } }}
           onPointerDown={() => {
             buzz();
             setShow(false);

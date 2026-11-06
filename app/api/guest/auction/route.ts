@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { myAuctionState, publicAuctionState } from "@/lib/auction/service";
+import { myAuctionState } from "@/lib/auction/service";
+import { cachedPublicAuctionState } from "@/lib/auction/public-cache";
 import { availablePaymentMethods } from "@/lib/payments";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { apiError, clientIp, rateLimitedResponse } from "../_lib/http";
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
   const { sessionId, venueId } = resolved.ctx;
   const now = Date.now();
   const [pub, me] = await Promise.all([
-    publicAuctionState(sessionId, now),
+    cachedPublicAuctionState(sessionId, now),
     identity ? myAuctionState(sessionId, venueId, identity.guestId) : Promise.resolve(null),
   ]);
   if (!pub) return apiError("session_not_live", 409);

@@ -21,7 +21,7 @@
     }
   },
   "offline": {
-    "banner": "Sem ligação — ações guardadas",
+    "banner": "Sem ligação: ações guardadas",
     "replayed": "Ligação recuperada. Ações sincronizadas."
   },
   "now": {
@@ -102,12 +102,12 @@
       "allGenres": "Todos os géneros",
       "bpm": "BPM",
       "bpmAny": "Qualquer BPM",
-      "bpmRange": "{min}–{max} BPM"
+      "bpmRange": "{min}-{max} BPM"
     },
     "timeline": {
       "title": "Prazos das promessas",
       "nowMark": "agora",
-      "noDeadlines": "Sem prazos ativos — os pedidos Na Fila tocam até ao fim do set."
+      "noDeadlines": "Sem prazos ativos. Os pedidos Na Fila tocam até ao fim do set."
     }
   },
   "stats": {
@@ -277,6 +277,10 @@
     "noBids": "Sem licitações. Mínimo {amount}.",
     "pause": "Pausar",
     "resume": "Retomar",
+    "closeNow": "Fechar agora",
+    "closeNowConfirm": "Tocar de novo: fecha a {amount}",
+    "cancelRefund": "Cancelar e devolver",
+    "cancelRefundConfirm": "Tocar de novo: devolve tudo ao saldo",
     "cancel": "Cancelar",
     "paused": "Em pausa",
     "winners": "Vencedores da noite",

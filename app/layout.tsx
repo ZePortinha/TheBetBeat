@@ -13,8 +13,6 @@ const sans = Inter({
   variable: "--font-sans",
   display: "swap",
 });
-const INTRO_SEEN_SCRIPT =
-  "try{if(sessionStorage.getItem('bb-intro'))document.documentElement.dataset.intro='seen'}catch(e){}";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("common");
@@ -36,7 +34,10 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
     },
     twitter: { card: "summary_large_image", title: appName, description },
-    appleWebApp: { capable: true, title: appName, statusBarStyle: "black-translucent" },
+    // "black", not "black-translucent" (2026-11-06): opened from the home
+    // screen, a translucent bar laid every page's top under the clock and
+    // the battery. The pages are black, so the bar blends in anyway.
+    appleWebApp: { capable: true, title: appName, statusBarStyle: "black" },
     // Prices and phone numbers are plain text, never auto-linked by iOS.
     formatDetection: { telephone: false, email: false, address: false },
   };
@@ -55,7 +56,9 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();
   const messages = await getMessages();
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  // Reading the request keeps every page dynamic, so Next stamps the CSP
+  // nonce from middleware onto its own scripts.
+  await headers();
 
   return (
     <html
@@ -67,10 +70,6 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Before first paint: the boot intro plays once per tab, not on
-            every reload or when "/" hands over to a party page. */}
-        {/* Browsers hide the nonce attribute after load: not a real mismatch. */}
-        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: INTRO_SEEN_SCRIPT }} />
       </head>
       <body>
         {/* data-vaul-drawer-wrapper lets sheets push the page back (B10.4). */}

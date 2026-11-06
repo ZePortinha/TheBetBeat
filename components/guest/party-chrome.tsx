@@ -5,19 +5,29 @@
  * the screen heading, and the tab bar "Agora · Leilão · Ranking" with the
  * auction as the raised gavel in the middle (2026-10-06). The party layout
  * mounts PartyChrome once, so the tab bar and the shared auction state
- * persist while switching tabs.
+ * persist while switching tabs. The winner's screen has no tab bar at all,
+ * and the bar steps aside while the keyboard is up.
  */
 
 import * as React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AudioLines, Gavel, Trophy, UserRound } from "lucide-react";
 import { cx } from "@/components/ui/pressable";
 import { AuctionOverlays, WalletPill } from "./auction-screens";
+import { winSlotFrom } from "./party-paths";
 import { PhoneGate } from "./phone-gate";
 import { AuctionProvider, useAuction } from "./use-auction";
 import { Wordmark } from "@/components/ui/brand-mark";
+
+// The winner's screen loads on demand; leading an auction loads it early
+// (AuctionOverlays), so a win never waits for it.
+const WinScreen = dynamic(() => import("./win-screen").then((m) => m.WinScreen), {
+  ssr: false,
+  loading: () => <div aria-hidden className="cover-chrome fixed inset-0 z-50 bg-bg-base" />,
+});
 
 interface PartyValue {
   token: string;
@@ -41,6 +51,36 @@ function activeTab(pathname: string): Tab {
   return "home";
 }
 
+/** Fields that bring up the on-screen keyboard. */
+function isTextField(el: Element | null): boolean {
+  if (!el) return false;
+  if (el instanceof HTMLTextAreaElement || (el as HTMLElement).isContentEditable) return true;
+  if (!(el instanceof HTMLInputElement)) return false;
+  return !["button", "checkbox", "radio", "range", "submit", "reset", "file", "color", "image"].includes(el.type);
+}
+
+/**
+ * True while the guest types. iOS Safari leaves fixed bars where the
+ * keyboard pushed them until the next scroll, so the bar leaves while the
+ * keyboard is up and comes back laid out afresh (it would only sit on top
+ * of the keyboard anyway).
+ */
+function useTyping(): boolean {
+  const [typing, setTyping] = React.useState(false);
+  React.useEffect(() => {
+    const update = () => setTyping(isTextField(document.activeElement));
+    // focusout fires before focus lands on the next field: read it a tick later.
+    const later = () => setTimeout(update, 0);
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", later);
+    return () => {
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", later);
+    };
+  }, []);
+  return typing;
+}
+
 function TabBar({ token }: { token: string }) {
   const t = useTranslations("guest.tabs");
   const pathname = usePathname();
@@ -48,6 +88,7 @@ function TabBar({ token }: { token: string }) {
   const base = `/s/${token}`;
   const active = activeTab(pathname);
   const live = (state?.open.length ?? 0) > 0;
+  const typing = useTyping();
 
   const side = (key: "home" | "top", href: string, Icon: typeof Trophy) => (
     <Link
@@ -63,8 +104,9 @@ function TabBar({ token }: { token: string }) {
     </Link>
   );
 
+  if (typing) return null;
   return (
-    <nav aria-label={t("label")} data-guest-dock="" className="material fixed inset-x-0 bottom-0 z-40">
+    <nav aria-label={t("label")} data-guest-dock="" className="material dock-extend fixed inset-x-0 z-40">
       <div className="mx-auto grid h-[4.25rem] w-full max-w-md grid-cols-3 box-content pb-[env(safe-area-inset-bottom)]">
         {side("home", base, AudioLines)}
         {/* The auction: raised, bigger, the gavel. A live dot while one is open. */}
@@ -102,8 +144,22 @@ export function PartyChrome({
   children,
 }: PartyValue & { sessionId: string; phoneRequired: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
+  // The winner's moment fills the screen on its own: no bar, no overlays.
+  // It is drawn here, in the layout, the moment the win lands (`pending`),
+  // and stays the same element once the address reaches /win/<slot>, so
+  // it never waits for a page load and never restarts.
+  const routeWin = winSlotFrom(pathname);
+  const [pendingWin, setPendingWin] = React.useState<string | null>(null);
+  const wasOnWin = React.useRef(false);
+  React.useEffect(() => {
+    // Left the winner's page (Voltar, or the phone's Back): the moment is over.
+    if (wasOnWin.current && !routeWin) setPendingWin(null);
+    wasOnWin.current = routeWin !== null;
+  }, [routeWin]);
+  const winSlot = routeWin ?? pendingWin;
+  const leaveWin = React.useCallback(() => setPendingWin(null), []);
   // Task screens (one request, the account) keep their own back header.
-  const showTabs = !/\/requests\/[^/]+$|\/account$/.test(pathname);
+  const showTabs = !winSlot && !/\/requests\/[^/]+$|\/account$/.test(pathname);
   // The front door: number + SMS code (and a new number's @) before the party.
   const [entered, setEntered] = React.useState(!phoneRequired);
   const enter = React.useCallback(() => setEntered(true), []);
@@ -114,8 +170,11 @@ export function PartyChrome({
     <PartyContext.Provider value={{ token, venueName }}>
       <AuctionProvider token={token} sessionId={sessionId}>
         {children}
-        <AuctionOverlays venueName={venueName} />
+        <AuctionOverlays token={token} quiet={winSlot !== null} onWin={setPendingWin} />
         {showTabs ? <TabBar token={token} /> : null}
+        {winSlot ? (
+          <WinScreen key={winSlot} token={token} slotId={winSlot} venueName={venueName} onLeave={leaveWin} />
+        ) : null}
       </AuctionProvider>
     </PartyContext.Provider>
   );

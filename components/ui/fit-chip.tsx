@@ -47,6 +47,14 @@ export function Chip({ children, tone = "neutral", icon, className }: ChipProps)
   );
 }
 
+const QUIET_TONE: Record<ChipTone, string> = {
+  neutral: "text-text-secondary",
+  accent: "text-accent-400",
+  green: "text-green-500",
+  amber: "text-amber-500",
+  ember: "text-ember-500",
+};
+
 const FIT_META: Record<
   FitLabel,
   { Icon: typeof CircleCheck; tone: ChipTone }
@@ -60,6 +68,12 @@ export interface FitChipProps {
   label: FitLabel;
   /** Localized text, provided by the caller (e.g. "Encaixa"). */
   text: string;
+  /**
+   * Long lists (guest search): the tone on the text only, no box and no
+   * icon, so a page of rows does not turn into a wall of coloured pills.
+   * The words still carry the state, so colour is not the only signal.
+   */
+  quiet?: boolean;
   className?: string;
 }
 
@@ -68,8 +82,23 @@ export interface FitChipProps {
  * off_style → ember + alert-triangle. Icon and text make the state readable
  * without color. Lucide stroke 1.75 (B10.4); 14px fits the 12px chip text.
  */
-export function FitChip({ label, text, className }: FitChipProps) {
+export function FitChip({ label, text, quiet, className }: FitChipProps) {
   const { Icon, tone } = FIT_META[label];
+  if (quiet) {
+    return (
+      <span
+        className={[
+          "text-[length:var(--text-12)] font-semibold leading-none tracking-[var(--tracking-small)]",
+          QUIET_TONE[tone],
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {text}
+      </span>
+    );
+  }
   return (
     <Chip
       tone={tone}

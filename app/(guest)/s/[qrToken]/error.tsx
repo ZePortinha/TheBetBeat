@@ -7,6 +7,7 @@
  */
 
 import { useEffect } from "react";
+import { reportBoundaryError } from "@/lib/observability/report";
 import { useTranslations } from "next-intl";
 import { CloudOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export default function GuestError({
 
   useEffect(() => {
     console.error("[guest] route error", error.digest ?? "");
+    reportBoundaryError(error, "guest");
   }, [error]);
 
   return (

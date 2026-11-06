@@ -16,8 +16,12 @@ const cached = createMicroCache<PublicSessionState>(1_000);
 /**
  * Per IP, but generous: a whole club shares one Wi-Fi address, and every
  * phone polls this. The micro-cache is what keeps the database safe.
+ * Load test 2026-11-05: 1 000 phones on one address make ~4 000 polls a
+ * minute plus a refetch per realtime hint; the old 1 200/min refused 69% of
+ * them. 15 000/min (250/s) still stops a flood, and each extra read costs
+ * no database work.
  */
-const PER_IP = { limit: 1_200, windowMs: 60_000 };
+const PER_IP = { limit: 15_000, windowMs: 60_000 };
 
 /** GET /api/guest/session-state?token=… — public data only (B6.7/B6.8). */
 export async function GET(request: Request) {
