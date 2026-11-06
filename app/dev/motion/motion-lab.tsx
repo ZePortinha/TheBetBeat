@@ -86,7 +86,7 @@ export function MotionLab() {
           totalCents={4200}
           coverUrl={null}
           venueName="Clube Maré"
-          onClose={() => setWin(false)}
+          onBack={() => setWin(false)}
         />
       ) : null}
     </main>

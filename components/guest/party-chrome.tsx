@@ -5,17 +5,18 @@
  * the screen heading, and the tab bar "Agora · Leilão · Ranking" with the
  * auction as the raised gavel in the middle (2026-10-06). The party layout
  * mounts PartyChrome once, so the tab bar and the shared auction state
- * persist while switching tabs.
+ * persist while switching tabs. The winner's screen has no tab bar at all,
+ * and the bar steps aside while the keyboard is up.
  */
 
 import * as React from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AudioLines, Gavel, Trophy, UserRound } from "lucide-react";
 import { cx } from "@/components/ui/pressable";
 import { AuctionOverlays, WalletPill } from "./auction-screens";
+import { isWinPath } from "./party-paths";
 import { PhoneGate } from "./phone-gate";
 import { AuctionProvider, useAuction } from "./use-auction";
 import { Wordmark } from "@/components/ui/brand-mark";
@@ -42,6 +43,36 @@ function activeTab(pathname: string): Tab {
   return "home";
 }
 
+/** Fields that bring up the on-screen keyboard. */
+function isTextField(el: Element | null): boolean {
+  if (!el) return false;
+  if (el instanceof HTMLTextAreaElement || (el as HTMLElement).isContentEditable) return true;
+  if (!(el instanceof HTMLInputElement)) return false;
+  return !["button", "checkbox", "radio", "range", "submit", "reset", "file", "color", "image"].includes(el.type);
+}
+
+/**
+ * True while the guest types. iOS Safari leaves fixed bars where the
+ * keyboard pushed them until the next scroll, so the bar leaves while the
+ * keyboard is up and comes back laid out afresh (it would only sit on top
+ * of the keyboard anyway).
+ */
+function useTyping(): boolean {
+  const [typing, setTyping] = React.useState(false);
+  React.useEffect(() => {
+    const update = () => setTyping(isTextField(document.activeElement));
+    // focusout fires before focus lands on the next field: read it a tick later.
+    const later = () => setTimeout(update, 0);
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", later);
+    return () => {
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", later);
+    };
+  }, []);
+  return typing;
+}
+
 function TabBar({ token }: { token: string }) {
   const t = useTranslations("guest.tabs");
   const pathname = usePathname();
@@ -49,12 +80,7 @@ function TabBar({ token }: { token: string }) {
   const base = `/s/${token}`;
   const active = activeTab(pathname);
   const live = (state?.open.length ?? 0) > 0;
-  // Rendered straight into <body>: the page shell carries
-  // data-vaul-drawer-wrapper, and a sheet pushing the page back puts a
-  // transform on it. A fixed bar inside a transformed parent stops being
-  // fixed to the screen and scrolls with the page (it ended up mid-screen).
-  const [host, setHost] = React.useState<HTMLElement | null>(null);
-  React.useEffect(() => setHost(document.body), []);
+  const typing = useTyping();
 
   const side = (key: "home" | "top", href: string, Icon: typeof Trophy) => (
     <Link
@@ -70,8 +96,8 @@ function TabBar({ token }: { token: string }) {
     </Link>
   );
 
-  if (!host) return null;
-  return createPortal(
+  if (typing) return null;
+  return (
     <nav aria-label={t("label")} data-guest-dock="" className="material dock-extend fixed inset-x-0 z-40">
       <div className="mx-auto grid h-[4.25rem] w-full max-w-md grid-cols-3 box-content pb-[env(safe-area-inset-bottom)]">
         {side("home", base, AudioLines)}
@@ -98,8 +124,7 @@ function TabBar({ token }: { token: string }) {
         </Link>
         {side("top", `${base}/top`, Trophy)}
       </div>
-    </nav>,
-    host,
+    </nav>
   );
 }
 
@@ -111,8 +136,10 @@ export function PartyChrome({
   children,
 }: PartyValue & { sessionId: string; phoneRequired: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
+  // The winner's moment fills the screen on its own: no bar, no overlays.
+  const onWin = isWinPath(pathname);
   // Task screens (one request, the account) keep their own back header.
-  const showTabs = !/\/requests\/[^/]+$|\/account$/.test(pathname);
+  const showTabs = !onWin && !/\/requests\/[^/]+$|\/account$/.test(pathname);
   // The front door: number + SMS code (and a new number's @) before the party.
   const [entered, setEntered] = React.useState(!phoneRequired);
   const enter = React.useCallback(() => setEntered(true), []);
@@ -123,7 +150,7 @@ export function PartyChrome({
     <PartyContext.Provider value={{ token, venueName }}>
       <AuctionProvider token={token} sessionId={sessionId}>
         {children}
-        <AuctionOverlays venueName={venueName} />
+        <AuctionOverlays token={token} quiet={onWin} />
         {showTabs ? <TabBar token={token} /> : null}
       </AuctionProvider>
     </PartyContext.Provider>

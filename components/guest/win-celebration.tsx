@@ -5,20 +5,23 @@
  * a 2D stage (win-scene: champagne bottle, flying cork, the album art pressed
  * into a spinning glass vinyl) on a canvas behind the title and the amount.
  * No 3D and no extra download, so it opens at once and stays smooth on any
- * phone. "Partilhar no Instagram" shares the same animation as a video
- * (win-video), recorded quietly in the background while the guest watches.
- * Reduced motion: one still frame of the same stage.
+ * phone. It lives on its own page (2026-11-06): the whole screen, nothing
+ * scrolls, no tab bar; two buttons, "Partilhar no Instagram" and "Voltar".
+ * The share is a Story picture in the style of Spotify's song cards
+ * (win-story: the art's colour, a still of this animation, the song and
+ * the mark), drawn quietly while the guest watches so the share sheet
+ * opens from the tap itself. Reduced motion: one still frame of the stage.
  */
 
 import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { useLocale, useTranslations } from "next-intl";
-import { Crown, Instagram } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ChevronLeft, Crown, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { toast } from "@/components/ui/toast";
 import { startWinScene } from "./win-scene";
-import { recordWinVideo, videoType } from "./win-video";
+import { buildWinStory } from "./win-story";
 
 function useCountUp(target: number, ms: number, run: boolean): number {
   const [value, setValue] = React.useState(run ? 0 : target);
@@ -53,21 +56,35 @@ async function shareFile(file: File, title: string): Promise<"shared" | "saved">
   return "saved";
 }
 
-/** The still story card (1080×1920), when this browser cannot record video. */
+/** The server's plain story card (1080×1920), when the phone cannot draw ours. */
 async function storyImage(slotId: string): Promise<File> {
   const res = await fetch(`/api/guest/auction/${slotId}/card?format=story`);
   if (!res.ok) throw new Error("card");
   return new File([await res.blob()], "discontrol-vencedor.png", { type: "image/png" });
 }
 
-/** "sáb · 21 set · 01:24" in Lisbon. */
-function footerDate(locale: string, at: Date): string {
-  const part = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat(locale, { ...options, timeZone: "Europe/Lisbon" }).format(at).replace(/\.$/, "");
-  return `${part({ weekday: "short" })} · ${part({ day: "numeric" })} ${part({ month: "short" })} · ${part({ hour: "2-digit", minute: "2-digit", hour12: false })}`;
-}
+type StoryState = "preparing" | "ready" | "failed";
 
-type VideoState = "recording" | "ready" | "none";
+/**
+ * Nothing behind the winner's screen may scroll: a scroll lets iOS resize
+ * its toolbar, and the page showed through at the top and the bottom.
+ */
+function useNoScroll() {
+  React.useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const before = { html: html.style.overflow, body: body.style.overflow, overscroll: html.style.overscrollBehavior };
+    window.scrollTo(0, 0);
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    return () => {
+      html.style.overflow = before.html;
+      body.style.overflow = before.body;
+      html.style.overscrollBehavior = before.overscroll;
+    };
+  }, []);
+}
 
 
 /**
@@ -107,7 +124,7 @@ export function WinCelebration({
   totalCents,
   coverUrl,
   venueName,
-  onClose,
+  onBack,
 }: {
   slotId: string;
   trackTitle: string;
@@ -115,12 +132,13 @@ export function WinCelebration({
   totalCents: number;
   coverUrl?: string | null;
   venueName: string;
-  onClose: () => void;
+  /** "Voltar": to the ranking, at the guest's own place. */
+  onBack: () => void;
 }) {
   const t = useTranslations("guest.auction");
   const tc = useTranslations("common");
-  const locale = useLocale();
   const reduced = useReducedMotion() ?? false;
+  useNoScroll();
   const stage = React.useRef<HTMLCanvasElement>(null);
   const amount = useCountUp(totalCents, 900, !reduced);
   const title = t("winTitle");
@@ -141,74 +159,75 @@ export function WinCelebration({
     return startWinScene(stage.current, { coverRef, coverPending, still: reduced });
   }, [reduced, stillCover]);
 
-  // The Instagram video records in the background, once the opening burst
-  // has played on screen (so the two never compete for the same frames).
-  const video = React.useRef<File | null>(null);
-  const [videoState, setVideoState] = React.useState<VideoState>(() => "recording");
+  // The Story picture is drawn once the album art has settled and the
+  // opening burst has played (so the two never compete for the same frames).
+  const story = React.useRef<File | null>(null);
+  const [storyState, setStoryState] = React.useState<StoryState>("preparing");
   const [wantShare, setWantShare] = React.useState(false);
   const [sharing, setSharing] = React.useState(false);
+  const eyebrow = t("shareTitle");
+  const brand = tc("appName");
   React.useEffect(() => {
-    if (!videoType()) {
-      setVideoState("none");
-      return;
-    }
-    const abort = new AbortController();
+    if (!coverSettled) return;
+    let alive = true;
     const timer = setTimeout(() => {
-      recordWinVideo(
-        slotId,
-        {
-          brand: `${tc("appName")} × ${venueName}`,
-          eyebrow: t("winEyebrow"),
-          title,
-          amount: formatEurosDisplay(totalCents),
-          trackTitle,
-          trackArtist,
-          footer: footerDate(locale, new Date()),
-        },
-        abort.signal,
-      )
+      buildWinStory(coverBmp, { eyebrow, trackTitle, trackArtist, brand, venueName })
+        // The phone could not draw it: the server's plain card instead.
+        .catch(() => storyImage(slotId))
         .then((file) => {
-          video.current = file;
-          setVideoState("ready");
+          if (!alive) return;
+          story.current = file;
+          setStoryState("ready");
         })
         .catch(() => {
-          if (!abort.signal.aborted) setVideoState("none");
+          if (alive) setStoryState("failed");
         });
-    }, 1600);
+    }, 1400);
     return () => {
+      alive = false;
       clearTimeout(timer);
-      abort.abort();
     };
-  }, [slotId, venueName, trackTitle, trackArtist, totalCents, title, locale, t, tc]);
+  }, [coverSettled, coverBmp, eyebrow, trackTitle, trackArtist, brand, venueName, slotId]);
 
   const share = React.useCallback(async () => {
+    const file = story.current;
+    if (!file) {
+      toast({ title: t("shareError"), variant: "error" });
+      return;
+    }
     setSharing(true);
     try {
-      const file = video.current ?? (await storyImage(slotId));
-      if ((await shareFile(file, t("shareTitle"))) === "saved") {
-        toast({ title: video.current ? t("shareVideoSaved") : t("shareSaved") });
-      }
+      // Straight from the tap, nothing awaited first: iOS refuses a share
+      // sheet that opens after a wait.
+      if ((await shareFile(file, t("shareTitle"))) === "saved") toast({ title: t("shareSaved") });
     } catch (error) {
       const name = (error as Error).name;
-      // Closing the share sheet is not an error; a lost tap (the video took
-      // a moment) just needs one more tap on the now-ready button.
+      // Closing the share sheet is not an error; a lost tap (the picture
+      // took a moment) just needs one more tap on the now-ready button.
       if (name !== "AbortError" && name !== "NotAllowedError") toast({ title: t("shareError"), variant: "error" });
     } finally {
       setSharing(false);
     }
-  }, [slotId, t]);
+  }, [t]);
 
-  // Tapped while the video was still recording: share as soon as it lands.
+  // Tapped while the picture was still being drawn: share as soon as it lands.
   React.useEffect(() => {
-    if (!wantShare || videoState === "recording") return;
+    if (!wantShare || storyState === "preparing") return;
     setWantShare(false);
-    void share();
-  }, [wantShare, videoState, share]);
+    if (storyState === "ready") void share();
+    else toast({ title: t("shareError"), variant: "error" });
+  }, [wantShare, storyState, share, t]);
 
-  const preparing = wantShare && videoState === "recording";
+  const preparing = wantShare && storyState === "preparing";
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-50 overflow-hidden bg-bg-base text-center">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      // touch-none: a drag on the screen never reaches the page behind it.
+      className="fixed inset-0 z-50 touch-none overflow-hidden overscroll-none bg-bg-base text-center"
+    >
       <canvas ref={stage} aria-hidden className="absolute inset-0 size-full" />
 
       <div className="relative flex h-full flex-col items-center gap-5 px-6 pb-[max(env(safe-area-inset-bottom),24px)] pt-[19dvh] [text-shadow:0_2px_18px_rgba(0,0,0,0.85)]">
@@ -266,15 +285,16 @@ export function WinCelebration({
             // The share sheet only opens from a finished tap on phones.
             activateOn="release"
             onPress={() => {
-              if (videoState === "recording") setWantShare(true);
+              if (storyState === "preparing") setWantShare(true);
               else void share();
             }}
           >
             <Instagram size={18} aria-hidden />
             {preparing ? t("sharePreparing") : t("shareInstagram")}
           </Button>
-          <Button variant="secondary" fullWidth onPress={onClose}>
-            {t("winClose")}
+          <Button variant="secondary" fullWidth onPress={onBack}>
+            <ChevronLeft size={18} aria-hidden />
+            {t("winBack")}
           </Button>
         </motion.div>
       </div>

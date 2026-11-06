@@ -35,9 +35,9 @@ import { durations } from "@/lib/motion";
 import { apiFetch } from "./api";
 import { BidForm, ShoutoutNote, type BidTargetInput } from "./bid-form";
 import { winDetails } from "./win-details";
+import { winPath } from "./party-paths";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
-import { WinCelebration } from "./win-celebration";
 import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, pickSlot, useAuction, type AuctionState } from "./use-auction";
 import { assessTransition, startingPriceCents, type TransitionAssessment } from "@/lib/auction/transition";
 
@@ -590,8 +590,14 @@ export function NightWinners() {
 /* Every tab                                                           */
 /* ------------------------------------------------------------------ */
 
-/** Last 30 s flash (and one buzz if I am in it), the winner celebration. */
-export function AuctionOverlays({ venueName }: { venueName: string }) {
+/**
+ * Last 30 s flash (and one buzz if I am in it), and the way into the winner's
+ * screen: once the server confirms the guest won, the app moves to its own
+ * page (2026-11-06), so no tab bar, scroll or other overlay can reach it.
+ * `quiet` on that page: nothing else is drawn over it.
+ */
+export function AuctionOverlays({ token, quiet = false }: { token: string; quiet?: boolean }) {
+  const router = useRouter();
   const { state, serverNow, celebrate, dismissCelebration } = useAuction();
   const buzzed = React.useRef(new Set<string>());
   const flashing = state?.open.filter((s) => inFinalStretch(s.closesAt, serverNow)) ?? [];
@@ -612,22 +618,18 @@ export function AuctionOverlays({ venueName }: { venueName: string }) {
     }
   }, [flashingKey, state]);
   const won = celebrate ? winDetails(celebrate, state?.me, [state?.upNext, ...(state?.recentWinners ?? [])]) : null;
-  return (
-    <>
-      {secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} page /> : null}
-      {celebrate && won ? (
-        <WinCelebration
-          slotId={won.slotId}
-          trackTitle={won.trackTitle}
-          trackArtist={won.trackArtist}
-          totalCents={won.totalCents}
-          coverUrl={won.coverUrl}
-          venueName={venueName}
-          onClose={dismissCelebration}
-        />
-      ) : null}
-    </>
-  );
+  // One trip per win, even when effects run twice (dev) or state ticks again.
+  const opened = React.useRef<string | null>(null);
+  const wonSlot = won?.slotId ?? null;
+  React.useEffect(() => {
+    if (!wonSlot) return;
+    dismissCelebration();
+    if (opened.current === wonSlot) return;
+    opened.current = wonSlot;
+    router.push(winPath(token, wonSlot));
+  }, [wonSlot, token, router, dismissCelebration]);
+  if (quiet) return null;
+  return secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} page /> : null;
 }
 
 /**

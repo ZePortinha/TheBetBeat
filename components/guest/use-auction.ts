@@ -191,13 +191,14 @@ function useAuctionSource(token: string, sessionId: string) {
 
   // The auction picked on the Leilão tab (null = the first open one).
   const [chosenSlotId, chooseSlot] = React.useState<string | null>(null);
+  const dismissCelebration = React.useCallback(() => setCelebrate(null), []);
 
   return {
     state,
     refetch,
     serverNow: now + offsetMs,
     celebrate,
-    dismissCelebration: () => setCelebrate(null),
+    dismissCelebration,
     chosenSlotId,
     chooseSlot,
   };

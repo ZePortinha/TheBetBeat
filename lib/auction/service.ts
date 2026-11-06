@@ -40,6 +40,8 @@ import { planNight } from "./schedule";
 import { balanceDeadline, canPlaceRollover, expiredCents, rolloverShares, runnerUp, type Credit } from "./rollover";
 import { assessTransition, startingPriceCents } from "./transition";
 import { bidLeader } from "./backing";
+import { placeIn, type MyRank } from "./ranking";
+import { sessionSpent } from "./rank-cache";
 
 type Db = Pick<PoolClient, "query">;
 
@@ -1738,7 +1740,7 @@ export async function publicAuctionState(sessionId: string, now: number): Promis
          join public.auction_slots s on s.id = c.slot_id
         where s.session_id = $1 and c.spent_at is not null
         group by c.guest_id
-        order by spent desc
+        order by spent desc, c.guest_id
         limit 50`,
       [sessionId],
     ),
@@ -1838,6 +1840,8 @@ export interface MyAuctionState {
     messages: Array<{ text: string; by: string | null }>;
   }>;
   pending: Array<{ intentId: string; slotId: string; targetTotalCents: number; createdAt: string }>;
+  /** Where I stand in tonight's ranking, now and once my won songs play. */
+  rank: MyRank;
 }
 
 /**
@@ -1920,7 +1924,7 @@ export async function expireBalances(now: number): Promise<{ refunded: number }>
 /** The guest's own view: wallet, every bid they own or backed tonight, waiting top-ups. */
 export async function myAuctionState(sessionId: string, venueId: string, guestId: string): Promise<MyAuctionState> {
   const pool = getPool();
-  const [walletCents, bidsRes, pendingRes, heldRes, auctionRes] = await Promise.all([
+  const [walletCents, bidsRes, pendingRes, heldRes, auctionRes, labelRes, spentTable] = await Promise.all([
     walletBalance(pool, guestId, venueId),
     pool.query<{
       slot_id: string;
@@ -1978,8 +1982,25 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
       [guestId, venueId],
     ),
     pool.query<{ auction: unknown }>(`select settings -> 'auction' as auction from public.venues where id = $1`, [venueId]),
+    // How I appear in the ranking: the same choice the public ranking shows.
+    pool.query<{ label: string | null }>(
+      `select coalesce(
+                (select x.display_label from public.auction_contributions x
+                   join public.auction_slots xs on xs.id = x.slot_id
+                  where x.guest_id = $2 and xs.session_id = $1 and x.display_label is not null
+                  order by x.created_at desc limit 1),
+                (select b.display_label from public.auction_bids b
+                  where b.owner_guest_id = $2 and b.session_id = $1 and b.display_label is not null
+                  order by b.updated_at desc limit 1)) as label`,
+      [sessionId, guestId],
+    ),
+    sessionSpent(sessionId),
   ]);
   const days = safeAuctionConfig(auctionRes.rows[0]?.auction ?? {}).keepBalanceDays;
+  // Money behind songs I won that have not played yet (not in the ranking yet).
+  const pendingWonCents = bidsRes.rows
+    .filter((r) => r.won && (r.play_status === "locked" || r.play_status === "accepted" || r.play_status === "playing"))
+    .reduce((sum, r) => sum + Number(r.my_cents), 0);
   const deadline = walletCents > 0
     ? balanceDeadline(walletCents, await walletCredits(pool, guestId, venueId, 0), days)
     : null;
@@ -2023,5 +2044,6 @@ export async function myAuctionState(sessionId: string, venueId: string, guestId
       targetTotalCents: p.target_total_cents,
       createdAt: p.created_at.toISOString(),
     })),
+    rank: placeIn(spentTable, guestId, pendingWonCents, labelRes.rows[0]?.label ?? null),
   };
 }

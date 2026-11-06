@@ -923,3 +923,34 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   sends it. Rejected: data on the public channel (any client can broadcast
   there, so phones could be fed a fake board); CDN only (depends on hosting,
   and still one request per phone per bid at the edge).
+
+## 2026-11-06 - The win gets its own page; Story picture; my place in the ranking
+
+- **Own page.** Winning opens `/s/<token>/win/<slotId>`: full screen, no
+  tab bar, no final-stretch frame, page scroll locked (html/body overflow
+  hidden, `touch-none`), no page-enter transform. On the old overlay the
+  page behind showed through at the top and bottom on iPhone (toolbar
+  resize while the page scrolled) and the tab bar sat on top. The page
+  reads the win from the guest's own auction state, so it only ever shows
+  their win; anything else goes back to the party. Two buttons only:
+  "Partilhar no Instagram" and "Voltar" (to the ranking, replacing the win
+  page in history).
+- **No sheet push-back in the guest app.** Vaul's background scale
+  transforms the page wrapper, which breaks every `position: fixed` inside
+  it on iOS (the tab bar jumped to the middle). `SheetPushDefault` turns it
+  off for the guest app; cockpit and console keep it.
+- **Story picture, not video.** The share is a 1080×1920 JPEG drawn on the
+  phone in the style of Spotify's song cards: background from the cover's
+  colour (brand red when the art is grey), a still of the win animation,
+  song, artist, Discontrol mark and venue. Drawn ahead of time so the share
+  sheet opens from the tap (iOS refuses it after a wait); the server's
+  plain card is the fallback. Rejected: Instagram's "Sharing to Stories"
+  (pastes straight into a Story) because it only exists for native iOS and
+  Android apps with a Meta app id; a web page can only hand the picture to
+  the share sheet, where the guest picks Instagram.
+- **Where I land in the ranking.** The ranking still counts played money
+  only (B6.8). The guest's own state now carries `rank` (place now, and
+  the place once their won, unplayed songs count). The ranking page shows
+  the guest's row at that projected place, marked "Tu" with "Conta quando
+  a tua faixa tocar"; arriving from "Voltar" (`?me=1`) it scrolls to the
+  row and pulses it once. Ties break by guest id, as in the SQL.

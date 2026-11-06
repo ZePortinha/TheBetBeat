@@ -15,6 +15,7 @@ import * as React from "react";
 import Script from "next/script";
 import { createClient } from "@/lib/supabase/client";
 import { publicEnv } from "@/lib/security/public-env";
+import { SheetPushDefault } from "@/components/ui/bottom-sheet";
 
 declare global {
   interface Window {
@@ -188,7 +189,9 @@ export function GuestProviders({
         strategy="afterInteractive"
         onLoad={() => setScriptLoaded(true)}
       />
-      {children}
+      {/* Sheets dim the party but never push it back: the push transforms
+          the page shell, and the tab bar and the winner screen are fixed. */}
+      <SheetPushDefault push={false}>{children}</SheetPushDefault>
       {/* Subtle anti-bot host: invisible with the interaction-only
           appearance unless Cloudflare needs a visible challenge. */}
       <div ref={widgetRef} className="fixed bottom-2 left-4 right-4 z-40" />
