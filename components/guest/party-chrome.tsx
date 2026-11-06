@@ -11,15 +11,23 @@
 
 import * as React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AudioLines, Gavel, Trophy, UserRound } from "lucide-react";
 import { cx } from "@/components/ui/pressable";
 import { AuctionOverlays, WalletPill } from "./auction-screens";
-import { isWinPath } from "./party-paths";
+import { winSlotFrom } from "./party-paths";
 import { PhoneGate } from "./phone-gate";
 import { AuctionProvider, useAuction } from "./use-auction";
 import { Wordmark } from "@/components/ui/brand-mark";
+
+// The winner's screen loads on demand; leading an auction loads it early
+// (AuctionOverlays), so a win never waits for it.
+const WinScreen = dynamic(() => import("./win-screen").then((m) => m.WinScreen), {
+  ssr: false,
+  loading: () => <div aria-hidden className="cover-chrome fixed inset-0 z-50 bg-bg-base" />,
+});
 
 interface PartyValue {
   token: string;
@@ -137,9 +145,21 @@ export function PartyChrome({
 }: PartyValue & { sessionId: string; phoneRequired: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   // The winner's moment fills the screen on its own: no bar, no overlays.
-  const onWin = isWinPath(pathname);
+  // It is drawn here, in the layout, the moment the win lands (`pending`),
+  // and stays the same element once the address reaches /win/<slot>, so
+  // it never waits for a page load and never restarts.
+  const routeWin = winSlotFrom(pathname);
+  const [pendingWin, setPendingWin] = React.useState<string | null>(null);
+  const wasOnWin = React.useRef(false);
+  React.useEffect(() => {
+    // Left the winner's page (Voltar, or the phone's Back): the moment is over.
+    if (wasOnWin.current && !routeWin) setPendingWin(null);
+    wasOnWin.current = routeWin !== null;
+  }, [routeWin]);
+  const winSlot = routeWin ?? pendingWin;
+  const leaveWin = React.useCallback(() => setPendingWin(null), []);
   // Task screens (one request, the account) keep their own back header.
-  const showTabs = !onWin && !/\/requests\/[^/]+$|\/account$/.test(pathname);
+  const showTabs = !winSlot && !/\/requests\/[^/]+$|\/account$/.test(pathname);
   // The front door: number + SMS code (and a new number's @) before the party.
   const [entered, setEntered] = React.useState(!phoneRequired);
   const enter = React.useCallback(() => setEntered(true), []);
@@ -150,8 +170,11 @@ export function PartyChrome({
     <PartyContext.Provider value={{ token, venueName }}>
       <AuctionProvider token={token} sessionId={sessionId}>
         {children}
-        <AuctionOverlays token={token} quiet={onWin} />
+        <AuctionOverlays token={token} quiet={winSlot !== null} onWin={setPendingWin} />
         {showTabs ? <TabBar token={token} /> : null}
+        {winSlot ? (
+          <WinScreen key={winSlot} token={token} slotId={winSlot} venueName={venueName} onLeave={leaveWin} />
+        ) : null}
       </AuctionProvider>
     </PartyContext.Provider>
   );

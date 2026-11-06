@@ -36,6 +36,7 @@ import { apiFetch } from "./api";
 import { BidForm, ShoutoutNote, type BidTargetInput } from "./bid-form";
 import { winDetails } from "./win-details";
 import { winPath } from "./party-paths";
+import { warmCover } from "./win-cover";
 import { useGuest } from "./guest-providers";
 import { PushPrompt } from "./push-prompt";
 import { clockTime, countdown, inFinalStretch, inFinalTwoMinutes, pickSlot, useAuction, type AuctionState } from "./use-auction";
@@ -596,7 +597,16 @@ export function NightWinners() {
  * page (2026-11-06), so no tab bar, scroll or other overlay can reach it.
  * `quiet` on that page: nothing else is drawn over it.
  */
-export function AuctionOverlays({ token, quiet = false }: { token: string; quiet?: boolean }) {
+export function AuctionOverlays({
+  token,
+  quiet = false,
+  onWin,
+}: {
+  token: string;
+  quiet?: boolean;
+  /** A win just landed: the layout shows the winner's screen right away. */
+  onWin?: (slotId: string) => void;
+}) {
   const router = useRouter();
   const { state, serverNow, celebrate, dismissCelebration } = useAuction();
   const buzzed = React.useRef(new Set<string>());
@@ -626,8 +636,27 @@ export function AuctionOverlays({ token, quiet = false }: { token: string; quiet
     dismissCelebration();
     if (opened.current === wonSlot) return;
     opened.current = wonSlot;
+    // The winner's screen opens at once, drawn by the party layout; the
+    // address follows (2026-11-06: waiting for the page cost seconds).
+    onWin?.(wonSlot);
     router.push(winPath(token, wonSlot));
-  }, [wonSlot, token, router, dismissCelebration]);
+  }, [wonSlot, token, router, dismissCelebration, onWin]);
+
+  // Leading an auction: get the winner's screen ready (its code, and the
+  // album art of my leading song), so a win opens with nothing to download.
+  const leadingKey = (state?.open ?? [])
+    .filter((s) => s.top && state?.me?.bids.some((b) => b.slotId === s.id && b.status === "leading"))
+    .map((s) => `${s.id}|${s.top?.bidId}|${s.top?.coverUrl ?? ""}`)
+    .join(",");
+  React.useEffect(() => {
+    if (!leadingKey) return;
+    void import("./win-screen");
+    for (const entry of leadingKey.split(",")) {
+      const [slotId, bidId, coverUrl] = entry.split("|");
+      if (slotId && bidId && coverUrl) warmCover(slotId, coverUrl, bidId);
+    }
+  }, [leadingKey]);
+
   if (quiet) return null;
   return secondsLeft !== null ? <FinalStretchFrame secondsLeft={secondsLeft} page /> : null;
 }

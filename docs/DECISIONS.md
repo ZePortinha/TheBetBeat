@@ -968,3 +968,17 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   page. Over `http://<LAN IP>:3000` it is missing, so "Partilhar no
   Instagram" fell back to downloading the picture. On the real site, or a
   phone test through an https tunnel, it opens the share sheet.
+- **The win opens at once.** On the phone the winner's screen took
+  seconds: it waited for the /win page to load (in `pnpm dev`, over a
+  tunnel, its code only downloaded after the win) and then for the album
+  art. Now the party layout draws the winner's screen the moment the win
+  lands and the address follows; the same element stays when the page
+  arrives. While the guest leads an auction, the screen's code and the art
+  of their leading song are fetched ahead (`/cover?bid=`, owner/backer of a
+  bid that leads an open auction, same rule as the winning bid), keyed by
+  auction and cover so a changed song never shows old art.
+- **Instagram straight to Stories needs a native app.** Instagram's own
+  Reel / Post / Story / Message chooser appears whenever a web page shares
+  a picture. Going straight to Stories (Spotify, Strava) uses Meta's
+  Sharing to Stories, native iOS/Android only (pasteboard + app id). Kept
+  the web share; a native wrapper is a later decision.

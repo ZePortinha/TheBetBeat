@@ -9,7 +9,12 @@ export function winPath(token: string, slotId: string): string {
 }
 
 export function isWinPath(pathname: string): boolean {
-  return /\/s\/[^/]+\/win\/[^/]+$/.test(pathname);
+  return winSlotFrom(pathname) !== null;
+}
+
+/** The auction on a winner's page address, or null on any other page. */
+export function winSlotFrom(pathname: string): string | null {
+  return /\/s\/[^/]+\/win\/([^/]+)$/.exec(pathname)?.[1] ?? null;
 }
 
 /** The ranking; `me` scrolls to the guest's own place once it has been shown. */

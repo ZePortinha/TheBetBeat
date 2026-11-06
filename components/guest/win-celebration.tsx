@@ -22,6 +22,7 @@ import { formatEurosDisplay } from "@/components/ui/price-tag";
 import { toast } from "@/components/ui/toast";
 import { startWinScene } from "./win-scene";
 import { buildWinStory } from "./win-story";
+import { coverFor, readyCover } from "./win-cover";
 
 function useCountUp(target: number, ms: number, run: boolean): number {
   const [value, setValue] = React.useState(run ? 0 : target);
@@ -88,32 +89,27 @@ function useNoScroll() {
 
 
 /**
- * Loads the album cover through our proxy so the canvas stays same-origin.
- * `settled` turns true when the attempt ends, with or without an image, so
- * the record never waits for art that will not come.
+ * The album cover as a bitmap (win-cover: often fetched ahead while the
+ * guest was leading, so it is here from the first frame). `settled` turns
+ * true when the attempt ends, with or without an image, so the record never
+ * waits for art that will not come.
  */
 function useCoverBitmap(slotId: string, coverUrl?: string | null): { bmp: ImageBitmap | null; settled: boolean } {
-  const [state, setState] = React.useState<{ bmp: ImageBitmap | null; settled: boolean }>({ bmp: null, settled: !coverUrl });
+  const [state, setState] = React.useState<{ bmp: ImageBitmap | null; settled: boolean }>(() => {
+    if (!coverUrl) return { bmp: null, settled: true };
+    const ready = readyCover(slotId, coverUrl);
+    return ready ? { bmp: ready, settled: true } : { bmp: null, settled: false };
+  });
   React.useEffect(() => {
-    if (!coverUrl) return;
+    if (!coverUrl || state.settled) return;
     let cancelled = false;
-    let loaded: ImageBitmap | null = null;
-    fetch(`/api/guest/auction/${slotId}/cover`)
-      .then((r) => (r.ok ? r.blob() : Promise.reject()))
-      .then((b) => createImageBitmap(b))
-      .then((img) => {
-        loaded = img;
-        if (!cancelled) setState({ bmp: img, settled: true });
-        else img.close();
-      })
-      .catch(() => {
-        if (!cancelled) setState({ bmp: null, settled: true });
-      });
+    void coverFor(slotId, coverUrl).then((bmp) => {
+      if (!cancelled) setState({ bmp, settled: true });
+    });
     return () => {
       cancelled = true;
-      loaded?.close();
     };
-  }, [slotId, coverUrl]);
+  }, [slotId, coverUrl, state.settled]);
   return state;
 }
 
