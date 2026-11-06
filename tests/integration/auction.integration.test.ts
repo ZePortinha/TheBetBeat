@@ -472,7 +472,8 @@ describe("after the close", () => {
     const trackA = takeTrack();
     await bid(a, slot, 2000, now + 1000, { kind: "own", libraryTrackId: trackA });
     const leading = await db.query<{ id: string }>(`select id from public.auction_bids where slot_id = $1 and status = 'leading'`, [slot]);
-    await bid(b, slot, 1000, now + 2000, { kind: "back", bidId: leading.rows[0]!.id });
+    // Backing takes the song's new total: b adds 1 000 to a's 2 000.
+    expect(await bid(b, slot, 3000, now + 2000, { kind: "back", bidId: leading.rows[0]!.id })).toMatchObject({ ok: true });
     expect(await auction.djSlotAction(slot, "cancel", "staff:test-dj", now + 30_000)).toMatchObject({ ok: true });
     expect(await slotRow(slot)).toMatchObject({ status: "cancelled" });
     expect(await balance(a)).toBe(2000);
