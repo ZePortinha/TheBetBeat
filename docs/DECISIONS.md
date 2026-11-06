@@ -954,3 +954,8 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   the guest's row at that projected place, marked "Tu" with "Conta quando
   a tua faixa tocar"; arriving from "Voltar" (`?me=1`) it scrolls to the
   row and pulses it once. Ties break by guest id, as in the SQL.
+- **Home-screen app: solid black status bar.** Added to the iPhone home
+  screen, `black-translucent` put the top of every page (logo, "Para casas")
+  under the clock and the battery, and no page pads for
+  `safe-area-inset-top`. `statusBarStyle: "black"` makes iOS keep the bar
+  out of the page; the pages are #000, so it blends in.

@@ -34,7 +34,10 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
     },
     twitter: { card: "summary_large_image", title: appName, description },
-    appleWebApp: { capable: true, title: appName, statusBarStyle: "black-translucent" },
+    // "black", not "black-translucent" (2026-11-06): opened from the home
+    // screen, a translucent bar laid every page's top under the clock and
+    // the battery. The pages are black, so the bar blends in anyway.
+    appleWebApp: { capable: true, title: appName, statusBarStyle: "black" },
     // Prices and phone numbers are plain text, never auto-linked by iOS.
     formatDetection: { telephone: false, email: false, address: false },
   };
