@@ -46,7 +46,7 @@ export async function LandingHeader() {
     "hover:text-text-primary md:inline";
 
   return (
-    <header className="material-top sticky top-0 z-40">
+    <header className="material-top sticky top-[env(safe-area-inset-top)] z-40">
       <div className={`${wrap} flex h-13 items-center justify-between`}>
         <Link
           href="/"

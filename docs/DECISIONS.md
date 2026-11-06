@@ -959,3 +959,12 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   under the clock and the battery, and no page pads for
   `safe-area-inset-top`. `statusBarStyle: "black"` makes iOS keep the bar
   out of the page; the pages are #000, so it blends in.
+- **…and pages pad for the status bar.** On Vouga's iPhone the solid bar
+  alone did not help: the home-screen app still laid the page under the
+  clock. `body` now pads `env(safe-area-inset-top)` with a fixed black strip
+  over that inset (z 70), and the sticky landing header and console sidebar
+  stick below it. Zero inset in a normal tab, so nothing changes there.
+- **Sharing needs HTTPS.** Safari only offers the Web Share API on a secure
+  page. Over `http://<LAN IP>:3000` it is missing, so "Partilhar no
+  Instagram" fell back to downloading the picture. On the real site, or a
+  phone test through an https tunnel, it opens the share sheet.

@@ -55,6 +55,27 @@ body {
 }
 
 /*
+ * The iPhone status bar (2026-11-06). Opened from the home screen, iOS
+ * lays the clock and battery over the top of the page (viewport-fit=cover)
+ * whatever the status-bar meta says. Every page starts below it, and a
+ * black strip keeps scrolled content from showing under the clock. In a
+ * normal browser tab the inset is 0 and none of this shows.
+ */
+body {
+  padding-top: env(safe-area-inset-top);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 70;
+  height: env(safe-area-inset-top);
+  background: var(--color-bg-base);
+  pointer-events: none;
+}
+
+/*
  * Guest app type scale (2026-10-06): the iOS sizes (caption 12, subhead
  * 15, body 17, title 20/22/28, large title 34) with leading that tightens
  * and tracking that turns negative as text grows, so every screen shares
