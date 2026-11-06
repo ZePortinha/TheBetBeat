@@ -1055,3 +1055,23 @@ his phone), which the first pass barely touched. Changes there:
   "Licitar" is a grey capsule with the red word, like the App Store's
   "Obter", instead of thirty bare red words down the list. The cockpit keeps
   the boxed chips.
+
+### Same day: the front-door camera on a plain-http address
+
+Vouga's iPhone opens the site at `http://<PC LAN IP>:3000`, which is not a
+secure context, so iOS hides `navigator.mediaDevices` and the live camera
+cannot open there at all (on the real https domain it does).
+
+- **The same button takes a photo instead.** With no live camera API the
+  main "Ler QR do evento" button is a native `<label>` around a visually
+  hidden `<input type="file" accept="image/*" capture="environment">`, so
+  the tap itself opens the iPhone camera (iOS ignores a programmatic
+  `input.click()` outside a user gesture, and a touch `pointerdown` is not
+  one). The photo is scaled to 1200 px and read with jsQR; the same
+  `guestPathFrom` rule applies, so only `/s/<token>` on this site is
+  opened. No QR in the photo and a foreign QR each get one line of text.
+- **Camera refused:** the panel offers "Tirar foto ao QR" (the same label)
+  and "Tentar outra vez".
+- **Live-camera buttons confirm on release** (`activateOn="release"`),
+  which iOS counts as a user gesture for `getUserMedia`.
+- The old "this browser cannot open the camera" phase and its copy are gone.
