@@ -30,7 +30,7 @@ export function WinScreen({ token, slotId, venueName }: { token: string; slotId:
   const back = React.useCallback(() => router.replace(rankingPath(token, { me: true })), [router, token]);
 
   // Black until the state says what was won (no flash of the party behind).
-  if (!won) return <div aria-hidden className="fixed inset-0 z-50 bg-bg-base" />;
+  if (!won) return <div aria-hidden className="cover-chrome fixed inset-0 z-50 bg-bg-base" />;
   return (
     <WinCelebration
       slotId={won.slotId}

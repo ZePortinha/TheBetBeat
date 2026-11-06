@@ -231,7 +231,7 @@ export function BootIntro({ replay = false }: { replay?: boolean }) {
           key="boot-intro"
           aria-hidden
           data-testid="boot-intro"
-          className="boot-intro fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-bg-base"
+          className="boot-intro cover-chrome fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-bg-base"
           initial={{ opacity: 1 }}
           // The black stays opaque while the lockup leaves inside it, and is
           // removed whole: fading the overlay itself let the page behind show

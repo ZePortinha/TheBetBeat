@@ -64,6 +64,16 @@ body {
 body {
   padding-top: env(safe-area-inset-top);
 }
+/*
+ * Full-screen black layers (logo intro, winner's page). iOS Safari's
+ * floating toolbar sits over the page, and a fixed layer with bottom: 0
+ * stopped short of it, so the page behind (names in the ranking) showed
+ * through under the toolbar on a refresh (2026-11-06). These layers paint
+ * black well past their bottom edge (their content stays in view).
+ */
+.cover-chrome {
+  box-shadow: 0 50vh 0 0 var(--color-bg-base);
+}
 body::before {
   content: "";
   position: fixed;

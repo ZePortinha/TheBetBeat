@@ -226,7 +226,7 @@ export function WinCelebration({
       aria-modal="true"
       aria-label={title}
       // touch-none: a drag on the screen never reaches the page behind it.
-      className="fixed inset-0 z-50 touch-none overflow-hidden overscroll-none bg-bg-base text-center"
+      className="cover-chrome fixed inset-0 z-50 touch-none overflow-hidden overscroll-none bg-bg-base text-center"
     >
       <canvas ref={stage} aria-hidden className="absolute inset-0 size-full" />
 
