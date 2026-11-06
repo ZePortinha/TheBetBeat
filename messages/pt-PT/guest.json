@@ -186,8 +186,6 @@
   },
   "top": {
     "title": "Top da noite",
-    "eyebrow": "Sessão ativa",
-    "eyebrowDj": "Sessão ativa · {dj} na cabine",
     "topTracks": "Faixas mais pedidas",
     "topGuests": "Convidados da noite",
     "requestsCount": "{count, plural, one {# pedido} other {# pedidos}}",
@@ -408,7 +406,6 @@
       "enable": "Ativar avisos",
       "later": "Agora não"
     },
-    "screenEyebrow": "Leilões da noite",
     "screenTitle": "Leilão",
     "slotAt": "Leilão das {time}",
     "slotClosing": "A fechar",

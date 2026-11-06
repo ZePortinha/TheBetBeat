@@ -1032,3 +1032,26 @@ Apple decision of 2026-10-05 (palette, type, capsules unchanged) and B10.1/B10.4
   skill's "avoid Inter"), the pure black base, the red guarantee tile, the
   English slogan, the gold "you lead" state, and the centred hero (an
   Apple product page whose message is the design).
+
+### Same day, second pass: the party screens
+
+Vouga: "o site ficou exatamente igual". He judges the party (the QR link on
+his phone), which the first pass barely touched. Changes there:
+
+- **Agora:** nothing floats over the now-playing art any more (the "Ao vivo"
+  and "A tocar agora" pills are gone); one quiet "A tocar agora" line sits
+  above the title, and who picked the track is plain text, not an icon pill.
+  The progress bar is solid white like a player's scrubber; the red-to-amber
+  heat gradient stays for demand only.
+- **Leilão:** no eyebrow above the screen title, no gavel icon in the card
+  labels, and the live auction card lost its outer red glow (the red border
+  still marks it live; the last-seconds "hot" card is unchanged). This
+  overrides the earlier "red glow is the owner's look" note, at the owner's
+  request for a less AI-looking app.
+- **Ranking:** no "Sessão ativa · DJ na cabine" eyebrow (the page no longer
+  loads the session state just for it).
+- **Escolher faixa:** the fit chips in result rows are coloured text only
+  (`FitChip quiet`: no box, no icon; the words still carry the state), and
+  "Licitar" is a grey capsule with the red word, like the App Store's
+  "Obter", instead of thirty bare red words down the list. The cockpit keeps
+  the boxed chips.

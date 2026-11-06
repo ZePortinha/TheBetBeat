@@ -186,8 +186,6 @@
   },
   "top": {
     "title": "Top of the night",
-    "eyebrow": "Live session",
-    "eyebrowDj": "Live session · {dj} in the booth",
     "topTracks": "Most requested tracks",
     "topGuests": "Guests of the night",
     "requestsCount": "{count, plural, one {# request} other {# requests}}",
@@ -408,7 +406,6 @@
       "enable": "Turn on alerts",
       "later": "Not now"
     },
-    "screenEyebrow": "Tonight's auctions",
     "screenTitle": "Auction",
     "slotAt": "{time} auction",
     "slotClosing": "Closing",

@@ -10,9 +10,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ChevronRight, Gavel, Disc3, ReceiptText } from "lucide-react";
+import { ChevronRight, ReceiptText } from "lucide-react";
 import { Disc } from "@/components/ui/disc";
-import { LiveBadge } from "@/components/ui/live-badge";
 import { TrackProgress } from "@/components/ui/now-playing";
 import { Pressable } from "@/components/ui/pressable";
 import { publicChannel } from "@/lib/realtime/events";
@@ -27,7 +26,6 @@ const POLL_MS = 15_000;
 
 function NowPlayingHero({ now, live, djName }: { now: NowPlayingDto | null; live: boolean; djName: string | null }) {
   const t = useTranslations("guest");
-  const tc = useTranslations("common");
   const titleId = React.useId();
   const pickedBy = now?.pickedBy;
 
@@ -45,38 +43,27 @@ function NowPlayingHero({ now, live, djName }: { now: NowPlayingDto | null; live
       {/* Legibility: the art fades into the page behind the text. */}
       <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-t from-bg-base via-bg-base/75 to-bg-base/0" />
 
-      <div className="flex min-h-[25rem] flex-col justify-between p-5">
-        <div className="flex items-center justify-between gap-3">
-          {live ? <LiveBadge text={tc("status.live")} bpm={now?.bpm ?? 120} /> : <span />}
-          <p className="label rounded-full bg-bg-base/60 px-2.5 py-1 text-text-secondary backdrop-blur">
-            {t("session.nowPlaying")}
-          </p>
-        </div>
-
+      {/* Nothing floats over the art: one quiet line names the card, the
+          title carries it, who picked the track reads as plain text. */}
+      <div className="flex min-h-[25rem] flex-col justify-end p-5">
         {now ? (
           <div>
+            <p className="label text-text-secondary">{t("session.nowPlaying")}</p>
             <h1
               id={titleId}
-              className="line-clamp-2 text-4xl font-bold text-text-primary"
+              className="mt-1 line-clamp-2 text-4xl font-bold text-text-primary"
             >
               {now.title}
             </h1>
             <p className="mt-1 truncate text-lg font-medium text-text-secondary">{now.artist}</p>
-            <p className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-bg-base/60 px-3 py-1.5 text-sm font-semibold text-text-primary ring-1 ring-line-strong backdrop-blur">
-              {pickedBy ? (
-                <Gavel size={14} className="shrink-0 text-accent-400" aria-hidden />
-              ) : (
-                <Disc3 size={14} className="shrink-0 text-accent-400" aria-hidden />
-              )}
-              <span className="truncate">
-                {pickedBy
-                  ? pickedBy.label
-                    ? t("auction.pickedBy", { label: pickedBy.label })
-                    : t("auction.pickedAnon")
-                  : djName
-                    ? t("auction.djPickName", { dj: djName })
-                    : t("auction.djPick")}
-              </span>
+            <p className="mt-2 truncate text-sm font-medium text-text-tertiary">
+              {pickedBy
+                ? pickedBy.label
+                  ? t("auction.pickedBy", { label: pickedBy.label })
+                  : t("auction.pickedAnon")
+                : djName
+                  ? t("auction.djPickName", { dj: djName })
+                  : t("auction.djPick")}
             </p>
             {now.durationSec ? (
               <TrackProgress

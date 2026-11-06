@@ -169,14 +169,13 @@ function AuctionCard({
     <article
       ref={card}
       className={cx(
-        "rounded-sheet border border-accent-500/40 bg-surface-1 p-5 shadow-glow-accent",
+        "rounded-sheet border border-accent-500/40 bg-surface-1 p-5",
         finalStretch && "auction-flash-card",
       )}
       aria-label={t("openTitle")}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="label flex items-center gap-1.5 text-accent-400">
-          <Gavel size={14} aria-hidden />
+        <p className="label text-accent-400">
           {t("openTitle")}
         </p>
         {slot.kind !== "regular" ? <SpecialChip /> : null}
@@ -487,10 +486,7 @@ export function AuctionTeaser({ token }: { token: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="label flex items-center gap-1.5 text-accent-400">
-            <Gavel size={14} aria-hidden />
-            {t("liveTeaser")}
-          </p>
+          <p className="label text-accent-400">{t("liveTeaser")}</p>
           <p className="mt-1 truncate text-sm text-text-secondary">
             {slot.top
               ? t("leadsWith", { name: slot.top.by ?? t("anonymousBidder"), amount: formatEurosDisplay(slot.top.totalCents) })
