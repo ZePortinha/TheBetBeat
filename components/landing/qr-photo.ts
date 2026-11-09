@@ -26,6 +26,12 @@ export const PHOTO_PASSES: ReadonlyArray<PhotoPass> = [
   [0.6, 1000, 0.5, 0.5],
   [1, 700, 0.5, 0.5],
   [0.4, 800, 0.5, 0.5],
+  // Small sizes: a photo of a screen carries a pixel-grid pattern (moiré)
+  // that scaling down averages away.
+  [1, 500, 0.5, 0.5],
+  [0.6, 600, 0.5, 0.5],
+  [1, 400, 0.5, 0.5],
+  [0.4, 450, 0.5, 0.5],
   // The code off to one side (a TV filmed at an angle): overlapping halves.
   ...[0, 0.5, 1].flatMap((ay) => [0, 0.5, 1].map((ax) => [0.5, 1000, ax, ay] as const)).filter(([, , ax, ay]) => ax !== 0.5 || ay !== 0.5),
   [0.6, 1600, 0.5, 0.5],
