@@ -466,6 +466,7 @@
     "denied": "No camera access. Allow the camera in your browser settings, or pick the event from the list.",
     "retry": "Try again",
     "photo": "Photograph the QR",
+    "photoReading": "Reading the QR…",
     "photoNoCode": "No QR found in the photo. Try again, a little closer.",
     "notOurs": "This QR is not a Discontrol event.",
     "liveTitle": "Live events",

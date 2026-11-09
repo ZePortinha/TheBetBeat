@@ -1095,3 +1095,14 @@ that only stopped a gliding list counted as a pick.
 - **A touch within 180ms of a scroll only stops the glide** (iOS momentum),
   for every press, including the page-wide press activation
   (`components/ui/scroll-guard.ts`).
+
+## 2026-11-09 - Reading the QR from a photo tries harder
+
+Vouga: the camera opens but the QR is not read. One 1200 px pass misses a
+phone photo of the TV when the code is small, off to one side or washed by
+the screen. `components/landing/qr-photo.ts` now tries BarcodeDetector
+first (where present), then jsQR over a ladder of passes: the whole photo
+at 1000/1600/700/2200 px, centre crops, and eight overlapping halves for a
+code off to one side; the first code found wins. The button reads "A ler o
+QR…" meanwhile. If `createImageBitmap` fails (older Safari) the photo is
+decoded through an `<img>`.

@@ -466,6 +466,7 @@
     "denied": "Sem acesso à câmara. Permite a câmara nas definições do browser, ou escolhe o evento na lista.",
     "retry": "Tentar outra vez",
     "photo": "Tirar foto ao QR",
+    "photoReading": "A ler o QR…",
     "photoNoCode": "Não encontrámos um QR na foto. Tenta outra vez, mais perto.",
     "notOurs": "Este QR não é de um evento Discontrol.",
     "liveTitle": "Eventos em direto",

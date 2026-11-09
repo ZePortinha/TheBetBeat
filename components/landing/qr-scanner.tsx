@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { Camera, CameraOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { guestPathFrom } from "@/lib/guest-path";
+import { readQrFromPhoto } from "./qr-photo";
 
 type Phase = "idle" | "starting" | "scanning" | "denied";
 
@@ -46,6 +47,7 @@ export function QrScanner() {
   const [phase, setPhase] = React.useState<Phase>("idle");
   const [notOurs, setNotOurs] = React.useState(false);
   const [noCode, setNoCode] = React.useState(false);
+  const [reading, setReading] = React.useState(false);
   // Server render assumes a live camera; the client corrects it on hydration.
   const liveCamera = React.useSyncExternalStore(noSubscribe, hasLiveCamera, () => true);
 
@@ -139,31 +141,23 @@ export function QrScanner() {
     };
   }, [phase, router, stop]);
 
-  /** A photo of the QR (no live camera): read it once. */
+  /** A photo of the QR (no live camera): read it once, trying hard. */
   const readPhoto = async (file: File | undefined) => {
     if (!file) return;
     setNoCode(false);
     setNotOurs(false);
+    setReading(true);
     try {
-      const bmp = await createImageBitmap(file);
-      const scale = Math.min(1, 1200 / Math.max(bmp.width, bmp.height));
-      const w = Math.round(bmp.width * scale);
-      const h = Math.round(bmp.height * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      ctx?.drawImage(bmp, 0, 0, w, h);
-      bmp.close();
-      const jsQR = (await import("jsqr")).default;
-      const code = ctx ? jsQR(ctx.getImageData(0, 0, w, h).data, w, h) : null;
-      if (!code) return setNoCode(true);
-      const path = guestPathFrom(code.data);
+      const text = await readQrFromPhoto(file);
+      if (!text) return setNoCode(true);
+      const path = guestPathFrom(text);
       if (!path) return setNotOurs(true);
       navigator.vibrate?.(30);
       router.push(path);
     } catch {
       setNoCode(true);
+    } finally {
+      setReading(false);
     }
   };
 
@@ -181,7 +175,7 @@ export function QrScanner() {
         }}
       />
       <Camera size={20} aria-hidden />
-      {text}
+      {reading ? t("photoReading") : text}
     </label>
   );
 
