@@ -1075,3 +1075,23 @@ cannot open there at all (on the real https domain it does).
 - **Live-camera buttons confirm on release** (`activateOn="release"`),
   which iOS counts as a user gesture for `getUserMedia`.
 - The old "this browser cannot open the camera" phase and its copy are gone.
+
+## 2026-11-09 - Scrolling a list never picks a row
+
+Vouga: scrolling the song list sometimes opened a song by accident. Album
+and request rows (and the cockpit library rows) confirmed on pointer-down,
+so a scroll that started on them opened them; song rows confirmed on
+release but let the finger travel ~10px past the row's edges, and a tap
+that only stopped a gliding list counted as a pick.
+
+- **Rows in scrolling lists confirm on release** (`activateOn="release"`):
+  song, album, request and cockpit library rows. Buttons elsewhere keep
+  the owner's press-to-act rule of 2026-10-11.
+- **Release on touch is strict:** more than 8px of finger travel, or any
+  scroll during the press, cancels it for good (`stillATap`); no pointer
+  capture on touch, so the browser can turn the touch into a scroll; the
+  row lights up only after 90ms, so a scroll that starts on it does not
+  flash it.
+- **A touch within 180ms of a scroll only stops the glide** (iOS momentum),
+  for every press, including the page-wide press activation
+  (`components/ui/scroll-guard.ts`).

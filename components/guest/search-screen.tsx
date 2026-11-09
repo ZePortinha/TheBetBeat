@@ -150,6 +150,7 @@ export function SearchScreen({ token }: { token: string }) {
               {data.albums.map((album) => (
                 <Pressable
                   key={album.providerAlbumId}
+                  activateOn="release"
                   onPress={() => router.push(`/s/${token}/album/${album.providerAlbumId}`)}
                   className="flex min-h-16 w-full items-center gap-3 rounded-cover px-4 py-2 text-left data-pressed:bg-surface-2"
                 >

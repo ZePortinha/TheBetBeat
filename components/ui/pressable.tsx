@@ -11,7 +11,14 @@
  *   pick it) and actions the browser only allows from a finished tap on
  *   touch screens (share sheet, notifications permission, clipboard). Then
  *   the action confirms on pointer-UP inside the target + ~10px hit slop,
- *   and dragging away cancels the press, dragging back re-arms it.
+ *   and dragging away cancels the press, dragging back re-arms it. On touch
+ *   it is stricter (owner, 2026-11-09: scrolling the song list picked songs
+ *   by accident): a finger that travels more than 8px, a list that scrolls
+ *   during the press, or a touch that only stops a gliding list never
+ *   confirms, and the row only lights up after 90ms so a scroll that starts
+ *   on it does not flash it.
+ * - Either mode: a touch that lands while the page is still gliding from a
+ *   scroll only stops it (scroll-guard.ts).
  * - Double-tap protection: repeated confirms within 400ms are ignored WITHOUT
  *   delaying the first one (debounce never delays feedback).
  * - Keyboard still works: Enter/Space on a native button produce a click with
@@ -29,6 +36,9 @@ import {
   type Transition,
 } from "motion/react";
 import { durations, easeStandard, springDefault } from "@/lib/motion";
+import { installScrollGuard, scrollMark, scrolledRecently, scrolledSince, stillATap } from "./scroll-guard";
+/** Touch highlight delay for release-mode presses (ms), like iOS lists. */
+const TOUCH_HIGHLIGHT_DELAY_MS = 90;
 
 /** Tiny class joiner (kept local — no extra deps, no extra files). */
 export function cx(
@@ -86,6 +96,19 @@ export function usePressable(
   const boundsRef = React.useRef<DOMRect | null>(null);
   // performance.now() is UI plumbing, not domain logic — no injected clock.
   const lastConfirmAtRef = React.useRef(0);
+  // Release-mode touch bookkeeping: where the finger landed, whether the
+  // press is still a tap, and what had scrolled when it began.
+  const startRef = React.useRef<{ x: number; y: number; touch: boolean } | null>(null);
+  const armedRef = React.useRef(false);
+  const markRef = React.useRef(0);
+  const highlightTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    installScrollGuard();
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    };
+  }, []);
 
   const confirm = React.useCallback(
     (event: PressEvent) => {
@@ -116,6 +139,10 @@ export function usePressable(
   const reset = React.useCallback(() => {
     pointerIdRef.current = null;
     boundsRef.current = null;
+    startRef.current = null;
+    armedRef.current = false;
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = null;
     setPressed(false);
   }, []);
 
@@ -126,8 +153,24 @@ export function usePressable(
       if (disabled) return;
       // Primary button/touch only.
       if (event.button !== 0) return;
+      const touch = event.pointerType === "touch";
+      // A finger landing on a gliding list only stops it: not a tap.
+      if (touch && scrolledRecently()) return;
       pointerIdRef.current = event.pointerId;
       boundsRef.current = event.currentTarget.getBoundingClientRect();
+      startRef.current = { x: event.clientX, y: event.clientY, touch };
+      armedRef.current = true;
+      markRef.current = scrollMark();
+      if (activateOn === "release" && touch) {
+        // No pointer capture on touch: the browser must stay free to turn
+        // the touch into a scroll (it then sends pointercancel).
+        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+        highlightTimerRef.current = setTimeout(() => {
+          highlightTimerRef.current = null;
+          if (armedRef.current && !scrolledSince(markRef.current)) setPressed(true);
+        }, TOUCH_HIGHLIGHT_DELAY_MS);
+        return;
+      }
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
       } catch {
@@ -144,10 +187,21 @@ export function usePressable(
   >(
     (event) => {
       if (pointerIdRef.current !== event.pointerId) return;
+      const start = startRef.current;
+      if (activateOn === "release" && start?.touch) {
+        // On touch, travel means scrolling: cancel for good.
+        if (!stillATap(start, { x: event.clientX, y: event.clientY }, scrolledSince(markRef.current))) {
+          armedRef.current = false;
+          if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+          highlightTimerRef.current = null;
+          setPressed(false);
+        }
+        return;
+      }
       // Drag away cancels; drag back re-arms (apple-design §10).
       setPressed(!disabled && isWithinSlop(event));
     },
-    [disabled, isWithinSlop],
+    [activateOn, disabled, isWithinSlop],
   );
 
   const onPointerUp = React.useCallback<
@@ -156,8 +210,9 @@ export function usePressable(
     (event) => {
       if (pointerIdRef.current !== event.pointerId) return;
       const inside = isWithinSlop(event);
+      const still = armedRef.current && !scrolledSince(markRef.current);
       reset();
-      if (activateOn === "release" && inside && !disabled) confirm(event);
+      if (activateOn === "release" && inside && still && !disabled) confirm(event);
     },
     [activateOn, confirm, disabled, isWithinSlop, reset],
   );
