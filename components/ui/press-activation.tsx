@@ -22,6 +22,7 @@
  */
 
 import * as React from "react";
+import { installScrollGuard, scrolledRecently } from "./scroll-guard";
 
 const ACTIVATABLE = [
   "button",
@@ -61,6 +62,7 @@ export function pressTarget(event: PointerEvent): HTMLElement | null {
 
 export function PressActivation() {
   React.useEffect(() => {
+    installScrollGuard();
     // The press we already acted on; its own click (when the finger lifts) is dropped.
     let pending: { pointerId: number; upAt: number | null } | null = null;
 
@@ -68,6 +70,9 @@ export function PressActivation() {
       pending = null;
       const el = pressTarget(event);
       if (!el) return;
+      // A finger landing on a gliding list only stops it: no tap at all
+      // (the browser sends no click for it either).
+      if (event.pointerType === "touch" && scrolledRecently()) return;
       pending = { pointerId: event.pointerId, upAt: null };
       el.click();
     };

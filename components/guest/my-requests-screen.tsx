@@ -87,6 +87,7 @@ export function MyRequestsScreen({
   const renderRow = (r: GuestRequestListItem) => (
     <Pressable
       key={r.requestId}
+      activateOn="release"
       onPress={() => router.push(`/s/${token}/requests/${r.requestId}`)}
       className="flex w-full items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-3 text-left"
     >

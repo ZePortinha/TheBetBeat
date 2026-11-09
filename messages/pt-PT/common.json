@@ -101,49 +101,43 @@
     "hero": {
       "titleA": "Toma o controlo",
       "titleB": "da pista.",
-      "sub": "Escolhe a faixa, licita no leilão aberto e paga em segundos. O DJ tem sempre a última palavra e, se não tocar, devolvemos tudo.",
+      "sub": "Escolhe a faixa, licita e paga em segundos. O DJ tem sempre a última palavra.",
       "cta": "Ver como funciona",
       "ctaSecondary": "Para DJs e casas"
     },
     "how": {
-      "title": "Do QR ao pedido",
-      "titleAccent": "em menos de 30 segundos.",
+      "title": "Assim se pede uma música.",
       "scan": {
         "title": "Lê o QR da pista.",
-        "body": "Abre no telemóvel. Sem instalar nada, sem registo e sem palavra-passe."
+        "body": "A festa abre logo no telemóvel."
       },
       "choose": {
         "title": "Escolhe a faixa e licita.",
-        "body": "Os leilões abrem ao longo da noite. Vês o valor antes de pagar e, se fores ultrapassado, o dinheiro volta ao teu saldo."
+        "body": "Os leilões abrem ao longo da noite e vês o valor antes de pagar."
       },
       "decide": {
         "title": "O DJ decide.",
-        "body": "Nada toca sem ser aceite. Se não tocar, o dinheiro volta para ti sozinho."
+        "body": "Nada toca sem ser aceite, e segues tudo em direto."
       }
     },
     "sides": {
-      "title": "Uma cabine,",
-      "titleAccent": "três lados.",
+      "title": "Uma cabine, três lados.",
       "guest": {
-        "label": "Convidados",
         "figure": "30 s",
         "title": "ou menos para mexer na música da noite.",
-        "body": "Sem instalar nada, sem registo e com reembolso garantido."
+        "body": "Sem instalar nada, sem registo e sem palavra-passe."
       },
       "dj": {
-        "label": "DJs",
-        "title": "A última palavra é tua.",
-        "body": "Receita extra, procura em tempo real e controlo artístico total."
+        "title": "O DJ lê a pista em tempo real.",
+        "body": "Cada pedido chega à cabine com o valor ao lado, e só toca o que encaixa no set."
       },
       "venue": {
-        "label": "Casas",
-        "title": "Sem hardware novo.",
-        "body": "Mais receita por convidado, mais envolvimento e dados da noite."
+        "title": "A casa não precisa de hardware novo.",
+        "body": "Basta um QR na pista. Os leilões trazem receita nova à casa e ao DJ."
       }
     },
     "guarantee": {
-      "title": "Se não tocar,",
-      "titleAccent": "devolvemos tudo.",
+      "title": "Se não tocar, devolvemos tudo.",
       "body": "Reembolso total e automático. Se fores ultrapassado num leilão, o valor volta ao teu saldo."
     },
     "footer": {

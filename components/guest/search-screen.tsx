@@ -150,6 +150,7 @@ export function SearchScreen({ token }: { token: string }) {
               {data.albums.map((album) => (
                 <Pressable
                   key={album.providerAlbumId}
+                  activateOn="release"
                   onPress={() => router.push(`/s/${token}/album/${album.providerAlbumId}`)}
                   className="flex min-h-16 w-full items-center gap-3 rounded-cover px-4 py-2 text-left data-pressed:bg-surface-2"
                 >
@@ -227,8 +228,12 @@ export function SearchRow({
       fitText={fitText}
       available={track.available}
       {...(unavailableText ? { unavailableReason: unavailableText } : {})}
+      // A grey capsule with the red word, like the App Store's "Obter":
+      // thirty bare red words down a list read as noise.
       priceSlot={
-        <span className="tnum text-sm font-semibold text-accent-400">{fromText}</span>
+        <span className="inline-flex min-h-8 items-center rounded-full bg-surface-2 px-3.5 text-sm font-semibold text-accent-400">
+          {fromText}
+        </span>
       }
       {...(track.available ? { onSelect } : {})}
     />

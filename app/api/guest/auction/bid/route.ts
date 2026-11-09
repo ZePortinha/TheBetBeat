@@ -3,12 +3,15 @@ import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { claimHandle, linkPhoneHandle } from "@/lib/guests/phone-handle";
 import { placeBid, startTopUpBid, type BidRequest } from "@/lib/auction/service";
+import { invalidatePublicAuctionState } from "@/lib/auction/public-cache";
 import { ensureTrackBpm } from "@/lib/catalog/service";
 import type { DisplayChoice } from "@/lib/auction/recognition";
 import { checkBackingMessage } from "@/lib/auction/backing";
 import { encrypt, hashPhone } from "@/lib/security/crypto";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
+import { capture } from "@/lib/analytics/capture";
+import { EVENTS } from "@/lib/analytics/events";
 import { apiError, clientIp, correlationId, rateLimitedResponse } from "../../_lib/http";
 import { ensureGuestRow, getGuestIdentity, isSignedIn } from "../../_lib/auth";
 import { resolveGuestContext } from "../../_lib/context";
@@ -120,7 +123,16 @@ export async function POST(request: Request) {
   };
   const now = Date.now();
   const placed = await placeBid(req, now);
-  if (placed.ok) return NextResponse.json({ state: "placed", bid: placed });
+  if (placed.ok) {
+    invalidatePublicAuctionState(resolved.ctx.sessionId);
+    capture(EVENTS.auctionBidPlaced, identity.guestId, {
+      sessionId: resolved.ctx.sessionId,
+      target: body.target.kind,
+      totalCents: placed.totalCents,
+      extended: placed.extended,
+    }, now);
+    return NextResponse.json({ state: "placed", bid: placed });
+  }
   // A too-low bid returns the actual minimum, so the UI can show it.
   if ((placed.error === "below_minimum" || placed.error === "below_track_minimum") && placed.minCents !== undefined) {
     return NextResponse.json({ error: { code: placed.error, id: correlationId() }, minCents: placed.minCents }, { status: 409 });
@@ -151,6 +163,13 @@ export async function POST(request: Request) {
       ...(body.phone ? { phone: body.phone } : {}),
       ...(body.email ? { email: body.email } : {}),
     },
+    now,
+  );
+  invalidatePublicAuctionState(resolved.ctx.sessionId);
+  capture(
+    started.state === "failed" ? EVENTS.paymentFailed : EVENTS.auctionTopUpStarted,
+    identity.guestId,
+    { sessionId: resolved.ctx.sessionId, method: body.method, needCents, reason: started.state === "failed" ? "topup_start" : null },
     now,
   );
   return NextResponse.json(

@@ -12,6 +12,8 @@ import {
 } from "@/lib/catalog/service";
 import { eventStyleFirst, inBpmRange, matchesStyle } from "@/lib/catalog/styles";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
+import { capture } from "@/lib/analytics/capture";
+import { EVENTS } from "@/lib/analytics/events";
 import { apiError, rateLimitedResponse } from "../_lib/http";
 import { ensureGuestRow, getGuestIdentity } from "../_lib/auth";
 import { resolveGuestContext } from "../_lib/context";
@@ -90,6 +92,8 @@ export async function GET(request: Request) {
   }
 
   if (q.length > 0) {
+    // Never the query text itself: it is free text typed by a guest.
+    capture(EVENTS.guestSearch, identity.guestId, { sessionId: ctx.sessionId, queryLength: q.length });
     const [lib, catalog, albums] = await Promise.all([
       pool.query<TrackRow>(
         `select id, title, artist, genre, bpm, camelot_key, blocked

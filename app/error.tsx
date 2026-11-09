@@ -7,6 +7,7 @@
  */
 
 import { useEffect } from "react";
+import { reportBoundaryError } from "@/lib/observability/report";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { CloudOff } from "lucide-react";
@@ -24,6 +25,7 @@ export default function RootError({
 
   useEffect(() => {
     console.error("[app] route error", error.digest ?? "");
+    reportBoundaryError(error, "app");
   }, [error]);
 
   return (

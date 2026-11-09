@@ -89,7 +89,7 @@ export function TrackRow({
         </span>
         <span className="mt-0.5 flex items-center gap-2">
           <span className="truncate text-sm text-text-secondary">{artist}</span>
-          {fit && fitText ? <FitChip label={fit} text={fitText} className="shrink-0" /> : null}
+          {fit && fitText ? <FitChip quiet label={fit} text={fitText} className="shrink-0" /> : null}
         </span>
       </span>
 

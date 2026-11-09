@@ -1,7 +1,9 @@
 /**
  * Funnel instrumentation (BRIEF B14): stable event names from day one.
- * Captured server-side (no SDK dependency) by lib/analytics/capture.ts and,
- * when NEXT_PUBLIC_POSTHOG_KEY is set, client-side via the same names.
+ * Captured server-side only (lib/analytics/capture.ts): no SDK, no cookie
+ * and no script in the browser, so guests carry no tracker (B13 RGPD).
+ * Renaming an event breaks every PostHog chart built on it: add, never
+ * rename.
  */
 export const EVENTS = {
   // Guest funnel: scan → search → quote → payment → played
@@ -12,8 +14,12 @@ export const EVENTS = {
   guestPaymentConfirmed: "guest.payment_confirmed",
   guestRequestPlayed: "guest.request_played",
   guestShare: "guest.share",
+  // Auctions: bid → (top-up) → won → DJ decision → played
+  auctionBidPlaced: "auction.bid_placed", // props: target own|back, totalCents
+  auctionTopUpStarted: "auction.topup_started", // props: method, needCents
+  auctionSlotDecision: "auction.slot_decision", // props: action
   // DJ
-  djDecision: "dj.decision", // props: action accept|reject|cancel, decisionMs
+  djDecision: "dj.decision", // props: action accept|reject|cancel|timeout, decisionMs
   djSlaMissed: "dj.sla_missed",
   // Health
   paymentFailed: "payment.failed",
@@ -22,3 +28,5 @@ export const EVENTS = {
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
+
+export type EventProperties = Record<string, string | number | boolean | null>;

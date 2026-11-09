@@ -6,58 +6,19 @@
  * The live queue moved to the home ("Agora") on 2026-10-06.
  */
 
-import * as React from "react";
 import { useTranslations } from "next-intl";
-import { publicChannel } from "@/lib/realtime/events";
-import { PUBLIC_HINT_MS, useRealtimeChannel } from "@/lib/realtime/client";
-import { apiFetch } from "./api";
 import { RankingPodium } from "./ranking";
-import { LiveDot, PartyHeading, PartyTopBar } from "./party-chrome";
-import type { SessionStateDto } from "./types";
+import { PartyHeading, PartyTopBar } from "./party-chrome";
 
-function useSessionState(token: string, sessionId: string, initial: SessionStateDto) {
-  const [state, setState] = React.useState(initial);
-  const refetch = React.useCallback(async () => {
-    const res = await apiFetch<SessionStateDto>(
-      `/api/guest/session-state?token=${encodeURIComponent(token)}`,
-    );
-    if (res.ok) setState(res.data);
-  }, [token]);
-  React.useEffect(() => {
-    const id = setInterval(() => void refetch(), 15_000);
-    return () => clearInterval(id);
-  }, [refetch]);
-  useRealtimeChannel(publicChannel(sessionId), { private: false, minIntervalMs: PUBLIC_HINT_MS }, () => void refetch());
-  return state;
-}
-
-export function TopScreen({
-  token,
-  sessionId,
-  initialState,
-}: {
-  token: string;
-  sessionId: string;
-  initialState: SessionStateDto;
-}) {
+/** No label above the title: the tab bar already says where you are. */
+export function TopScreen({ token }: { token: string }) {
   const t = useTranslations("guest.top");
   const ta = useTranslations("guest.auction");
-  const state = useSessionState(token, sessionId, initialState);
-  const dj = state.session.djName;
 
   return (
     <main className="flex min-h-dvh flex-col gap-6 px-4 pb-[calc(var(--dock-h)+3rem)] pt-4">
       <PartyTopBar />
-      <PartyHeading
-        eyebrow={
-          <>
-            <LiveDot />
-            {dj ? t("eyebrowDj", { dj }) : t("eyebrow")}
-          </>
-        }
-        title={t("title")}
-        sub={ta("rankingTitle")}
-      />
+      <PartyHeading title={t("title")} sub={ta("rankingTitle")} />
       <RankingPodium token={token} />
     </main>
   );

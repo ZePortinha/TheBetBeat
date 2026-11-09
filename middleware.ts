@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { isCrossSiteApiWrite } from "@/lib/security/csrf";
 import { isApiBodyTooLarge } from "@/lib/security/body-limit";
+import { sentryOrigin } from "@/lib/observability/sentry-options";
 
 /**
  * Security middleware (B12.4): per-request CSP nonce + strict headers,
@@ -21,6 +22,10 @@ export async function middleware(request: NextRequest) {
   );
   const isDev = process.env.NODE_ENV !== "production";
 
+  // Browser error reports go straight to the Sentry ingest host (only when set).
+  const sentryHost = sentryOrigin(process.env.NEXT_PUBLIC_SENTRY_DSN);
+  const sentryConnect = sentryHost ? ` ${sentryHost}` : "";
+
   const csp = [
     `default-src 'self'`,
     // next/font inlines styles; Tailwind injects a style tag in dev.
@@ -34,7 +39,7 @@ export async function middleware(request: NextRequest) {
     `font-src 'self'`,
     `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} ${
       (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace("http", "ws")
-    } https://challenges.cloudflare.com`,
+    } https://challenges.cloudflare.com${sentryConnect}`,
     `frame-ancestors 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

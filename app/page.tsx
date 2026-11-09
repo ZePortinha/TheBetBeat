@@ -121,8 +121,7 @@ export default async function Home() {
         <QrScanner />
 
         <section aria-labelledby="live-events" className="flex flex-col gap-2">
-          <h2 id="live-events" className="label flex items-center gap-1.5 text-accent-400">
-            <span aria-hidden className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />
+          <h2 id="live-events" className="label text-text-secondary">
             {t("liveTitle")}
           </h2>
           {events.length === 0 ? (

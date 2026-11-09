@@ -24,6 +24,9 @@ import "server-only";
 
 import type { PoolClient } from "pg";
 import { getPool, withTransaction } from "@/lib/db";
+import { capture } from "@/lib/analytics/capture";
+import { EVENTS } from "@/lib/analytics/events";
+import { transitionFunnelEvents } from "@/lib/analytics/funnel";
 import {
   promiseDeadlineAtMs,
   transition,
@@ -356,6 +359,26 @@ export async function applyTransitionInTx(
 
   // Build realtime payloads from the FINAL row state.
   const publishes = await buildPublishes(client, updated, publishEvents, pricing, now);
+
+  // Funnel metrics (B14), only once the transaction has committed.
+  const funnel = transitionFunnelEvents({
+    event,
+    from: row.status,
+    to: updated.status,
+    tier: updated.tier,
+    amountCents: updated.amount_cents,
+    refundedCents: updated.refunded_cents - row.refunded_cents,
+    closeReason: updated.close_reason,
+    paidAtMs: updated.paid_at ? updated.paid_at.getTime() : null,
+    sessionId: row.session_id,
+    venueId: row.venue_id,
+    now,
+  });
+  if (funnel.length > 0) {
+    afterCommit.push(async () => {
+      for (const item of funnel) capture(item.name, row.guest_id, item.properties, now);
+    });
+  }
 
   return {
     outcome: {
@@ -1010,6 +1033,13 @@ export async function createRequestAndStartPayment(
       : now + validated.config.mbwayTimeoutMin * 60_000;
     jobs.push({ kind: "payment_timeout", requestId: row.id, runAtMs: timeoutAtMs });
   }
+
+  capture(
+    EVENTS.guestPaymentStarted,
+    params.guestId,
+    { sessionId: row.session_id, venueId: row.venue_id, tier: params.tier, amountCents: params.amountCents, method: params.method },
+    now,
+  );
 
   return {
     ok: true,

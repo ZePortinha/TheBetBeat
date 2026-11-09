@@ -165,6 +165,7 @@ export function LibraryScreen({ venueId, venueName }: { venueId: string | null; 
             {(tracks ?? []).map((tr) => (
               <li key={tr.id}>
                 <Pressable
+                  activateOn="release"
                   onPress={() => setEditing(tr)}
                   className="flex min-h-14 w-full items-center gap-3 rounded-card border border-line-subtle bg-surface-1 px-4 py-2 text-left data-pressed:bg-surface-2"
                 >
@@ -189,6 +190,7 @@ export function LibraryScreen({ venueId, venueName }: { venueId: string | null; 
           {(groups ?? []).map((g) => (
             <li key={`${g.name}::${g.artist ?? ""}`}>
               <Pressable
+                activateOn="release"
                 onPress={() => openGroup(g)}
                 className="flex min-h-14 w-full flex-col items-start justify-center rounded-card border border-line-subtle bg-surface-1 px-4 py-3 text-left data-pressed:bg-surface-2"
               >

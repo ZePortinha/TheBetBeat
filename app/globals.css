@@ -55,6 +55,44 @@ body {
 }
 
 /*
+ * The iPhone status bar (2026-11-06). Opened from the home screen, iOS
+ * lays the clock and battery over the top of the page (viewport-fit=cover)
+ * whatever the status-bar meta says. Every page starts below it, and a
+ * black strip keeps scrolled content from showing under the clock. In a
+ * normal browser tab the inset is 0 and none of this shows.
+ */
+body {
+  padding-top: env(safe-area-inset-top);
+}
+/*
+ * Full-screen black layers (logo intro, winner's page). iOS Safari's
+ * floating toolbar sits over the page and a fixed layer does not reach
+ * under it, so the page behind (names in the ranking) showed through there
+ * on a refresh (2026-11-06). While such a layer is up, everything else on
+ * the page is hidden; toasts stay (the share confirmation).
+ */
+body:has(.cover-chrome) *:not(.cover-chrome, .cover-chrome *, .toast-stack, .toast-stack *) {
+  visibility: hidden;
+}
+.cover-chrome,
+.toast-stack {
+  visibility: visible;
+}
+.cover-chrome {
+  box-shadow: 0 50vh 0 0 var(--color-bg-base);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 70;
+  height: env(safe-area-inset-top);
+  background: var(--color-bg-base);
+  pointer-events: none;
+}
+
+/*
  * Guest app type scale (2026-10-06): the iOS sizes (caption 12, subhead
  * 15, body 17, title 20/22/28, large title 34) with leading that tightens
  * and tracking that turns negative as text grows, so every screen shares
@@ -237,20 +275,33 @@ body:has(.guest-type) {
   backdrop-filter: var(--material-blur);
 }
 
+/* Guest tab bar. iOS Safari moves fixed elements a beat after its toolbar
+   grows or shrinks, which can leave a strip of page under the bar while
+   scrolling. The bar reaches a little past the bottom of the screen (same
+   material) so that strip stays covered. */
+.dock-extend {
+  --dock-overhang: 72px;
+  bottom: calc(-1 * var(--dock-overhang));
+  padding-bottom: var(--dock-overhang);
+  /* The overhang is solid: through the translucent material, the red light
+     at the foot of the page (ambient) showed as a red band under the bar
+     while Safari's toolbar shrank (2026-11-06). */
+  background: linear-gradient(
+    to bottom,
+    var(--material-bg) calc(100% - var(--dock-overhang)),
+    rgb(22, 22, 23) calc(100% - var(--dock-overhang))
+  );
+}
+
 /* ── Atmosphere (landing, login, house screen) ──────────────────── */
-/* Light pools: red from above, a breath of red below. */
+/* One pool of red light from above (B10.4: one glow per screen; the
+   second pool at the foot of the page was dropped on 2026-11-06). */
 .ambient {
-  background:
-    radial-gradient(
-      60% 50% at 78% 14%,
-      color-mix(in srgb, var(--color-accent-500) 15%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      50% 45% at 8% 92%,
-      color-mix(in srgb, var(--color-ember-500) 8%, transparent),
-      transparent 70%
-    );
+  background: radial-gradient(
+    60% 50% at 78% 14%,
+    color-mix(in srgb, var(--color-accent-500) 15%, transparent),
+    transparent 70%
+  );
 }
 .ambient-center {
   background: radial-gradient(
@@ -263,13 +314,14 @@ body:has(.guest-type) {
 /* ── Record: the product's signature object (decorative, CSS only) ─ */
 .disc {
   --disc-label: var(--color-accent-500);
+  --disc-hole: var(--color-bg-base);
   display: grid;
   place-items: center;
   aspect-ratio: 1;
   container-type: inline-size;
   border-radius: 9999px;
   background:
-    radial-gradient(circle at 50% 50%, var(--color-bg-base) 0 3.2%, transparent 3.6%),
+    radial-gradient(circle at 50% 50%, var(--disc-hole) 0 3.2%, transparent 3.6%),
     radial-gradient(circle at 50% 50%, var(--disc-label) 0 17%, transparent 17.4%),
     repeating-radial-gradient(
       circle at 50% 50%,
@@ -291,26 +343,30 @@ body:has(.guest-type) {
     0 0 0 1px var(--color-line-subtle),
     0 40px 90px -30px rgba(0, 0, 0, 0.9);
 }
-.disc-initials {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 11cqw;
-  letter-spacing: var(--tracking-display);
-  color: var(--color-text-on-accent);
+/* The mark's knob (brand-mark.tsx): a white pointer at 40deg on the red
+   label, no spindle hole. Sizes follow the mark's 512 grid (knob r 112,
+   pointer 26 wide, from 17 to 105 out from the centre). */
+.disc-has-knob {
+  --disc-hole: transparent;
 }
-/* Heat arc = wait-time progress (the one place the gradient is allowed). */
-.disc-ring {
+/* A grid item of the record (place-items: center), so the record keeps
+   whatever position its own classes give it. */
+.disc-knob {
+  position: relative;
+  width: 24%;
+  aspect-ratio: 1;
+  rotate: 40deg;
+}
+.disc-knob::after {
+  content: "";
   position: absolute;
+  left: 50%;
+  top: 3.1%;
+  width: 11.6%;
+  height: 39.3%;
+  translate: -50% 0;
   border-radius: 9999px;
-  background: conic-gradient(
-    from -90deg,
-    var(--color-accent-500),
-    var(--color-amber-500) 34%,
-    var(--color-ember-500) 58%,
-    transparent 58.2%
-  );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  background: var(--color-text-on-accent);
 }
 
 /* ── Skeleton shimmer (1.4s) ────────────────────────────────────── */
@@ -486,19 +542,15 @@ body:has(.guest-type) {
    the splash can never block the app. JS removes it earlier (or on tap). */
 @keyframes boot-intro-out {
   to {
-    opacity: 0;
     visibility: hidden;
   }
 }
+/* The black cuts out whole (no fade): a fade would show the page under it. */
 .boot-intro {
-  animation: boot-intro-out 0.35s ease-out 4.2s forwards;
-}
-html[data-intro="seen"] .boot-intro {
-  display: none;
+  animation: boot-intro-out 0s linear 4.2s forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .boot-intro {
-    animation-duration: 0.2s;
     animation-delay: 1s;
   }
 }

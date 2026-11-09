@@ -872,3 +872,237 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   "ritma" and "betbeat" stay reserved.
 - `.env.local` is not in git: set `TWILIO_FROM=Discontrol` by hand (10
   characters, within the 11 an alphanumeric SMS sender allows).
+
+## 2026-11-05 - Phase 8: monitoring, analytics, dependency fixes, load
+
+- **zod 3 → 4.6.7.** `pnpm audit` flagged a high memory-exhaustion
+  advisory on zod with no 3.x fix. The 57 importing files compile unchanged;
+  unit tests pass. Behaviour to keep in mind: `.uuid()` is RFC-strict (the
+  seed ids are valid v4), and an object key whose schema is
+  `z.unknown().transform()` is required. Rejected: staying on zod 3 behind
+  the 256 KB body limit (it only bounds the attack, it does not remove it).
+- **next 15.5.29** (Image Optimization RCE, Server Actions DoS),
+  **storybook 9.1.21**, **vitest 4.1.12**, `vite` forced to ^7.3.7. What is
+  left is moderate and dev-only (eslint's minimatch, Storybook's glob and
+  vitest mocker copy).
+- **Sentry: official SDK, pinned 11.8.0** (`@sentry/nextjs`, `@sentry/node`
+  for the worker; publisher getsentry, sentry-bot; chosen three weeks old,
+  not the newest). Off without a DSN; browser SDK is a lazy chunk loaded
+  only when `NEXT_PUBLIC_SENTRY_DSN` is set (guest bundle unchanged
+  otherwise, measured on the production build). No replay, no tracing by
+  default, `sendDefaultPii: false`, `lib/observability/scrub.ts` on every
+  event and breadcrumb. `captureConsoleIntegration` (errors only) forwards
+  the handled 500s that are logged with a correlation id. No source-map
+  upload yet (needs `withSentryConfig` + an auth token in CI). Rejected: a
+  hand-written envelope client (less code to trust, but loses request error
+  capture, linked errors and the worker integration).
+- **PostHog: server-side only, no SDK.** Funnel events from the server
+  (request transitions after commit, payment start, search, bids, top-ups,
+  slot decisions), allowlisted primitive properties, no person profiles, no
+  IP. Env renamed to `POSTHOG_KEY`/`POSTHOG_HOST` (old `NEXT_PUBLIC_*`
+  names still read) so the key no longer ships in the browser. Rejected:
+  `posthog-js` in the guest app (a tracker and a cookie on every guest
+  phone, a consent banner under RGPD, and more JavaScript).
+- **Turnstile gaps:** both were already closed in code (anonymous sign-in
+  waits for a token when `NEXT_PUBLIC_SUPABASE_CAPTCHA=1`; staff login
+  renders the widget and requires it in production). What remains is the
+  production Supabase dashboard switch, so the server now prints a
+  "not launch-ready" list at boot (`lib/security/launch-readiness.ts`).
+- **Load:** public auction state shared through a 500 ms micro-cache, a
+  public `/api/guest/auction/board` for realtime hints (cacheable for 1 s by
+  a CDN), guests poll every 8 s while realtime is up (3 s otherwise), hint
+  refetches capped at one per 1.5 s and spread over 0.5 s, session-state
+  per-IP limit 1 200 → 15 000/min. Numbers in `docs/LOAD-TEST.md`.
+- **The board rides on realtime.** After any auction change the server
+  publishes the fresh public board on `session:<id>:board` (private
+  channel, select policy for `authenticated`, no insert policy, so only the
+  service role can write; migration 0021). Phones apply it and make no
+  request; the public hint + `/board` refetch remains the fallback while the
+  board channel is down. Built centrally in `publishBroadcasts`, so every
+  path that announces `auction.updated` (bids, worker closes, webhooks, DJ)
+  sends it. Rejected: data on the public channel (any client can broadcast
+  there, so phones could be fed a fake board); CDN only (depends on hosting,
+  and still one request per phone per bid at the edge).
+
+## 2026-11-06 - The win gets its own page; Story picture; my place in the ranking
+
+- **Own page.** Winning opens `/s/<token>/win/<slotId>`: full screen, no
+  tab bar, no final-stretch frame, page scroll locked (html/body overflow
+  hidden, `touch-none`), no page-enter transform. On the old overlay the
+  page behind showed through at the top and bottom on iPhone (toolbar
+  resize while the page scrolled) and the tab bar sat on top. The page
+  reads the win from the guest's own auction state, so it only ever shows
+  their win; anything else goes back to the party. Two buttons only:
+  "Partilhar no Instagram" and "Voltar" (to the ranking, replacing the win
+  page in history).
+- **No sheet push-back in the guest app.** Vaul's background scale
+  transforms the page wrapper, which breaks every `position: fixed` inside
+  it on iOS (the tab bar jumped to the middle). `SheetPushDefault` turns it
+  off for the guest app; cockpit and console keep it.
+- **Story picture, not video.** The share is a 1080×1920 JPEG drawn on the
+  phone in the style of Spotify's song cards: background from the cover's
+  colour (brand red when the art is grey), a still of the win animation,
+  song, artist, Discontrol mark and venue. Drawn ahead of time so the share
+  sheet opens from the tap (iOS refuses it after a wait); the server's
+  plain card is the fallback. Rejected: Instagram's "Sharing to Stories"
+  (pastes straight into a Story) because it only exists for native iOS and
+  Android apps with a Meta app id; a web page can only hand the picture to
+  the share sheet, where the guest picks Instagram.
+- **Where I land in the ranking.** The ranking still counts played money
+  only (B6.8). The guest's own state now carries `rank` (place now, and
+  the place once their won, unplayed songs count). The ranking page shows
+  the guest's row at that projected place, marked "Tu" with "Conta quando
+  a tua faixa tocar"; arriving from "Voltar" (`?me=1`) it scrolls to the
+  row and pulses it once. Ties break by guest id, as in the SQL.
+- **Home-screen app: solid black status bar.** Added to the iPhone home
+  screen, `black-translucent` put the top of every page (logo, "Para casas")
+  under the clock and the battery, and no page pads for
+  `safe-area-inset-top`. `statusBarStyle: "black"` makes iOS keep the bar
+  out of the page; the pages are #000, so it blends in.
+- **…and pages pad for the status bar.** On Vouga's iPhone the solid bar
+  alone did not help: the home-screen app still laid the page under the
+  clock. `body` now pads `env(safe-area-inset-top)` with a fixed black strip
+  over that inset (z 70), and the sticky landing header and console sidebar
+  stick below it. Zero inset in a normal tab, so nothing changes there.
+- **Sharing needs HTTPS.** Safari only offers the Web Share API on a secure
+  page. Over `http://<LAN IP>:3000` it is missing, so "Partilhar no
+  Instagram" fell back to downloading the picture. On the real site, or a
+  phone test through an https tunnel, it opens the share sheet.
+- **The win opens at once.** On the phone the winner's screen took
+  seconds: it waited for the /win page to load (in `pnpm dev`, over a
+  tunnel, its code only downloaded after the win) and then for the album
+  art. Now the party layout draws the winner's screen the moment the win
+  lands and the address follows; the same element stays when the page
+  arrives. While the guest leads an auction, the screen's code and the art
+  of their leading song are fetched ahead (`/cover?bid=`, owner/backer of a
+  bid that leads an open auction, same rule as the winning bid), keyed by
+  auction and cover so a changed song never shows old art.
+- **Instagram straight to Stories needs a native app.** Instagram's own
+  Reel / Post / Story / Message chooser appears whenever a web page shares
+  a picture. Going straight to Stories (Spotify, Strava) uses Meta's
+  Sharing to Stories, native iOS/Android only (pasteboard + app id). Kept
+  the web share; a native wrapper is a later decision.
+- **DJ: end an auction now, or cancel it with bids.** Owner's ask
+  (2026-11-06). "Fechar agora" ends an open auction at once through the
+  normal close (the leader wins, runner-up rolls on, the winner is told).
+  "Cancelar e devolver" now also works with bids: every contribution goes
+  back to its guest's balance, as when the night ends with an auction open
+  (balance, not the payment method, per the 2026-10-10 rule). Both need a
+  second tap within 4 s in the cockpit. Audit-logged like every DJ action.
+
+## 2026-11-06 - Landing and front door: fewer "made by AI" tells
+
+Owner's ask: the site "still looks a bit AI". A small pass with the
+`design-taste-frontend` skill (its AI-tell list and pre-flight), inside the
+Apple decision of 2026-10-05 (palette, type, capsules unchanged) and B10.1/B10.4
+("no neon or gratuitous gradients", one glow per screen).
+
+- **One heading formula, once.** Every section heading was white-then-grey
+  ("Toma o controlo / da pista.", "Uma cabine, / três lados.", ...). The
+  two-tone stays only in the hero; the rest are one tone, left-aligned.
+- **No three equal cards.** "Como funciona" was three identical boxes with a
+  red icon each. Now the heading sits beside a plain list with hairlines and
+  bold lead-ins (stacked on the phone). Its title changed to "Assim se pede
+  uma música." so the "30 s" figure lives only in the bento.
+- **Labels and icons off the tiles.** The red "Convidados / DJs / Casas"
+  labels and the stock icons above every tile (and the shield on the
+  guarantee) are gone; each tile title names its side ("O DJ lê a pista em
+  tempo real.", "A casa não precisa de hardware novo.").
+- **The record is the logo.** The hero and bento records wear the mark's
+  knob (white pointer at 40 degrees, no spindle hole): `Disc knob`. The
+  leftover "BB" (BetBeat) initials and the `initials` prop are gone. The
+  hero lost its decorative heat arc (red to amber) and hairline rings;
+  `.disc-ring` was only used there and is removed.
+- **Copy says each thing once.** The refund promise appeared four times;
+  now the guarantee tile carries it (plus the outbid rule), the hero keeps
+  the DJ's last word (2026-10-29 rule), and the vague triads ("receita
+  extra, procura em tempo real e controlo artístico total") became concrete
+  sentences. Hero subtext is 14 words (the skill caps it at 20).
+- **Front door.** "Eventos em direto" is a neutral section header without
+  the pulsing red dot; the QR viewfinder corners are white like the iOS
+  code scanner, and the scan line lost its red glow. The red stays on the
+  button and the "Leilão aberto" pill.
+- **One glow per screen.** `.ambient` keeps only the red pool from above;
+  the second pool at the foot of the page is gone (guest app, login, 404,
+  venue screen).
+- **Small things.** The amber "Últimos 2 minutos!" box lost its pulsing dot
+  (the box and text carry the warning); the three dashes left in UI copy
+  (cockpit) are now a colon, a hyphen and a full stop.
+- **Kept on purpose.** Inter/SF Pro (the Apple decision overrides the
+  skill's "avoid Inter"), the pure black base, the red guarantee tile, the
+  English slogan, the gold "you lead" state, and the centred hero (an
+  Apple product page whose message is the design).
+
+### Same day, second pass: the party screens
+
+Vouga: "o site ficou exatamente igual". He judges the party (the QR link on
+his phone), which the first pass barely touched. Changes there:
+
+- **Agora:** nothing floats over the now-playing art any more (the "Ao vivo"
+  and "A tocar agora" pills are gone); one quiet "A tocar agora" line sits
+  above the title, and who picked the track is plain text, not an icon pill.
+  The progress bar is solid white like a player's scrubber; the red-to-amber
+  heat gradient stays for demand only.
+- **Leilão:** no eyebrow above the screen title, no gavel icon in the card
+  labels, and the live auction card lost its outer red glow (the red border
+  still marks it live; the last-seconds "hot" card is unchanged). This
+  overrides the earlier "red glow is the owner's look" note, at the owner's
+  request for a less AI-looking app.
+- **Ranking:** no "Sessão ativa · DJ na cabine" eyebrow (the page no longer
+  loads the session state just for it).
+- **Escolher faixa:** the fit chips in result rows are coloured text only
+  (`FitChip quiet`: no box, no icon; the words still carry the state), and
+  "Licitar" is a grey capsule with the red word, like the App Store's
+  "Obter", instead of thirty bare red words down the list. The cockpit keeps
+  the boxed chips.
+
+### Same day: the front-door camera on a plain-http address
+
+Vouga's iPhone opens the site at `http://<PC LAN IP>:3000`, which is not a
+secure context, so iOS hides `navigator.mediaDevices` and the live camera
+cannot open there at all (on the real https domain it does).
+
+- **The same button takes a photo instead.** With no live camera API the
+  main "Ler QR do evento" button is a native `<label>` around a visually
+  hidden `<input type="file" accept="image/*" capture="environment">`, so
+  the tap itself opens the iPhone camera (iOS ignores a programmatic
+  `input.click()` outside a user gesture, and a touch `pointerdown` is not
+  one). The photo is scaled to 1200 px and read with jsQR; the same
+  `guestPathFrom` rule applies, so only `/s/<token>` on this site is
+  opened. No QR in the photo and a foreign QR each get one line of text.
+- **Camera refused:** the panel offers "Tirar foto ao QR" (the same label)
+  and "Tentar outra vez".
+- **Live-camera buttons confirm on release** (`activateOn="release"`),
+  which iOS counts as a user gesture for `getUserMedia`.
+- The old "this browser cannot open the camera" phase and its copy are gone.
+
+## 2026-11-09 - Scrolling a list never picks a row
+
+Vouga: scrolling the song list sometimes opened a song by accident. Album
+and request rows (and the cockpit library rows) confirmed on pointer-down,
+so a scroll that started on them opened them; song rows confirmed on
+release but let the finger travel ~10px past the row's edges, and a tap
+that only stopped a gliding list counted as a pick.
+
+- **Rows in scrolling lists confirm on release** (`activateOn="release"`):
+  song, album, request and cockpit library rows. Buttons elsewhere keep
+  the owner's press-to-act rule of 2026-10-11.
+- **Release on touch is strict:** more than 8px of finger travel, or any
+  scroll during the press, cancels it for good (`stillATap`); no pointer
+  capture on touch, so the browser can turn the touch into a scroll; the
+  row lights up only after 90ms, so a scroll that starts on it does not
+  flash it.
+- **A touch within 180ms of a scroll only stops the glide** (iOS momentum),
+  for every press, including the page-wide press activation
+  (`components/ui/scroll-guard.ts`).
+
+## 2026-11-09 - Reading the QR from a photo tries harder
+
+Vouga: the camera opens but the QR is not read. One 1200 px pass misses a
+phone photo of the TV when the code is small, off to one side or washed by
+the screen. `components/landing/qr-photo.ts` now tries BarcodeDetector
+first (where present), then jsQR over a ladder of passes: the whole photo
+at 1000/1600/700/2200 px, centre crops, and eight overlapping halves for a
+code off to one side; the first code found wins. The button reads "A ler o
+QR…" meanwhile. If `createImageBitmap` fails (older Safari) the photo is
+decoded through an `<img>`.

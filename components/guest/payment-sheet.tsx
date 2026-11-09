@@ -198,7 +198,6 @@ export function PaymentSheet({
         if (!next && phase === "waiting" && requestId) onTracked(requestId);
       }}
       title={t("title")}
-      scaleBackground
     >
       <div className="flex flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-2">
         {phase === "method" ? (

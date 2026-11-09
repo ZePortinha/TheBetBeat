@@ -30,10 +30,6 @@ export function MotionLab() {
   }, []);
 
   function replayIntro() {
-    try {
-      sessionStorage.removeItem("bb-intro");
-    } catch {}
-    delete document.documentElement.dataset.intro;
     setShowIntro(true);
     setIntroKey((k) => k + 1);
   }
@@ -81,7 +77,7 @@ export function MotionLab() {
       ) : null}
 
       {final && seconds !== null ? <FinalStretchFrame secondsLeft={seconds} /> : null}
-      {showIntro ? <BootIntro key={introKey} /> : null}
+      {showIntro ? <BootIntro key={introKey} replay /> : null}
       {win ? (
         <WinCelebration
           slotId="00000000-0000-4000-8000-000000000000"
@@ -90,7 +86,7 @@ export function MotionLab() {
           totalCents={4200}
           coverUrl={null}
           venueName="Clube Maré"
-          onClose={() => setWin(false)}
+          onBack={() => setWin(false)}
         />
       ) : null}
     </main>
