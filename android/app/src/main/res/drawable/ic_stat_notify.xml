@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Discontrol mark as a status-bar silhouette: record ring + knob pointer (white only). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Record ring. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,1.5A10.5,10.5 0,1 1,12 22.5A10.5,10.5 0,1 1,12 1.5ZM12,3.3A8.7,8.7 0,1 0,12 20.7A8.7,8.7 0,1 0,12 3.3Z" />
+    <!-- Knob with the pointer cut out at 40 degrees. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,6.9A5.1,5.1 0,1 1,12 17.1A5.1,5.1 0,1 1,12 6.9ZM13.34,11.34L15.16,9.17L14.24,8.39L12.42,10.56Z" />
+</vector>

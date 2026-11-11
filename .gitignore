@@ -38,3 +38,11 @@ storybook-static/
 .DS_Store
 *.tsbuildinfo
 .vercel
+
+# native shell (Capacitor) — generated, or keys that stay on Vouga's machine
+native/www/app-url.js
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
+*.jks
+*.keystore
+*.p8

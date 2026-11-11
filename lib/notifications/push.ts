@@ -54,9 +54,17 @@ export function pushText(locale: string, kind: PushKind): { title: string; body:
     : { title: copy.wonTitle, body: copy.wonBody };
 }
 
-/** Sends each push to every device the guest enabled; dead subscriptions are dropped. */
+/** Sends each push to every device the guest enabled (browsers and the native app). */
 export async function sendGuestPushes(items: GuestPush[]): Promise<void> {
   if (items.length === 0) return;
+  await Promise.all([
+    sendWebPushes(items),
+    import("./native-push").then(({ sendNativePushes }) => sendNativePushes(items)).catch(() => undefined),
+  ]);
+}
+
+/** Web push to every browser the guest enabled; dead subscriptions are dropped. */
+async function sendWebPushes(items: GuestPush[]): Promise<void> {
   try {
     const { env } = await import("@/lib/security/env");
     if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return;

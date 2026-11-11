@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Native push (APNs). Xcode switches it to "production" for App Store builds. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Universal links: a camera-scanned QR (https://discontrol.app/s/...) opens the app.
+	     Needs /.well-known/apple-app-site-association on the site (APPLE_TEAM_ID). -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:discontrol.app</string>
+	</array>
+</dict>
+</plist>

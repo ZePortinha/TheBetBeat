@@ -206,6 +206,16 @@ cards, Open Graph, slogan and the new "Control the disco" boot intro. See
 DECISIONS 2026-10-29. Before/after screenshots in the project files
 (`discontrol-2026-10-29/`).
 
+## Native app shell for the stores (cloud session, 2026-11-11)
+
+Branch `claude/project-thread-2b6bmp`. Capacitor 8 iOS + Android projects
+loading the live site, icon/splash from the mark, offline page, native push
+(APNs + FCM, migration 0022, `/api/guest/push/native`), universal links /
+App Links on `/s/*`. Store phases and the account steps only Vouga can do:
+`docs/APP-LOJAS.md`. See DECISIONS 2026-11-11. Not yet built on a device
+(no Xcode/Android SDK in the cloud container); migration 0022 not yet run
+through `pnpm db:audit`.
+
 ## Next step
 
 Phase 8: wire Sentry (with `beforeSend` scrubbing) and PostHog behind env,
