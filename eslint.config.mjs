@@ -22,6 +22,9 @@ const eslintConfig = [
       "storybook-static/**",
       "supabase/.temp/**",
       "next-env.d.ts",
+      "android/**",
+      "ios/**",
+      "native/www/**",
     ],
   },
   {

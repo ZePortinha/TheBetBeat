@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Discontrol</title>
+<!-- Never shown in practice: the shell loads server.url (capacitor.config.ts).
+     Kept because Capacitor needs a web folder; falls through to the site. -->
+<style>html,body{margin:0;height:100%;background:#000}</style>
+</head>
+<body>
+<script src="app-url.js"></script>
+<script>window.location.replace(window.DISCONTROL_URL || "https://discontrol.app");</script>
+</body>
+</html>

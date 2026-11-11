@@ -5,12 +5,15 @@
  * guest has a bid in play. Hidden where push cannot work (iOS outside the
  * home-screen app, push off on the server) and after a "no". When already
  * allowed, the device is re-registered quietly (new phone, new link).
+ * Inside the App Store / Play build the same card drives native push
+ * (components/native/native-push.ts) instead.
  */
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import { BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isNativeApp } from "@/components/native/platform";
 import { apiFetch } from "./api";
 
 const LATER_KEY = "discontrol:push-later";
@@ -45,16 +48,30 @@ export function PushPrompt({ token, show }: { token: string; show: boolean }) {
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    if (!show || !supported()) return;
-    if (Notification.permission === "granted") {
-      void subscribe(token).catch(() => undefined);
-      return;
-    }
+    if (!show) return;
     let later = false;
     try {
       later = localStorage.getItem(LATER_KEY) === "1";
     } catch {
       // Storage blocked: just ask.
+    }
+    if (isNativeApp()) {
+      let cancelled = false;
+      void (async () => {
+        const native = await import("@/components/native/native-push");
+        if (!(await native.nativePushAvailable())) return;
+        const permission = await native.nativePushPermission();
+        if (permission === "granted") await native.registerNativePush(token);
+        else if (permission === "prompt" && !later && !cancelled) setAsk(true);
+      })().catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (!supported()) return;
+    if (Notification.permission === "granted") {
+      void subscribe(token).catch(() => undefined);
+      return;
     }
     if (Notification.permission !== "default" || later) return;
     void apiFetch<{ publicKey: string | null }>("/api/guest/push").then((res) => setAsk(res.ok && Boolean(res.data.publicKey)));
@@ -64,6 +81,13 @@ export function PushPrompt({ token, show }: { token: string; show: boolean }) {
 
   async function enable() {
     setBusy(true);
+    if (isNativeApp()) {
+      const native = await import("@/components/native/native-push");
+      if (await native.requestNativePush().catch(() => false)) await native.registerNativePush(token).catch(() => false);
+      setBusy(false);
+      setAsk(false);
+      return;
+    }
     const permission = await Notification.requestPermission();
     if (permission === "granted") await subscribe(token).catch(() => false);
     setBusy(false);

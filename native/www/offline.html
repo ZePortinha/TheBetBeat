@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Discontrol</title>
+<!--
+  Shown by the native shell when the site cannot be reached (capacitor.config.ts,
+  server.errorPath). A bundled page cannot use next-intl, so its two languages
+  live here (same exception as the cockpit SW offline page, DECISIONS).
+-->
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: #f5f5f7;
+    font: 100%/1.5 -apple-system, system-ui, "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+  main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1rem; padding: calc(2rem + env(safe-area-inset-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom)); text-align: center; }
+  img { width: 88px; height: 88px; margin-bottom: 0.5rem; }
+  h1 { margin: 0; font-size: 1.5rem; line-height: 1.15; letter-spacing: -0.01em; font-weight: 700; }
+  p { margin: 0; max-width: 20rem; color: #aeaeb2; }
+  button { margin-top: 0.75rem; min-height: 48px; padding: 0 1.75rem; border: 0; border-radius: 9999px;
+    background: #e8112d; color: #fff; font: inherit; font-weight: 600; touch-action: manipulation; }
+  button:active { background: #b50e24; transform: scale(0.97); transition: transform 100ms ease-out; }
+  button:focus-visible { outline: 2px solid #ff6961; outline-offset: 3px; }
+  button[aria-busy="true"] { opacity: 0.6; }
+</style>
+</head>
+<body>
+<main>
+  <img src="mark.svg" alt="" aria-hidden="true">
+  <h1 id="title">Sem ligação à internet</h1>
+  <p id="body">Liga os dados ou o Wi-Fi da casa e tenta outra vez. Os teus pedidos e o teu saldo estão guardados.</p>
+  <button id="retry" type="button">Tentar outra vez</button>
+</main>
+<script src="app-url.js"></script>
+<script>
+  (function () {
+    if (!/^pt\b/i.test(navigator.language || "pt")) {
+      document.documentElement.lang = "en";
+      document.getElementById("title").textContent = "No internet connection";
+      document.getElementById("body").textContent = "Turn on mobile data or the venue Wi-Fi and try again. Your requests and balance are safe.";
+      document.getElementById("retry").textContent = "Try again";
+    }
+    var url = window.DISCONTROL_URL || "https://discontrol.app";
+    var button = document.getElementById("retry");
+    function retry() {
+      button.setAttribute("aria-busy", "true");
+      window.location.replace(url);
+    }
+    button.addEventListener("click", retry);
+    // Coming back online retries by itself.
+    window.addEventListener("online", retry);
+  })();
+</script>
+</body>
+</html>

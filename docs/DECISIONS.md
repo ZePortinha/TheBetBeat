@@ -872,3 +872,41 @@ with the old name on 2026-10-17 stay as they are, for the same reasons.
   "ritma" and "betbeat" stay reserved.
 - `.env.local` is not in git: set `TWILIO_FROM=Discontrol` by hand (10
   characters, within the 11 an alphanumeric SMS sender allows).
+
+## 2026-11-11 — Native app for the stores: Capacitor shell over the live site
+
+- **Context:** Vouga wants Discontrol in the App Store and Google Play and
+  chose Capacitor (not a PWA-only route, not React Native).
+- **Decision:** the native app loads the production site (`server.url`,
+  default `https://discontrol.app`, `CAP_SERVER_URL` overrides at sync
+  time). The bundled `native/www` holds only the offline page. Capacitor 8.6
+  (pinned exact, published 2026-10-28) with app, push-notifications,
+  splash-screen and status-bar plugins. App id `app.discontrol` (final after
+  the first store upload).
+- **Why not a static export:** every page depends on the server (CSP nonce
+  per request in middleware, httpOnly Supabase cookies, server actions, API
+  routes, MB WAY webhooks). Remote loading keeps one codebase and one set of
+  security rules, and site deploys reach the app without store review. The
+  bridge is injected at document start (WKUserScript on iOS,
+  `addDocumentStartJavaScript` on Android), so the nonce CSP does not block it.
+- **Native push:** WKWebView and Android WebView have no web push, so the app
+  registers an APNs (iOS) or FCM (Android) token in `native_push_tokens`
+  (migration 0022, server-only like `push_subscriptions`). The sender
+  (`lib/notifications/native-push.ts`) signs its own JWTs with node:crypto
+  (APNs ES256 over HTTP/2, FCM HTTP v1 with a service account), so no
+  Firebase Admin SDK dependency. Off until the keys are set.
+- **Universal links / App Links:** only `/s/*` (guest app of an event) is
+  claimed, served from `/.well-known/*` once `APPLE_TEAM_ID` /
+  `ANDROID_CERT_SHA256` exist. Links that reach the app go through
+  `guestPathFrom`, like the QR scanner.
+- **Palette:** icon and splash use the Discontrol mark on black (Apple dark +
+  red, 2026-10-05), not the Stitch magenta/cyan named in the project
+  instructions, same as the rebrand of 2026-10-29.
+- **Offline page** carries its own pt-PT + EN copy (a bundled file cannot use
+  next-intl), same exception as the cockpit SW offline page.
+- **Store guide** `docs/APP-LOJAS.md` is in Portuguese because it is a
+  checklist for Vouga, not code.
+- **Rejected:** `next export` inside the bundle (breaks SSR, auth, CSP);
+  a local shell page that redirects to the site (the bridge would not be
+  injected into the site, so no native push); Firebase Admin SDK (large
+  dependency for two HTTP calls).

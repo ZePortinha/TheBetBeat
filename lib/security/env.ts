@@ -44,6 +44,19 @@ const serverEnvSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().optional(),
+  // Native app push (docs/APP-LOJAS.md). iOS goes straight to APNs with the
+  // .p8 key (PEM, "\n" escapes allowed); Android goes through FCM HTTP v1
+  // with a Firebase service account (JSON). Each is off while unset.
+  APNS_KEY_ID: z.string().optional(),
+  APNS_PRIVATE_KEY: z.string().optional(),
+  APNS_BUNDLE_ID: z.string().default("app.discontrol"),
+  // "sandbox" for Xcode debug builds; TestFlight and the App Store use "production".
+  APNS_ENV: z.enum(["sandbox", "production"]).default("production"),
+  FCM_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  // App Store / Play links: a scanned QR opens the app (/.well-known/*).
+  APPLE_TEAM_ID: z.string().regex(/^[A-Z0-9]{10}$/).optional().or(z.literal("")),
+  // Comma-separated SHA-256 fingerprints of the Play app signing key.
+  ANDROID_CERT_SHA256: z.string().optional(),
   EMAIL_PROVIDER: z.enum(["mock"]).default("mock"),
   INVOICING_PROVIDER: z.enum(["mock"]).default("mock"),
   // "deezer" = the real full catalog (public API, no key).
@@ -68,6 +81,7 @@ const serverEnvSchema = z.object({
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MOCK_MBWAY_AUTO_CONFIRM_MS"], message: "only with PAYMENT_PROVIDER=mock" });
   }
   need(Boolean(v.VAPID_PUBLIC_KEY || v.VAPID_PRIVATE_KEY), ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"]);
+  need(Boolean(v.APNS_KEY_ID || v.APNS_PRIVATE_KEY), ["APNS_KEY_ID", "APNS_PRIVATE_KEY", "APPLE_TEAM_ID"]);
   if (v.IFTHENPAY_ANTI_PHISHING_KEY !== undefined && v.IFTHENPAY_ANTI_PHISHING_KEY.length > 0 && v.IFTHENPAY_ANTI_PHISHING_KEY.length < 16) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["IFTHENPAY_ANTI_PHISHING_KEY"], message: "use at least 16 random characters" });
   }
